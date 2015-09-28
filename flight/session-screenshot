@@ -1,0 +1,3 @@
+#!/bin/bash
+SESSIONID="$1"
+tee | >(base64 -d > /tmp/${SESSIONID}.$(date "+%Y-%m-%d-%H%M%S").png)

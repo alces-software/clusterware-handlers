@@ -1,0 +1,52 @@
+#!/bin/bash
+alces_ROOT="/opt/clusterware"
+
+# Bail out if we're already configured (this is a reboot)
+if [ -d "${alces_ROOT}/etc/config/cluster" ]; then
+  exit 0
+fi
+
+# Bail out if we can't locate the config file
+if [ ! -f "${alces_ROOT}/etc/config.yml" ]; then
+  exit 1
+fi
+
+# Parse YAML file into something useful
+mkdir -p "${alces_ROOT}/etc/config/cluster/serf"
+/opt/clusterware/opt/ruby/bin/ruby -se 'eval ARGF.read' <<RUBY
+require 'yaml'
+require 'json'
+
+def write_file(name, content)
+  File.write("${alces_ROOT}/etc/config/cluster/#{name}",content)
+end
+
+config = YAML.load_file('${alces_ROOT}/etc/config.yml')['cluster']
+
+h = { discover: config['uuid'] }
+write_file('serf/cluster.json', h.to_json)
+
+tags = config['tags'] || {}
+h = { tags: tags.merge({ role: config['role'] }) }
+write_file('serf/tags.json', h.to_json)
+
+instance_vars = []
+instance_vars << %(UUID="#{config['uuid']}")
+instance_vars << %(ROLE="#{config['role']}")
+config['tags'].each do |k,v|
+  instance_vars << %(#{k.upcase}="#{v}")
+end
+write_file('instance.vars.sh', instance_vars.join("\n"))
+RUBY
+
+cp "${alces_ROOT}/etc/config/cluster/serf"/*.json "${alces_ROOT}/etc/serf"
+source "${alces_ROOT}/etc/distro.vars.sh"
+
+# Enable serf service for future boots and start it up
+if [ "${alces_OS}" == "el7" ]; then
+    systemctl enable clusterware-serf
+    systemctl start clusterware-serf
+elif [ "${alces_OS}" == "el6" ]; then
+    chkconfig clusterware-serf on
+    service clusterware-serf start
+fi

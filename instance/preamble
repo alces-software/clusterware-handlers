@@ -1,0 +1,6 @@
+#!/bin/bash
+alces_ROOT="/opt/clusterware"
+
+if [ -f "${alces_ROOT}/etc/config/instance/preamble.sh" ]; then
+  /bin/bash "${alces_ROOT}/etc/config/instance/preamble.sh"
+fi

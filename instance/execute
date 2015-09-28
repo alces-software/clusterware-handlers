@@ -1,0 +1,13 @@
+#!/bin/bash
+alces_ROOT="/opt/clusterware"
+
+HOOK_RUNNER="${alces_ROOT}/opt/pluginhook/bin/pluginhook"
+
+# Execute preamble
+$HOOK_RUNNER preamble
+
+# Execute payload
+$HOOK_RUNNER payload
+
+# Execute postamble
+$HOOK_RUNNER postamble

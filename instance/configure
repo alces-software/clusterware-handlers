@@ -1,0 +1,81 @@
+#!/bin/bash
+alces_ROOT="/opt/clusterware"
+
+# Bail out if we're already configured (this is a reboot)
+if [ -d "${alces_ROOT}/etc/config/instance" ]; then
+  exit 0
+fi
+
+# Bail out if we can't locate the config file
+if [ ! -f "${alces_ROOT}/etc/config.yml" ]; then
+  exit 1
+fi
+
+# Parse YAML file into something useful
+mkdir -p "${alces_ROOT}/etc/config/instance"
+/opt/clusterware/opt/ruby/bin/ruby -se 'eval ARGF.read' <<RUBY
+require 'yaml'
+
+def groupadd_cmd(name, gid = nil)
+  gid_param = gid ? "--gid #{gid} " : ''
+  "getent group #{name} &>/dev/null || groupadd #{gid_param}#{name}"
+end
+
+def useradd_cmd(name, uid = nil, group1 = nil, groups = [])
+  params = []
+  params << (uid ? "--uid #{uid}" : nil)
+  params << (group1 ? "--gid #{group1}" : '-U')
+  params << (groups.any? ? "-G #{groups.join(',')}" : nil)
+  "getent passwd #{name} &>/dev/null || useradd #{params.compact.join(' ')} #{name}"
+end
+
+def ssh_key_setup(name, ssh_public_key, group1 = nil)
+  return if ssh_public_key.nil?
+  <<SSH
+mkdir -p ~#{name}/.ssh
+chmod 0700 ~#{name}/.ssh
+chown #{name}:#{group1 || name} ~#{name}/.ssh
+cat <<EOF > ~#{name}/.ssh/authorized_keys
+#{ssh_public_key}
+EOF
+chmod 0600 ~#{name}/.ssh/authorized_keys
+chown #{name}:#{group1 || name} ~#{name}/.ssh/authorized_keys
+SSH
+end
+
+def write_file(name, content)
+  File.write("${alces_ROOT}/etc/config/instance/#{name}",content)
+end
+
+config = YAML.load_file('${alces_ROOT}/etc/config.yml')['instance']
+
+task_vars = []
+config['control']['params'].each do |k,v|
+  task_vars << %(#{k.upcase}="#{v}")
+end
+task_vars << %(RUNUSER="#{config['users'].first['username']}")
+write_file('task.vars.sh', task_vars.join("\n"))
+
+user_cmds = []
+config['users'].each do |u|
+  user_cmds << groupadd_cmd(u['group'], u['gid']) if u['group']
+  u['groups'] ||= []
+  u['groups'].each do |g|
+    user_cmds << groupadd_cmd(*g.split(':'))
+  end
+
+  groups = u['groups'].map {|g| g.split(':').first}
+  user_cmds << useradd_cmd(u['username'], u['uid'], u['group'], groups)
+  user_cmds << ssh_key_setup(u['username'], u['ssh_public_key'], u['group'])
+end
+
+write_file('create-users.sh', user_cmds.join("\n"))
+
+config['control']['scripts'] ||= []
+config['control']['scripts'].each do |name, content|
+  write_file("#{name}.sh", content)
+end
+RUBY
+
+# Create user(s)
+source "${alces_ROOT}/etc/config/instance/create-users.sh"
