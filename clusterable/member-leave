@@ -1,0 +1,27 @@
+#!/bin/bash
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    export cw_ROOT=${cw_ROOT:-/opt/clusterware}
+    source ${cw_ROOT}/lib/functions/core.functions.sh
+}
+
+main() {
+    member_unregister
+    if [ "$(member_count)" -lt "$(member_quorum)" ]; then
+        hook_run cluster-inquorate
+    fi
+}
+
+setup
+
+require member
+require hook
+
+main "$@"
