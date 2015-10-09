@@ -8,8 +8,11 @@ setup() {
             break
         fi
     done
-    export cw_ROOT=${cw_ROOT:-/opt/clusterware}
-    source ${cw_ROOT}/lib/functions/core.functions.sh
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
 }
 
 main() {
@@ -42,12 +45,15 @@ tags = config['tags'] || {}
 h = { tags: tags.merge({ role: config['role'] }) }
 write_file('serf/tags.json', h.to_json)
 
-instance_vars = []
-instance_vars << %(cw_NODE_role="#{config['role']}")
-instance_vars << %(cw_CLUSTER_uuid="#{config['uuid']}")
-instance_vars << %(cw_CLUSTER_quorum="#{config['quorum']}")
+cluster_vars = []
+cluster_vars << %(cw_CLUSTER_uuid="#{config['uuid']}")
+cluster_vars << %(cw_CLUSTER_quorum="#{config['quorum'] || 1}")
+cluster_vars << %(cw_CLUSTER_service_url="#{config['service_url']}")
+write_file('cluster.vars.sh', cluster_vars.join("\n"))
+
+instance_vars << %(cw_INSTANCE_role="#{config['role']}")
 config['tags'].each do |k,v|
-  instance_vars << %(cw_NODE_tag_#{k.upcase}="#{v}")
+  instance_vars << %(cw_INSTANCE_tag_#{k.upcase}="#{v}")
 end
 write_file('instance.vars.sh', instance_vars.join("\n"))
 RUBY

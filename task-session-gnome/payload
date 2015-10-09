@@ -16,11 +16,19 @@ setup() {
 }
 
 main() {
-    handler_run_hook preamble
-    handler_run_hook payload
-    handler_run_hook postamble
+    local session sessionid
+
+    source "${cw_ROOT}/etc/config/task/task.vars.sh"
+
+    # If necessary, re-execute ourselves as the correct user before
+    # starting the session.
+    process_reexec_su $cw_TASK_RUNUSER
+
+    session=${cw_TASK_param_SESSION-:gnome}
+    sessionid=$("${cw_ROOT}"/bin/alces session start --terse $session)
+    alces session wait $sessionid 1>&2
 }
 
 setup
-require handler
+require process
 main "$@"

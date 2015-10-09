@@ -1,6 +1,24 @@
 #!/bin/bash
-alces_ROOT="/opt/clusterware"
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
 
-if [ -f "${alces_ROOT}/etc/config/instance/preamble.sh" ]; then
-  /bin/bash "${alces_ROOT}/etc/config/instance/preamble.sh"
-fi
+main() {
+    process_sh "${cw_ROOT}/etc/config/instance/preamble.sh"
+}
+
+setup
+require process
+main "$@"

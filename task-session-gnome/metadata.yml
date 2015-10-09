@@ -1,0 +1,5 @@
+---
+preinstall:
+  _: |
+    alces handler enable taskable
+    alces session enable gnome

@@ -1,2 +1,54 @@
 #!/bin/bash
-echo "Session started"
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+main() {
+    local sessionid
+    local -A vnc
+
+    sessionid="$1"
+    if sessiondir=$(vnc_find_sessiondir "${sessionid}"); then
+        sessionid=$(basename "$sessiondir")
+        . "${sessiondir}"/metadata.vars.sh
+        . "${cw_ROOT}"/etc/config/cluster.vars.sh
+        cat <<JSON | webapi_post "${cw_CLUSTER_service_url}"/sessions
+{
+    "data": {
+        "type": "session",
+        "id": "${session_id}},
+        "attributes": {
+            "user": "${USER}",
+            "host": "${vnc[ADDRESS]}",
+            "port": "${vnc[PORT]}",
+            "display": "${vnc[DISPLAY]}",
+            "password": "${vnc[PASSWORD]}",
+            "websocket": "${vnc[WEBSOCKET]}"
+        },
+        "relationships: {
+            "cluster": {
+                 "data": {"type": "cluster", "id": "${cw_CLUSTER_uuid}"}
+            }
+        }
+    }
+}
+JSON
+    fi
+}
+
+setup
+require vnc
+require webapi
+main "$@"
