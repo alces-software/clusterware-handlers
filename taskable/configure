@@ -59,7 +59,7 @@ SSH
 end
 
 def write_file(name, content)
-  File.write("${cw_ROOT}/etc/config/tak/#{name}",content)
+  File.write("${cw_ROOT}/etc/config/task/#{name}",content)
 end
 
 config = YAML.load_file('${cw_ROOT}/etc/config.yml')['instance']
