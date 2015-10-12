@@ -16,9 +16,11 @@ setup() {
 }
 
 main() {
+    local count
     member_register
-    if [ "$(member_count)" -ge "$(member_quorum)" ]; then
-        handler_run_hook cluster-quorate
+    count="$(member_count)"
+    if [ "${count}" -ge "$(member_quorum)" ]; then
+        handler_run_hook cluster-quorate "${count}"
     fi
 }
 
@@ -27,4 +29,4 @@ setup
 require member
 require handler
 
-main "$@"
+tee >(main "$@")

@@ -16,9 +16,11 @@ setup() {
 }
 
 main() {
+    local count
     member_unregister
-    if [ "$(member_count)" -lt "$(member_quorum)" ]; then
-        handler_run_hook cluster-inquorate
+    count="$(member_count)"
+    if [ "${count}" -lt "$(member_quorum)" ]; then
+        handler_run_hook cluster-inquorate "${count}"
     fi
 }
 
@@ -27,4 +29,4 @@ setup
 require member
 require handler
 
-main "$@"
+tee >(main "$@")
