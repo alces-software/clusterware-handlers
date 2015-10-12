@@ -31,4 +31,4 @@ main() {
 
 setup
 require process
-main "$@"
+tee >(main "$@")

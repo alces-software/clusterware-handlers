@@ -100,4 +100,4 @@ setup
 
 require ruby
 
-main "$@"
+tee >(main "$@")

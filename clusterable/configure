@@ -70,4 +70,4 @@ setup
 require ruby
 require distro
 
-main "$@"
+tee >(main "$@")
