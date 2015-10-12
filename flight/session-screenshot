@@ -19,16 +19,33 @@ main() {
     local sessionid
     local -A vnc
 
+    content="$(cat)"
+    # tee >(base64 -d > /tmp/${sessionid}.$(date "+%Y-%m-%d-%H%M%S").png)
+
     sessionid="$1"
     if sessiondir=$(vnc_find_sessiondir "${sessionid}"); then
         sessionid=$(basename "$sessiondir")
-        webapi_delete "${cw_CLUSTER_service_url}"/sessions/${sessionid}
+        . "${cw_ROOT}"/etc/config/cluster.vars.sh
+        cat <<JSON | webapi_post "${cw_CLUSTER_service_url}"/sessions/${sessionid}/screens
+{
+    "data": {
+        "type": "screen",
+        "attributes": {
+            "content": "${content}",
+        },
+        "relationships: {
+            "session": {
+                 "data": {"type": "session", "id": "${sessionid}"}
+            }
+        }
+    }
+}
+JSON
     fi
 }
 
 setup
 require vnc
 require webapi
-main "$@"
 
-tee | >(base64 -d > /tmp/${SESSIONID}.$(date "+%Y-%m-%d-%H%M%S").png)
+tee >(main "$@")

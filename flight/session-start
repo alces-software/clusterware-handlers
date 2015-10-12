@@ -28,7 +28,7 @@ main() {
 {
     "data": {
         "type": "session",
-        "id": "${session_id}},
+        "id": "${sessionid}",
         "attributes": {
             "user": "${USER}",
             "host": "${vnc[ADDRESS]}",
@@ -51,4 +51,4 @@ JSON
 setup
 require vnc
 require webapi
-main "$@"
+tee >(main "$@")

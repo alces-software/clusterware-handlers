@@ -16,17 +16,24 @@ setup() {
 }
 
 main() {
-    local sessionid
-
-    sessionid="$1"
-    if sessiondir=$(vnc_find_sessiondir "${sessionid}"); then
-        sessionid=$(basename "$sessiondir")
-        webapi_delete "${cw_CLUSTER_service_url}"/sessions/${sessionid}
+    local count
+    count="$1"
+    . "${cw_ROOT}"/etc/config/cluster.vars.sh
+    cat <<JSON | webapi_post "${cw_CLUSTER_service_url}"/clusters
+{
+    "data": {
+        "type": "cluster",
+        "id": "${cw_CLUSTER_uuid}",
+        "attributes": {
+            "state": "inquorate",
+            "count": "${count}"
+        }
+    }
+}
+JSON
     fi
 }
 
 setup
-require vnc
 require webapi
-
 tee >(main "$@")
