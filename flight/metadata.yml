@@ -1,4 +1,4 @@
 ---
-preinstall:
+install:
   _: |
     alces handler enable clusterable
