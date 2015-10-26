@@ -63,10 +63,12 @@ def write_file(name, content)
 end
 
 config = YAML.load_file('${cw_ROOT}/etc/config.yml')['instance']
+control_opts = config['control'] || {}
 
-task_vars = []
-config['control']['params'].each do |k,v|
-  task_vars << %(cw_TASK_param_#{k.upcase}="#{v}")
+if control_opts.key?('params')
+  control_opts['params'].each do |k,v|
+    task_vars << %(cw_TASK_param_#{k.upcase}="#{v}")
+  end
 end
 task_vars << %(cw_TASK_RUNUSER="#{config['users'].first['username']}")
 write_file('task.vars.sh', task_vars.join("\n"))
@@ -86,9 +88,10 @@ end
 
 write_file('create-users.sh', user_cmds.join("\n"))
 
-config['control']['scripts'] ||= []
-config['control']['scripts'].each do |name, content|
-  write_file("#{name}.sh", content)
+if control_opts.key?('scripts')
+  control_opts['scripts'].each do |name, content|
+    write_file("#{name}.sh", content)
+  end
 end
 RUBY
 
