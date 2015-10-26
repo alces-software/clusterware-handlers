@@ -1,0 +1,41 @@
+#!/bin/bash
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+main() {
+    local a payload master_ip target_ip imports instance_ip
+
+    . ${cw_ROOT}/etc/config/cluster/instance.vars.sh
+    if [ "${cw_INSTANCE_role}" == "slave" ]; then
+        payload=($(cat))
+        master_ip="${payload[0]}"
+        target_ip="${payload[1]}"
+        imports="${payload[@]:2}"
+        instance_ip="$(network_get_network_address ${master_ip})"
+
+        if [ "${instance_ip}" == "${target_ip}" ]; then
+            for a in $imports; do
+                test -f $a || mkdir -p $a
+                mount -t nfs -o _netdev,bg,intr $master_ip:$a $a
+            done
+        fi
+    fi
+}
+
+setup
+require network
+
+tee >(main "$@")

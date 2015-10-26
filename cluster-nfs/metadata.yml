@@ -1,0 +1,12 @@
+---
+install:
+  el6: |
+    yum install -y -e0 nfs-utils
+  el7: |
+    yum install -y -e0 nfs-utils
+  _: |
+    if [ ! -f "${cw_ROOT}"/etc/nfs.vars.sh ]; then
+        cat <<EOF >> "${cw_ROOT}"/etc/nfs.vars.sh
+    cw_NFS_exports="/home /opt/gridware"
+    EOF
+    fi
