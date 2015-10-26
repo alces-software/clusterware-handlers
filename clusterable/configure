@@ -38,8 +38,13 @@ end
 
 config = YAML.load_file('${cw_ROOT}/etc/config.yml')['cluster']
 
-h = { discover: config['uuid'] }
-write_file('serf/cluster.json', h.to_json)
+if config['master']
+  h = { start_join: [config['master']] }
+  write_file('serf/join.json', h.to_json)
+else
+  h = { discover: config['uuid'] }
+  write_file('serf/cluster.json', h.to_json)
+end
 
 tags = config['tags'] || {}
 h = { tags: tags.merge({ role: config['role'] }) }
@@ -47,6 +52,9 @@ write_file('serf/tags.json', h.to_json)
 
 cluster_vars = []
 cluster_vars << %(cw_CLUSTER_uuid="#{config['uuid']}")
+if config['master']
+  cluster_vars << %(cw_CLUSTER_master="#{config['master']}")
+end
 cluster_vars << %(cw_CLUSTER_quorum="#{config['quorum'] || 1}")
 cluster_vars << %(cw_CLUSTER_service_url="#{config['service_url']}")
 write_file('cluster.vars.sh', cluster_vars.join("\n"))
