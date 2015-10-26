@@ -65,6 +65,7 @@ end
 config = YAML.load_file('${cw_ROOT}/etc/config.yml')['instance']
 control_opts = config['control'] || {}
 
+task_vars = []
 if control_opts.key?('params')
   control_opts['params'].each do |k,v|
     task_vars << %(cw_TASK_param_#{k.upcase}="#{v}")
