@@ -59,6 +59,7 @@ cluster_vars << %(cw_CLUSTER_quorum="#{config['quorum'] || 1}")
 cluster_vars << %(cw_CLUSTER_service_url="#{config['service_url']}")
 write_file('cluster.vars.sh', cluster_vars.join("\n"))
 
+instance_vars = []
 instance_vars << %(cw_INSTANCE_role="#{config['role']}")
 config['tags'].each do |k,v|
   instance_vars << %(cw_INSTANCE_tag_#{k.upcase}="#{v}")
