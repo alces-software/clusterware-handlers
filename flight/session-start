@@ -27,7 +27,7 @@ main() {
         cat <<JSON | webapi_post "${cw_CLUSTER_service_url}"/sessions
 {
     "data": {
-        "type": "session",
+        "type": "sessions",
         "id": "${sessionid}",
         "attributes": {
             "user": "${USER}",
@@ -39,7 +39,7 @@ main() {
         },
         "relationships: {
             "cluster": {
-                 "data": {"type": "cluster", "id": "${cw_CLUSTER_uuid}"}
+                 "data": {"type": "clusters", "id": "${cw_CLUSTER_uuid}"}
             }
         }
     }

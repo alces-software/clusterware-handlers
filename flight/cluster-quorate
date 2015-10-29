@@ -22,7 +22,7 @@ main() {
     cat <<JSON | webapi_post "${cw_CLUSTER_service_url}"/clusters
 {
     "data": {
-        "type": "cluster",
+        "type": "clusters",
         "id": "${cw_CLUSTER_uuid}",
         "attributes": {
             "state": "quorate",

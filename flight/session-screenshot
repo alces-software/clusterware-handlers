@@ -29,13 +29,13 @@ main() {
         cat <<JSON | webapi_post "${cw_CLUSTER_service_url}"/sessions/${sessionid}/screens
 {
     "data": {
-        "type": "screen",
+        "type": "screens",
         "attributes": {
             "content": "${content}",
         },
         "relationships: {
             "session": {
-                 "data": {"type": "session", "id": "${sessionid}"}
+                 "data": {"type": "sessions", "id": "${sessionid}"}
             }
         }
     }
