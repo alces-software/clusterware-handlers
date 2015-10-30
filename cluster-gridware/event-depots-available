@@ -19,21 +19,29 @@ main() {
     local a depots depot_meta depot_id depot_name
 
     . ${cw_ROOT}/etc/config/cluster/instance.vars.sh
+    cw_INSTANCE_log=${cw_INSTANCE_log:-/var/log/clusterware/instance.log}
     if [ "${cw_INSTANCE_role}" == "slave" ]; then
-        depots="$(cat)"
+        payload=($(cat))
+        log "Received payload from master: ${payload[*]}" "${cw_INSTANCE_log}"
+        depots="${payload[@]:1}"
         for a in $depots; do
-            IFS=":" depot_meta=($a)
+            IFS=':' read -a depot_meta <<< "${a}"
             depot_id="${depot_meta[0]}"
-            depot_name="${depot_meta[0]}"
+            depot_name="${depot_meta[1]}"
+            log "Found depot: id: ${depot_id}, name: ${depot_name}" "${cw_INSTANCE_log}"
             mkdir -p "/opt/gridware/depots/${depot_id}"
-            ln -snf "/opt/gridware/depots/${depot_id}" "/opt/gridware/${depot_name}"
             if [ "${depot_name}" == "local" ]; then
+                log "Updating local repository configuration to use ${depot_id}" "${cw_INSTANCE_log}"
+                source="$(readlink /opt/gridware/local)"
+                target="/opt/gridware/depots/${depot_id}"
                 sed -e 's,${source},${target},g' -i "${cw_ROOT}/etc/packager.yml"
             fi
-        fi
+            ln -snf "/opt/gridware/depots/${depot_id}" "/opt/gridware/${depot_name}"
+        done
     fi
 }
 
 setup
+require log
 
 tee >(main "$@")

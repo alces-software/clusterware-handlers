@@ -32,7 +32,7 @@ main() {
                 target="/opt/gridware/depots/$(uuid -v4 | cut -f1 -d'-')"
                 mv "${source}" "${target}"
                 ln -snf "${target}" /opt/gridware/${a}
-                if [ "${depot_name}" == "local" ]; then
+                if [ "${a}" == "local" ]; then
                     sed -e 's,${source},${target},g' -i "${cw_ROOT}/etc/packager.yml"
                 fi
             fi

@@ -24,7 +24,7 @@ main() {
             if [ -L "$a" ]; then
                 depot_name=$(basename $a)
                 depot_id=$(basename $(readlink $a))
-                depots+=(${depot_id}:${name})
+                depots+=(${depot_id}:${depot_name})
             fi
         done
         if [ "${depots}" ]; then
@@ -34,5 +34,6 @@ main() {
 }
 
 setup
+require handler
 
 tee >(main "$@")
