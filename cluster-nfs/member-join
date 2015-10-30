@@ -21,8 +21,8 @@ main() {
     if [ "${cw_INSTANCE_role}" == "master" ]; then
         eval "$(member_parse)"
         if [ "${cw_MEMBER_role}" == "slave" ]; then
-            if [ -f "${cw_ROOT}/etc/nfs.vars.sh" ]; then
-                . "${cw_ROOT}/etc/nfs.vars.sh"
+            if [ -f "${cw_ROOT}/etc/cluster-nfs.rc" ]; then
+                . "${cw_ROOT}/etc/cluster-nfs.rc"
             fi
             cw_NFS_exports="${cw_NFS_exports:-/home}"
             if [ -L "/opt/gridware/local" ]; then
