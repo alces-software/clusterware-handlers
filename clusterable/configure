@@ -61,7 +61,7 @@ write_file('cluster.vars.sh', cluster_vars.join("\n"))
 
 instance_vars = []
 instance_vars << %(cw_INSTANCE_role="#{config['role']}")
-config['tags'].each do |k,v|
+tags.each do |k,v|
   instance_vars << %(cw_INSTANCE_tag_#{k.upcase}="#{v}")
 end
 write_file('instance.vars.sh', instance_vars.join("\n"))
@@ -69,7 +69,8 @@ RUBY
 
     cp "${cw_ROOT}/etc/config/cluster/serf"/*.json "${cw_ROOT}/etc/serf"
 
-    iptables -I INPUT --dport 7946 -j ACCEPT
+    iptables -I INPUT -p tcp --dport 7946 -j ACCEPT
+    iptables -I INPUT -p udp --dport 7946 -j ACCEPT
 
     # Enable serf service for future boots and start it up
     distro_enable_service clusterware-serf
