@@ -21,7 +21,7 @@ main() {
         exit 0
     fi
 
-    mkdir "${cw_ROOT}/etc/config/nfs"
+    mkdir -p "${cw_ROOT}/etc/config/nfs"
 
     . ${cw_ROOT}/etc/config/cluster/instance.vars.sh
     if [ "${cw_INSTANCE_role}" == "master" ]; then

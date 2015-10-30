@@ -6,7 +6,10 @@ install:
     yum install -y -e0 nfs-utils
   _: |
     if [ ! -f "${cw_ROOT}"/etc/nfs.vars.sh ]; then
+        if [ -L "/opt/gridware/local" ]; then
+            gridware_depot="$(readlink /opt/gridware/local)"
+        fi
         cat <<EOF >> "${cw_ROOT}"/etc/nfs.vars.sh
-    cw_NFS_exports="/home /opt/gridware"
+    cw_NFS_exports="/home ${gridware_depot}"
     EOF
     fi
