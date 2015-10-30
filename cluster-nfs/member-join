@@ -21,24 +21,33 @@ main() {
     if [ "${cw_INSTANCE_role}" == "master" ]; then
         eval "$(member_parse)"
         if [ "${cw_MEMBER_role}" == "slave" ]; then
-            if [ -f "${cw_ROOT}/etc/cluster-nfs.rc" ]; then
-                . "${cw_ROOT}/etc/cluster-nfs.rc"
-            fi
-            cw_NFS_exports="${cw_NFS_exports:-/home}"
+            cw_CLUSTER_NFS_exports="${cw_CLUSTER_NFS_exports:-/home}"
             if [ -L "/opt/gridware/local" ]; then
-                cw_NFS_exports="${cw_NFS_exports} $(readlink /opt/gridware/local)"
+                cw_CLUSTER_NFS_exports="${cw_CLUSTER_NFS_exports} $(readlink /opt/gridware/local)"
             fi
 
             intf="$(network_get_network_device ${cw_MEMBER_ip})"
             master_ip="$(network_get_network_address ${cw_MEMBER_ip})"
 
-            for a in $cw_NFS_exports; do
+            for a in $cw_CLUSTER_NFS_exports; do
                 test -f $a || mkdir -p $a
+                log "Exporting filesystem: ${cw_MEMBER_ip}/32:$a (ro,no_root_squash,no_subtree_check,sync)" \
+                    "${cw_CLUSTER_NFS_log}"
                 exportfs -o "ro,no_root_squash,no_subtree_check,sync" ${cw_MEMBER_ip}/32:$a
             done
-            iptables -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -j ACCEPT
 
-            handler_broadcast nfs-ready ${master_ip} ${cw_MEMBER_ip} ${cw_NFS_exports}
+            if ! iptables -C INPUT -i ${intf} -s ${cw_MEMBER_ip} -j ACCEPT &>/dev/null; then
+                log "Adding iptables rule: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -j ACCEPT" \
+                    "${cw_CLUSTER_NFS_log}"
+                iptables -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -j ACCEPT
+            else
+                log "iptables rule already exists: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT" \
+                    "${cw_CLUSTER_NFS_log}"
+            fi
+
+            log "Broadcasting 'nfs-ready' event with: ${master_ip} ${cw_MEMBER_ip} ${cw_CLUSTER_NFS_exports}" \
+                "${cw_CLUSTER_NFS_log}"
+            handler_broadcast nfs-ready ${master_ip} ${cw_MEMBER_ip} ${cw_CLUSTER_NFS_exports}
         fi
     fi
 }
@@ -46,5 +55,12 @@ main() {
 setup
 require member
 require network
+require handler
+require log
+
+if [ -f "${cw_ROOT}/etc/cluster-nfs.rc" ]; then
+    . "${cw_ROOT}/etc/cluster-nfs.rc"
+fi
+cw_CLUSTER_NFS_log="${cw_CLUSTER_NFS_log:-/var/log/clusterware/cluster-nfs.log}"
 
 tee >(main "$@")
