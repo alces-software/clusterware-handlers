@@ -69,9 +69,10 @@ RUBY
 
     cp "${cw_ROOT}/etc/config/cluster/serf"/*.json "${cw_ROOT}/etc/serf"
 
+    iptables -I INPUT --dport 7946 -j ACCEPT
+
     # Enable serf service for future boots and start it up
     distro_enable_service clusterware-serf
-    distro_start_service clusterware-serf
 }
 
 setup
