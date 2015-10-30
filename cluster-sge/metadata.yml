@@ -1,7 +1,13 @@
 ---
 install:
   _: |
-    cat <<EOF > ${cw_ROOT}/cluster-sge.rc
+    cat <<EOF > ${cw_ROOT}/etc/cluster-sge.rc
+    ################################################################################
+    ##
+    ## Alces Clusterware - Shell configuration
+    ## Copyright (c) 2015 Alces Software Ltd
+    ##
+    ################################################################################
     cw_CLUSTER_SGE_log=/var/log/clusterware/cluster-sge.log
     EOF
     alces service install gridscheduler
