@@ -1,0 +1,62 @@
+#!/bin/bash
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+main() {
+    local tags tag tuple key value vmem_gb slots hook_dir intf master_ip
+    . ${cw_ROOT}/etc/config/cluster/instance.vars.sh
+    if [ "${cw_INSTANCE_role}" == "master" ]; then
+        eval "$(member_parse)"
+        if [ "${cw_MEMBER_role}" == "slave" ]; then
+            IFS=, tags=(${cw_MEMBER_tags})
+            for tag in "${tags[@]}"; do
+                IFS='=' tuple=($a)
+                key=${tuple[0]}
+                value=${tuple[1]}
+                if [ "$key" == "ram_gb" ]; then
+                    vmem_gb="${value}"
+                elif [ "$key" == "slots" ]; then
+                    slots="${value}"
+                fi
+            done
+
+            log "Adding node: ${cw_MEMBER_name} (${cw_MEMBER_ip}) with slots=${slots} and vmem=${vmem_gb}G" \
+                "${cw_CLUSTER_SGE_log}"
+            hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+            ${hook_dir}/share/sge-add-node "${cw_MEMBER_name}" "${cw_MEMBER_ip}" "${slots}" "${vmem_gb}" 2>&1 | log_blob "${cw_CLUSTER_SGE_log}" "sge-add-node"
+
+            intf="$(network_get_network_device ${cw_MEMBER_ip})"
+            master_ip="$(network_get_network_address ${cw_MEMBER_ip})"
+
+            log "Updating iptables: iptables -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT" \
+                "${cw_CLUSTER_SGE_log}"
+            iptables -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT
+            log "Broadcasting 'sge-ready' event with: ${master_ip} $(hostname -f) ${cw_MEMBER_ip}" \
+                "${cw_CLUSTER_SGE_log}"
+            handler_broadcast sge-ready ${master_ip} $(hostname -f) ${cw_MEMBER_ip}
+        fi
+    fi
+}
+
+setup
+require member
+require network
+require log
+
+if [ -f "${cw_ROOT}/etc/cluster-sge.rc" ]; then
+    . "${cw_ROOT}/etc/cluster-sge.rc"
+    tee >(main "$@")
+fi

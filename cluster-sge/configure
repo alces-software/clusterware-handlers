@@ -1,0 +1,47 @@
+#!/bin/bash
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+main() {
+    # Bail out if we're already configured (this is a reboot)
+    if [ -d "${cw_ROOT}/etc/config/gridscheduler" ]; then
+        exit 0
+    fi
+
+    mkdir -p "${cw_ROOT}/etc/config/gridscheduler"
+
+    . ${cw_ROOT}/etc/config/cluster/instance.vars.sh
+    if [ "${cw_INSTANCE_role}" == "master" ]; then
+        alces service enable gridscheduler/qmaster
+    elif [ "${cw_INSTANCE_role}" == "slave" ]; then
+        alces service enable gridscheduler/execd
+        ruby_run <<RUBY
+require 'json'
+
+config = JSON.load(File.read('${cw_ROOT}/etc/serf/tags.json'))
+config["tags"]["slots"] = $(grep -ic 'processor' /proc/cpuinfo)
+ram_kb = $(grep 'MemTotal' /proc/meminfo | awk '{print $2};')
+ram_approx_gb = (2 ** Math.log(ram_kb,2).ceil) / 1_048_576
+config["tags"]["ram_gb"] = ram_approx_gb
+File.write('${cw_ROOT}/etc/serf/tags.json', config.to_json)
+RUBY
+    fi
+}
+
+setup
+require ruby
+
+tee >(main "$@")

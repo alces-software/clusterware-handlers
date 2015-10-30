@@ -1,0 +1,7 @@
+---
+install:
+  _: |
+    cat <<EOF > ${cw_ROOT}/cluster-sge.rc
+    cw_CLUSTER_SGE_log=/var/log/clusterware/cluster-sge.log
+    EOF
+    alces service install gridscheduler

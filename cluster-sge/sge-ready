@@ -1,0 +1,58 @@
+#!/bin/bash
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+main() {
+    local payload master_ip master_name target_ip instance_ip
+
+    . ${cw_ROOT}/etc/config/cluster/instance.vars.sh
+    if [ "${cw_INSTANCE_role}" == "slave" ]; then
+        payload=($(cat))
+        master_ip="${payload[0]}"
+        master_name="${payload[1]}"
+        target_ip="${payload[2]}"
+
+        instance_ip="$(network_get_network_address ${master_ip})"
+
+        iptables -I INPUT -i ${intf} -s ${master_ip} -p tcp --dport 6445 -j ACCEPT
+        echo "${master_name}" > ${cw_ROOT}/opt/gridscheduler/etc/conf/act_qmaster
+
+        if ! grep -q "${master_ip}.*${master_name}" /etc/hosts; then
+            # no applicable entry yet.
+            if grep -q "${master_ip}" /etc/hosts; then
+                # IP present, but not this name: sed
+                sed -e "s/\(${master_ip}.*\)/\1 ${master_name}/g" -i /etc/hosts
+            elif grep -q "${master_name}" /etc/hosts; then
+                # name present, but not this IP: sed out the existing name
+                sed -e "s/\(.*\)${master_name}\(.*\)/\1\2/g" -i /etc/hosts
+                echo "${master_ip} ${master_name}" >> /etc/hosts
+            else
+                # IP and name not present, just add
+                echo "${master_ip} ${master_name}" >> /etc/hosts
+            fi
+        fi
+
+        if [ "${instance_ip}" == "${target_ip}" ]; then
+            distro_start_service clusterware-gridscheduler-execd
+        fi
+    fi
+}
+
+setup
+require network
+require distro
+
+tee >(main "$@")
