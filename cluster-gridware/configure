@@ -36,7 +36,7 @@ main() {
                     sed -e 's,${source},${target},g' -i "${cw_ROOT}/etc/packager.yml"
                 fi
             fi
-        fi
+        done
     fi
 }
 
