@@ -46,6 +46,11 @@ else
   write_file('serf/cluster.json', h.to_json)
 end
 
+if config['interface']
+  h = { interface: config['interface'] }
+  write_file('serf/interface.json, h.to_json)
+end
+
 tags = config['tags'] || {}
 h = { tags: tags.merge({ role: config['role'] }) }
 write_file('serf/tags.json', h.to_json)
@@ -61,6 +66,7 @@ write_file('cluster.vars.sh', cluster_vars.join("\n"))
 
 instance_vars = []
 instance_vars << %(cw_INSTANCE_role="#{config['role']}")
+instance_vars << %(cw_INSTANCE_log="#{config['log'] || '/var/log/clusterware/instance.log'}")
 tags.each do |k,v|
   instance_vars << %(cw_INSTANCE_tag_#{k.upcase}="#{v}")
 end
