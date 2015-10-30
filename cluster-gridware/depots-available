@@ -1,0 +1,39 @@
+#!/bin/bash
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+main() {
+    local a depots depot_meta depot_id depot_name
+
+    . ${cw_ROOT}/etc/config/cluster/instance.vars.sh
+    if [ "${cw_INSTANCE_role}" == "slave" ]; then
+        depots="$(cat)"
+        for a in $depots; do
+            IFS=":" depot_meta=($a)
+            depot_id="${depot_meta[0]}"
+            depot_name="${depot_meta[0]}"
+            mkdir -p "/opt/gridware/depots/${depot_id}"
+            ln -snf "/opt/gridware/depots/${depot_id}" "/opt/gridware/${depot_name}"
+            if [ "${depot_name}" == "local" ]; then
+                sed -e 's,${source},${target},g' -i "${cw_ROOT}/etc/packager.yml"
+            fi
+        fi
+    fi
+}
+
+setup
+
+tee >(main "$@")
