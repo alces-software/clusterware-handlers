@@ -21,9 +21,11 @@ main() {
     if [ "${cw_INSTANCE_role}" == "master" ]; then
         eval "$(member_parse)"
         if [ "${cw_MEMBER_role}" == "slave" ]; then
-            IFS=, tags=(${cw_MEMBER_tags})
+            log "Tags for slave ${cw_MEMBER_name} (${cw_MEMBER_ip}): ${cw_MEMBER_tags}" "${cw_CLUSTER_SGE_log}"
+            IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
             for tag in "${tags[@]}"; do
-                IFS='=' tuple=($a)
+                IFS='=' read -a tuple <<< "${tag}"
+                log "Found tuple: ${a}, key: ${tuple[0]}, value: ${tuple[1]}" "${cw_CLUSTER_SGE_log}"
                 key=${tuple[0]}
                 value=${tuple[1]}
                 if [ "$key" == "ram_gb" ]; then
@@ -41,9 +43,15 @@ main() {
             intf="$(network_get_network_device ${cw_MEMBER_ip})"
             master_ip="$(network_get_network_address ${cw_MEMBER_ip})"
 
-            log "Updating iptables: iptables -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT" \
-                "${cw_CLUSTER_SGE_log}"
-            iptables -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT
+            if ! iptables -C INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT &>/dev/null; then
+                log "Adding iptables rule: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT" \
+                    "${cw_CLUSTER_SGE_log}"
+                iptables -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT
+            else
+                log "iptables rule already exists: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT" \
+                    "${cw_CLUSTER_SGE_log}"
+            fi
+
             log "Broadcasting 'sge-ready' event with: ${master_ip} $(hostname -f) ${cw_MEMBER_ip}" \
                 "${cw_CLUSTER_SGE_log}"
             handler_broadcast sge-ready ${master_ip} $(hostname -f) ${cw_MEMBER_ip}
@@ -54,6 +62,7 @@ main() {
 setup
 require member
 require network
+require handler
 require log
 
 if [ -f "${cw_ROOT}/etc/cluster-sge.rc" ]; then

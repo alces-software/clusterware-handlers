@@ -1,9 +1,13 @@
 #!/bin/bash
 
+. /etc/profile.d/alces-clusterware.sh
+. /etc/xdg/clusterware/config.vars.sh
 module purge
+module use "${cw_ROOT}"/etc/modules
 module load services/gridscheduler
 
-name="$1"
+fqdn="$1"
+short_name=$(echo ${fqdn} | cut -f1 -d'.')
 ip="$2"
 slots="$3"
 vmem="$4"
@@ -12,14 +16,14 @@ if ! grep -q "${ip}.*${name}" /etc/hosts; then
     # no applicable entry yet.
     if grep -q "${ip}" /etc/hosts; then
         # IP present, but not this name: sed
-        sed -e "s/\(${ip}.*\)/\1 ${name}/g" -i /etc/hosts
+        sed -e "s/\(${ip}.*\)/\1 ${name} ${short_name}/g" -i /etc/hosts
     elif grep -q "${name}" /etc/hosts; then
         # name present, but not this IP: sed out the existing name
         sed -e "s/\(.*\)${name}\(.*\)/\1\2/g" -i /etc/hosts
-        echo "${ip} ${name}" >> /etc/hosts
+        echo "${ip} ${name} ${short_name}" >> /etc/hosts
     else
         # IP and name not present, just add
-        echo "${ip} ${name}" >> /etc/hosts
+        echo "${ip} ${name} ${short_name}" >> /etc/hosts
     fi
 fi
 
@@ -28,7 +32,7 @@ tmpfile="$(mktemp /tmp/sge-add-node.XXXXXXXX)"
 cat << EOF > "${tmpfile}"
 hostname              $name
 load_scaling          NONE
-complex_values        slots=$slots,exclusive=true,h_vmem=${vmem}G
+complex_values        slots=$slots,exclusive=true,h_vmem=${vmem}G,h_rt=86400
 user_lists            NONE
 xuser_lists           NONE
 projects              NONE
@@ -38,13 +42,18 @@ report_variables      NONE
 EOF
 qconf -Ae "${tmpfile}" || qconf -Me "${tmpfile}"
 
-for i in $(qconf -shgrpl)
-   qconf -shgrp $i | sed -e "s/^hostlist NONE/hostlist /g" \
-       -e "s/^hostlist \(.*\)/hostlist foo \1/g"
-   qconf -Mhgrp "${tmpfile}"
-done
+set -o pipefail
+# Add to allhosts group
+qconf -shgrp @allhosts | sed -e "s/^hostlist NONE/hostlist /g" \
+    -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > ${tmpfile} && \
+    qconf -Mhgrp "${tmpfile}"
+# Add to slot-aware hostgroup
+qconf -shgrp @${slots}slot | sed -e "s/^hostlist NONE/hostlist /g" \
+    -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > ${tmpfile} && \
+    qconf -Mhgrp "${tmpfile}"
+set +o pipefail
 rm -f "${tmpfile}"
 
 if [ -f "${cw_ROOT}"/etc/genders ]; then
-    echo "${name} nodes,compute,cluster,slave,all" >> "${cw_ROOT}"/etc/genders
+    echo "${short_name} nodes,compute,cluster,slave,all" >> "${cw_ROOT}"/etc/genders
 fi
