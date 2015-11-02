@@ -75,6 +75,16 @@ RUBY
 
     cp "${cw_ROOT}/etc/config/cluster/serf"/*.json "${cw_ROOT}/etc/serf"
 
+    if [ -f "${cw_ROOT}"/etc/genders ]; then
+        . "${cw_ROOT}"/etc/config/cluster/instance.vars.sh
+        short_name="$(hostname -s)"
+        if ! grep -q "^${short_name}" "${cw_ROOT}"/etc/genders; then
+            if [ "${cw_INSTANCE_ROLE}" == "master" ]; then
+                echo "${short_name} master,masters,cluster,all" >> "${cw_ROOT}"/etc/genders
+            fi
+        fi
+    fi
+
     iptables -I INPUT -p tcp --dport 7946 -j ACCEPT
     iptables -I INPUT -p udp --dport 7946 -j ACCEPT
 
