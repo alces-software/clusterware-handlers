@@ -6,11 +6,21 @@ module purge
 module use "${cw_ROOT}"/etc/modules
 module load services/gridscheduler
 
+if [ -f "${cw_ROOT}/etc/cluster-sge.rc" ]; then
+    . "${cw_ROOT}/etc/cluster-sge.rc"
+fi
+cw_CLUSTER_SGE_max_rt_seconds=${cw_CLUSTER_SGE_max_rt_seconds:-259200}
+cw_CLUSTER_SGE_min_vmem_gb=${cw_CLUSTER_SGE_min_vmem_gb:-4}
+
 name="$1"
 short_name=$(echo ${name} | cut -f1 -d'.')
 ip="$2"
 slots="$3"
 vmem="$4"
+
+if [ ${vmem:-0} -lt $cw_CLUSTER_SGE_min_vmem_gb ]; then
+    vmem=$cw_CLUSTER_SGE_min_vmem_gb
+fi
 
 if ! grep -q "${ip}.*${name}" /etc/hosts; then
     # no applicable entry yet.
@@ -32,7 +42,7 @@ tmpfile="$(mktemp /tmp/sge-add-node.XXXXXXXX)"
 cat << EOF > "${tmpfile}"
 hostname              $name
 load_scaling          NONE
-complex_values        slots=$slots,exclusive=true,h_vmem=${vmem}G,h_rt=86400
+complex_values        slots=$slots,exclusive=true,h_vmem=${vmem}G,h_rt=${cw_CLUSTER_SGE_max_rt_seconds}
 user_lists            NONE
 xuser_lists           NONE
 projects              NONE

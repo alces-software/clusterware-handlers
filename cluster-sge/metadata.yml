@@ -9,5 +9,7 @@ install:
     ##
     ################################################################################
     cw_CLUSTER_SGE_log=/var/log/clusterware/cluster-sge.log
+    cw_CLUSTER_SGE_max_rt_seconds=259200
+    cw_CLUSTER_SGE_min_vmem_gb=4
     EOF
     alces service install gridscheduler
