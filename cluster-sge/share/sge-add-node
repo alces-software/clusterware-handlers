@@ -6,8 +6,8 @@ module purge
 module use "${cw_ROOT}"/etc/modules
 module load services/gridscheduler
 
-fqdn="$1"
-short_name=$(echo ${fqdn} | cut -f1 -d'.')
+name="$1"
+short_name=$(echo ${name} | cut -f1 -d'.')
 ip="$2"
 slots="$3"
 vmem="$4"
