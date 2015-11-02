@@ -33,7 +33,7 @@ main() {
                 mv "${source}" "${target}"
                 ln -snf "${target}" /opt/gridware/${a}
                 if [ "${a}" == "local" ]; then
-                    sed -e 's,${source},${target},g' -i "${cw_ROOT}/etc/packager.yml"
+                    sed -e "s,${source},${target},g" -i "${cw_ROOT}/etc/packager.yml"
                 fi
             fi
         done
