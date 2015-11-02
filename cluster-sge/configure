@@ -45,3 +45,4 @@ setup
 require ruby
 
 tee >(main "$@")
+exit 0

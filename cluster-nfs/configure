@@ -41,3 +41,4 @@ setup
 require distro
 
 tee >(main "$@")
+exit 0

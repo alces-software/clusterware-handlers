@@ -37,3 +37,4 @@ setup
 require handler
 
 tee >(main "$@")
+exit 0

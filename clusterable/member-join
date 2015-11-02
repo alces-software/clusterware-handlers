@@ -30,3 +30,4 @@ require member
 require handler
 
 tee >(main "$@")
+exit 0

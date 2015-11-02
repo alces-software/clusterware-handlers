@@ -45,3 +45,4 @@ setup
 require log
 
 tee >(main "$@")
+exit 0

@@ -43,3 +43,4 @@ main() {
 setup
 
 tee >(main "$@")
+exit 0

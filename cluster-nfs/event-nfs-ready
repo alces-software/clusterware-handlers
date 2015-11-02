@@ -51,3 +51,4 @@ fi
 cw_CLUSTER_NFS_log="${cw_CLUSTER_NFS_log:-/var/log/clusterware/cluster-nfs.log}"
 
 tee >(main "$@")
+exit 0
