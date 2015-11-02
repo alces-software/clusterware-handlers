@@ -55,15 +55,20 @@ qconf -Ae "${tmpfile}" || qconf -Me "${tmpfile}"
 set -o pipefail
 # Add to allhosts group
 qconf -shgrp @allhosts | sed -e "s/^hostlist NONE/hostlist /g" \
-    -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > ${tmpfile} && \
+    -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > "${tmpfile}" && \
     qconf -Mhgrp "${tmpfile}"
 # Add to slot-aware hostgroup
 qconf -shgrp @${slots}slot | sed -e "s/^hostlist NONE/hostlist /g" \
-    -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > ${tmpfile} && \
+    -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > "${tmpfile}" && \
     qconf -Mhgrp "${tmpfile}"
 set +o pipefail
+# Workaround to make qmaster pay attention to hostgroup slots
+qconf -sq byslot.q > "${tmpfile}" && \
+    qconf -Mq "${tmpfile}"
 rm -f "${tmpfile}"
 
 if [ -f "${cw_ROOT}"/etc/genders ]; then
-    echo "${short_name} nodes,compute,cluster,slave,all" >> "${cw_ROOT}"/etc/genders
+    if ! grep -q "^${short_name}" "${cw_ROOT}"/etc/genders; then
+        echo "${short_name} nodes,compute,cluster,slave,all" >> "${cw_ROOT}"/etc/genders
+    fi
 fi
