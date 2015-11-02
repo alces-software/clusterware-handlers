@@ -44,6 +44,18 @@ main() {
                     "${cw_CLUSTER_SGE_log}"
             fi
 
+            # A hammer required to support qrsh (could implement a
+            # more intelligent firewall wrapper, but this is
+            # sufficient for our current purposes.
+            if ! iptables -C INPUT -i ${intf} -s ${master_ip} -j ACCEPT &>/dev/null; then
+                log "Adding iptables rule: -I INPUT -i ${intf} -s ${master_ip} -j ACCEPT" \
+                    "${cw_CLUSTER_SGE_log}"
+                iptables -I INPUT -i ${intf} -s ${master_ip} -j ACCEPT
+            else
+                log "iptables rule already exists: -I INPUT -i ${intf} -s ${master_ip} -j ACCEPT" \
+                    "${cw_CLUSTER_SGE_log}"
+            fi
+
             log "Setting act_qmaster name to: ${master_name}" "${cw_CLUSTER_SGE_log}"
             echo "${master_name}" > ${cw_ROOT}/opt/gridscheduler/etc/conf/act_qmaster
 
