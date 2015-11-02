@@ -35,6 +35,7 @@ config = JSON.load(File.read('${cw_ROOT}/etc/serf/tags.json'))
 config["tags"]["slots"] = $(grep -ic 'processor' /proc/cpuinfo).to_s
 ram_kb = $(grep 'MemTotal' /proc/meminfo | awk '{print $2};')
 ram_approx_gb = (2 ** Math.log(ram_kb,2).ceil) / 1_048_576
+ram_approx_gb = 4 if ram_approx_gb < 4
 config["tags"]["ram_gb"] = ram_approx_gb.to_s
 File.write('${cw_ROOT}/etc/serf/tags.json', config.to_json)
 RUBY
