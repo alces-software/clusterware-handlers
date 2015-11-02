@@ -92,7 +92,9 @@ main() {
 
 setup
 require log
+require handler
+
 if [ -f "${cw_ROOT}/etc/nvidia-driver.vars.sh" ]; then
     . "${cw_ROOT}/etc/nvidia-driver.vars.sh"
-    tee >(main "$@")
+    handler_tee main "$@"
 fi

@@ -51,4 +51,6 @@ JSON
 setup
 require vnc
 require webapi
-tee >(main "$@")
+require handler
+
+handler_tee main "$@"

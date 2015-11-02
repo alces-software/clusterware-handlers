@@ -31,4 +31,6 @@ main() {
 
 setup
 require process
-tee >(main "$@")
+require handler
+
+handler_tee main "$@"

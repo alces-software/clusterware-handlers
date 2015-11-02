@@ -103,5 +103,6 @@ RUBY
 setup
 
 require ruby
+require handler
 
-tee >(main "$@")
+handler_tee main "$@"

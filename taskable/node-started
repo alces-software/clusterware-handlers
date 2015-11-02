@@ -23,4 +23,5 @@ main() {
 
 setup
 require handler
-tee >(main "$@")
+
+handler_tee main "$@"

@@ -36,4 +36,6 @@ JSON
 
 setup
 require webapi
-tee >(main "$@")
+require handler
+
+handler_tee main "$@"
