@@ -77,9 +77,9 @@ RUBY
 
     if [ -f "${cw_ROOT}"/etc/genders ]; then
         . "${cw_ROOT}"/etc/config/cluster/instance.vars.sh
-        short_name="$(hostname -s)"
-        if ! grep -q "^${short_name}" "${cw_ROOT}"/etc/genders; then
-            if [ "${cw_INSTANCE_ROLE}" == "master" ]; then
+        if [ "${cw_INSTANCE_ROLE}" == "master" ]; then
+            short_name="$(hostname -s)"
+            if ! grep -q "^${short_name}" "${cw_ROOT}"/etc/genders; then
                 echo "${short_name} master,masters,cluster,all" >> "${cw_ROOT}"/etc/genders
             fi
         fi
