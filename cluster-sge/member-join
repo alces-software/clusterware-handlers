@@ -67,6 +67,5 @@ require log
 
 if [ -f "${cw_ROOT}/etc/cluster-sge.rc" ]; then
     . "${cw_ROOT}/etc/cluster-sge.rc"
-    tee >(main "$@")
-    exit 0
+    handler_tee main "$@"
 fi

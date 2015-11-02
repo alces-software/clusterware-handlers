@@ -44,11 +44,11 @@ main() {
 setup
 require network
 require log
+require handler
 
 if [ -f "${cw_ROOT}/etc/cluster-nfs.rc" ]; then
     . "${cw_ROOT}/etc/cluster-nfs.rc"
 fi
 cw_CLUSTER_NFS_log="${cw_CLUSTER_NFS_log:-/var/log/clusterware/cluster-nfs.log}"
 
-tee >(main "$@")
-exit 0
+handler_tee main "$@"

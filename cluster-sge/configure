@@ -43,6 +43,6 @@ RUBY
 
 setup
 require ruby
+require handler
 
-tee >(main "$@")
-exit 0
+handler_tee main "$@"

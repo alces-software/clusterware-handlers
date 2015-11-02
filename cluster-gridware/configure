@@ -41,6 +41,6 @@ main() {
 }
 
 setup
+require handler
 
-tee >(main "$@")
-exit 0
+handler_tee main "$@"

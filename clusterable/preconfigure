@@ -86,6 +86,6 @@ setup
 
 require ruby
 require distro
+require handler
 
-tee >(main "$@")
-exit 0
+handler_tee main "$@"

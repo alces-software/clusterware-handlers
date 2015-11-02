@@ -43,6 +43,6 @@ main() {
 
 setup
 require log
+require handler
 
-tee >(main "$@")
-exit 0
+handler_tee main "$@"

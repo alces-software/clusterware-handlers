@@ -39,6 +39,6 @@ main() {
 
 setup
 require distro
+require handler
 
-tee >(main "$@")
-exit 0
+handler_tee main "$@"
