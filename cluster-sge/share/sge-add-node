@@ -13,7 +13,18 @@ cw_CLUSTER_SGE_max_rt_seconds=${cw_CLUSTER_SGE_max_rt_seconds:-259200}
 cw_CLUSTER_SGE_min_vmem_gb=${cw_CLUSTER_SGE_min_vmem_gb:-4}
 
 name="$1"
-short_name=$(echo ${name} | cut -f1 -d'.')
+domainname="$(hostname -d)"
+if [[ "${name}" != *"."* ]]; then
+    # name is simply "<hostname>"
+    short_name="${name}"
+    name="${name}.${domainname}"
+else
+    if [[ "${name}" != *".${domainname}" ]]; then
+        # name is "<hostname>.<subdomain>"
+        name="$1.${domainname}"
+    fi
+    short_name=$(echo ${name} | cut -f1 -d'.')
+fi
 ip="$2"
 slots="$3"
 vmem="$4"
