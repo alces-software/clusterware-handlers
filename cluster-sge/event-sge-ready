@@ -78,6 +78,9 @@ main() {
                 log "/etc/hosts already contains ${master_name} -> ${master_ip} mapping" "${cw_CLUSTER_SGE_log}"
             fi
 
+            log "Waiting for a few seconds before starting the execd service" "${cw_CLUSTER_SGE_log}"
+            sleep 5
+
             log "Starting up clusterware-gridscheduler-execd service" "${cw_CLUSTER_SGE_log}"
             distro_start_service clusterware-gridscheduler-execd
         else
