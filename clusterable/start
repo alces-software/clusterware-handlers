@@ -17,6 +17,7 @@ setup() {
 
 main() {
     distro_start_service clusterware-serf
+    echo "Clusterware Serf service started"
 }
 
 setup
