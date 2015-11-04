@@ -26,7 +26,7 @@ else
     short_name=$(echo ${name} | cut -f1 -d'.')
 fi
 ip="$2"
-slots="$3"
+slots="${3:-1}"
 vmem="$4"
 
 if [ ${vmem:-0} -lt $cw_CLUSTER_SGE_min_vmem_gb ]; then
@@ -68,14 +68,16 @@ set -o pipefail
 qconf -shgrp @allhosts | sed -e "s/^hostlist NONE/hostlist /g" \
     -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > "${tmpfile}" && \
     qconf -Mhgrp "${tmpfile}"
-# Add to slot-aware hostgroup
-qconf -shgrp @${slots}slot | sed -e "s/^hostlist NONE/hostlist /g" \
-    -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > "${tmpfile}" && \
-    qconf -Mhgrp "${tmpfile}"
+if [ $slots -gt 1 ]; then
+    # Add to slot-aware hostgroup
+    qconf -shgrp @${slots}slot | sed -e "s/^hostlist NONE/hostlist /g" \
+        -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > "${tmpfile}" && \
+        qconf -Mhgrp "${tmpfile}"
+    # Workaround to make qmaster pay attention to hostgroup slots
+    qconf -sq byslot.q > "${tmpfile}" && \
+        qconf -Mq "${tmpfile}"
+fi
 set +o pipefail
-# Workaround to make qmaster pay attention to hostgroup slots
-qconf -sq byslot.q > "${tmpfile}" && \
-    qconf -Mq "${tmpfile}"
 rm -f "${tmpfile}"
 
 if [ -f "${cw_ROOT}"/etc/genders ]; then
