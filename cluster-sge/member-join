@@ -25,7 +25,7 @@ main() {
             IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
             for tag in "${tags[@]}"; do
                 IFS='=' read -a tuple <<< "${tag}"
-                log "Found tuple: ${a}, key: ${tuple[0]}, value: ${tuple[1]}" "${cw_CLUSTER_SGE_log}"
+                log "Found tuple: ${tag}, key: ${tuple[0]}, value: ${tuple[1]}" "${cw_CLUSTER_SGE_log}"
                 key=${tuple[0]}
                 value=${tuple[1]}
                 if [ "$key" == "ram_gb" ]; then
