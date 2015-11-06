@@ -71,6 +71,11 @@ RUBY
             if [ "${!urlvar}" ]; then
                 "${cw_ROOT}"/bin/alces gridware depot fetch "${!urlvar}" "${a}"
             fi
+            if [[ "${cw_GRIDWARE_depots_disabled}" == *":${a}:"* ]]; then
+                "${cw_ROOT}"/bin/alces gridware depot disable $a
+            else
+                "${cw_ROOT}"/bin/alces gridware depot enable $a
+            fi
         done
     fi
 }
