@@ -33,22 +33,25 @@ if [ ${vmem:-0} -lt $cw_CLUSTER_SGE_min_vmem_gb ]; then
     vmem=$cw_CLUSTER_SGE_min_vmem_gb
 fi
 
+tmpfile="$(mktemp /tmp/sge-add-node.XXXXXXXX)"
+
 if ! grep -q "${ip}.*${name}" /etc/hosts; then
     # no applicable entry yet.
     if grep -q "${ip}" /etc/hosts; then
         # IP present, but not this name: sed
-        sed -e "s/\(${ip}.*\)/\1 ${name} ${short_name}/g" -i /etc/hosts
+        sed -e "s/${ip} \(.*\)/${ip} ${name} ${short_name} \1/g" -i /etc/hosts
     elif grep -q "${name}" /etc/hosts; then
         # name present, but not this IP: sed out the existing name
-        sed -e "s/\(.*\)${name}\(.*\)/\1\2/g" -i /etc/hosts
+        sed -re "s/(.*)\s${name}( .*|$)/\1 \2/g" /etc/hosts | \
+            sed -re "s/(.*)\s${short_name}( .*|$)/\1 \2/g" | \
+            egrep -v "^(\S+)\s*$" > "${tmpfile}"
+        cat "${tmpfile}" > /etc/hosts
         echo "${ip} ${name} ${short_name}" >> /etc/hosts
     else
         # IP and name not present, just add
         echo "${ip} ${name} ${short_name}" >> /etc/hosts
     fi
 fi
-
-tmpfile="$(mktemp /tmp/sge-add-node.XXXXXXXX)"
 
 cat << EOF > "${tmpfile}"
 hostname              $name
@@ -65,17 +68,21 @@ qconf -Ae "${tmpfile}" || qconf -Me "${tmpfile}"
 
 set -o pipefail
 # Add to allhosts group
-qconf -shgrp @allhosts | sed -e "s/^hostlist NONE/hostlist /g" \
-    -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > "${tmpfile}" && \
-    qconf -Mhgrp "${tmpfile}"
-if [ $slots -gt 1 ]; then
-    # Add to slot-aware hostgroup
-    qconf -shgrp @${slots}slot | sed -e "s/^hostlist NONE/hostlist /g" \
+if ! qconf -shgrp @allhosts | grep -q "${name}"; then
+    qconf -shgrp @allhosts | sed -e "s/^hostlist NONE/hostlist /g" \
         -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > "${tmpfile}" && \
         qconf -Mhgrp "${tmpfile}"
-    # Workaround to make qmaster pay attention to hostgroup slots
-    qconf -sq byslot.q > "${tmpfile}" && \
-        qconf -Mq "${tmpfile}"
+fi
+if [ $slots -gt 1 ]; then
+    # Add to slot-aware hostgroup
+    if ! qconf -shgrp @${slots}slot | grep -q "${name}"; then
+        qconf -shgrp @${slots}slot | sed -e "s/^hostlist NONE/hostlist /g" \
+            -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > "${tmpfile}" && \
+            qconf -Mhgrp "${tmpfile}"
+        # Workaround to make qmaster pay attention to hostgroup slots
+        qconf -sq byslot.q > "${tmpfile}" && \
+            qconf -Mq "${tmpfile}"
+    fi
 fi
 set +o pipefail
 rm -f "${tmpfile}"
