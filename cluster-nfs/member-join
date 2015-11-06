@@ -22,9 +22,11 @@ main() {
         eval "$(member_parse)"
         if [ "${cw_MEMBER_role}" == "slave" ]; then
             cw_CLUSTER_NFS_exports="${cw_CLUSTER_NFS_exports:-/home}"
-            if [ -L "/opt/gridware/local" ]; then
-                cw_CLUSTER_NFS_exports="${cw_CLUSTER_NFS_exports} $(readlink /opt/gridware/local)"
-            fi
+            for a in /opt/gridware/*; do
+                if [ -L "$a" ]; then
+                    cw_CLUSTER_NFS_exports="${cw_CLUSTER_NFS_exports} $(readlink $a)"
+                fi
+            done
 
             intf="$(network_get_network_device ${cw_MEMBER_ip})"
             master_ip="$(network_get_network_address ${cw_MEMBER_ip})"

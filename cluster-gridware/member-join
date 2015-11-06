@@ -19,12 +19,19 @@ main() {
     local depots depot_name depot_id
     . ${cw_ROOT}/etc/config/cluster/instance.vars.sh
     if [ "${cw_INSTANCE_role}" == "master" ]; then
+        . ${cw_ROOT}/etc/config/gridware/gridware.rc
+
         depots=()
         for a in /opt/gridware/*; do
             if [ -L "$a" ]; then
                 depot_name=$(basename $a)
                 depot_id=$(basename $(readlink $a))
-                depots+=(${depot_id}:${depot_name})
+                if [[ "${cw_GRIDWARE_depots_disabled}" == *":${depot_name}:"* ]]; then
+                    depot_state="disabled"
+                else
+                    depot_state="enabled"
+                fi
+                depots+=(${depot_id}:${depot_name}:${depot_state})
             fi
         done
         if [ "${depots}" ]; then

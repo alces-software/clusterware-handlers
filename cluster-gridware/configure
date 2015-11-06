@@ -16,6 +16,8 @@ setup() {
 }
 
 main() {
+    local depots urlvar a source target
+
     # Bail out if we're already configured (this is a reboot)
     if [ -d "${cw_ROOT}/etc/config/gridware" ]; then
         exit 0
@@ -23,8 +25,35 @@ main() {
 
     mkdir -p "${cw_ROOT}/etc/config/gridware"
 
+    ruby_run <<RUBY
+require 'yaml'
+
+def write_file(name, content)
+  File.write("${cw_ROOT}/etc/config/gridware/#{name}",content)
+end
+
+config = YAML.load_file('${cw_ROOT}/etc/config.yml')['cluster']['gridware'] || {}
+
+gridware_vars = []
+if config['depots']
+  depot_names = []
+  disabled_depot_names = []
+  config['depots'].each do |d|
+    depot_names << d['name']
+    disabled_depot_names << d['name'] if d['disabled']
+    if d['url']
+      gridware_vars << "cw_GRIDWARE_depot_url_#{d['name']}=\"#{d['url']}\""
+    end
+  end
+  gridware_vars << ('cw_GRIDWARE_depots="' << depot_names.join(' ') << '"')
+  gridware_vars << ('cw_GRIDWARE_depots_disabled=":' << disabled_depot_names.join(':') << ':"')
+end
+write_file('gridware.rc', gridware_vars.join("\n"))
+RUBY
+
     . ${cw_ROOT}/etc/config/cluster/instance.vars.sh
     if [ "${cw_INSTANCE_role}" == "master" ]; then
+        . ${cw_ROOT}/etc/config/gridware/gridware.rc
         depots="local"
         for a in $depots; do
             if [ -L "/opt/gridware/${a}" ]; then
@@ -35,6 +64,12 @@ main() {
                 if [ "${a}" == "local" ]; then
                     sed -e "s,${source},${target},g" -i "${cw_ROOT}/etc/packager.yml"
                 fi
+            fi
+        done
+        for a in ${cw_GRIDWARE_depots}; do
+            urlvar="cw_GRIDWARE_depot_url_${a}"
+            if [ "${!urlvar}" ]; then
+                "${cw_ROOT}"/bin/alces gridware depot fetch "${!urlvar}" "${a}"
             fi
         done
     fi

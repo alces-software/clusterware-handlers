@@ -16,7 +16,7 @@ setup() {
 }
 
 main() {
-    local a depots depot_meta depot_id depot_name
+    local a depots depot_meta depot_id depot_name depot_state
 
     . ${cw_ROOT}/etc/config/cluster/instance.vars.sh
     if [ "${cw_INSTANCE_role}" == "slave" ]; then
@@ -27,7 +27,8 @@ main() {
             IFS=':' read -a depot_meta <<< "${a}"
             depot_id="${depot_meta[0]}"
             depot_name="${depot_meta[1]}"
-            echo "Found depot: id: ${depot_id}, name: ${depot_name}"
+            depot_state="${depot_meta[2]}"
+            echo "Found depot: id: ${depot_id}, name: ${depot_name}, state: ${depot_state}"
             mkdir -p "/opt/gridware/depots/${depot_id}"
             if [ "${depot_name}" == "local" ]; then
                 echo "Updating local repository configuration to use ${depot_id}"
@@ -36,6 +37,11 @@ main() {
                 sed -e "s,${source},${target},g" -i "${cw_ROOT}/etc/packager.yml"
             fi
             ln -snf "/opt/gridware/depots/${depot_id}" "/opt/gridware/${depot_name}"
+            if [ "${depot_state}" == "enabled" ]; then
+                "${cw_ROOT}"/bin/alces gridware depot enable $a
+            else
+                "${cw_ROOT}"/bin/alces gridware depot disable $a
+            fi
         done
     fi
 }
