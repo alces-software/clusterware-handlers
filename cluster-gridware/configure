@@ -66,6 +66,7 @@ RUBY
                 fi
             fi
         done
+        export HOME=${HOME:-/tmp}
         for a in ${cw_GRIDWARE_depots}; do
             urlvar="cw_GRIDWARE_depot_url_${a}"
             if [ "${!urlvar}" ]; then
