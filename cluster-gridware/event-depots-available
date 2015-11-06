@@ -37,10 +37,11 @@ main() {
                 sed -e "s,${source},${target},g" -i "${cw_ROOT}/etc/packager.yml"
             fi
             ln -snf "/opt/gridware/depots/${depot_id}" "/opt/gridware/${depot_name}"
+            export HOME=${HOME:-/tmp}
             if [ "${depot_state}" == "enabled" ]; then
-                "${cw_ROOT}"/bin/alces gridware depot enable $a
+                "${cw_ROOT}"/bin/alces gridware depot enable ${depot_name}
             else
-                "${cw_ROOT}"/bin/alces gridware depot disable $a
+                "${cw_ROOT}"/bin/alces gridware depot disable ${depot_name}
             fi
         done
     fi
