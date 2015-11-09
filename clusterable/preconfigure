@@ -1,4 +1,10 @@
 #!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2015 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
 setup() {
     local a xdg_config
     IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
@@ -59,6 +65,9 @@ cluster_vars = []
 cluster_vars << %(cw_CLUSTER_uuid="#{config['uuid']}")
 if config['master']
   cluster_vars << %(cw_CLUSTER_master="#{config['master']}")
+end
+if config['name']
+  cluster_vars << %(cw_CLUSTER_name="#{config['name']}")
 end
 cluster_vars << %(cw_CLUSTER_quorum="#{config['quorum'] || 1}")
 cluster_vars << %(cw_CLUSTER_service_url="#{config['service_url']}")

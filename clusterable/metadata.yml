@@ -1,3 +1,81 @@
+################################################################################
+##
+## Alces Clusterware - Handler metadata
+## Copyright (C) 2015 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
 ---
 description: |
   Configure services for handling a cluster of nodes.
+install:
+  el6: |
+    distro_preamble="$(cat <<'EOF'
+    welcome() (
+        w=79
+        emit() {
+          printf "%*s\n" $(((${#1}+${w})/2)) "$1"
+        }
+        emit '+++++++++++++++++++++++++++++++++++++++++++++'
+        emit "Welcome to $1"
+        emit "An Alces Clusterware environment (r$2)"
+        emit "Based on $(sed 's/\(.*\) release \(.*\) .*/\1 \2/g' /etc/redhat-release)"
+        emit '+++++++++++++++++++++++++++++++++++++++++++++'
+    )
+    EOF
+    )"
+    distro_postamble="unset -f welcome"
+  el7: |
+    distro_preamble="$(cat <<'EOF'
+    welcome() (
+        w=80
+        emit() {
+          printf "%*s\n" $(((${#1}+${w})/2)) "$1"
+        }
+        emit '+++++++++++++++++++++++++++++++++++++++++++++'
+        emit "Welcome to $1"
+        emit "Alces Clusterware (r$2)"
+        emit "Based on $(sed 's/\(.*\) release \(.*\) .*/\1 \2/g' /etc/redhat-release)"
+        emit '+++++++++++++++++++++++++++++++++++++++++++++'
+    )
+    EOF
+    )"
+    distro_postamble="unset -f welcome"
+  _: |
+    cat <<EOF > ${cw_ROOT}/etc/profile.d/clusterable.sh
+    ################################################################################
+    ##
+    ## Alces Clusterware - Shell configuration
+    ## Copyright (c) 2015 Alces Software Ltd
+    ##
+    ################################################################################
+    ${distro_preamble}
+    EOF
+    cat <<'EOF' >> ${cw_ROOT}/etc/profile.d/clusterable.sh
+    if [ "$PS1" ]; then
+        if [ -f "${cw_ROOT}"/etc/config/cluster/cluster.vars.sh ]; then
+            eval $(egrep '^cw_CLUSTER_(name|uuid)=' "${cw_ROOT}"/etc/config/cluster/cluster.vars.sh)
+            cw_CLUSTER_name="${cw_CLUSTER_name:-${cw_CLUSTER_uuid}}"
+            PS1="[\u@\h\[\e[1;34m\](${cw_CLUSTER_name})\[\e[0m\] \W]\\$ "
+            unset cw_CLUSTER_name cw_CLUSTER_uuid
+        fi
+    fi
+    if [[ "$0" == '-'* ]]; then
+        # Respect .hushlogin setting
+        if [ ! -f "$HOME/.hushlogin" ]; then
+            # this is a login shell, so we show a login message
+            if [ -f "${cw_ROOT}"/etc/config/cluster/cluster.vars.sh ]; then
+                eval $(grep '^cw_CLUSTER_name=' "${cw_ROOT}"/etc/config/cluster/cluster.vars.sh)
+            fi
+            if [ -f "${cw_ROOT}"/etc/clusterware.rc ]; then
+                eval $(grep '^cw_RELEASE=' "${cw_ROOT}"/etc/clusterware.rc)
+            fi
+            welcome "${cw_CLUSTER_name:-your cluster}" "${cw_RELEASE:-1}"
+            if [ -f "${cw_ROOT}"/etc/motd ]; then
+                cat ${cw_ROOT}/etc/motd
+                echo ""
+            fi
+            unset cw_CLUSTER_name cw_RELEASE
+        fi
+    fi
+    EOF
+    echo "${distro_postamble}" >> ${cw_ROOT}/etc/profile.d/clusterable.sh
