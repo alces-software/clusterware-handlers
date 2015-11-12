@@ -13,4 +13,4 @@ install:
   el7: |
     yum install -y -e0 bind-utils
   _: |
-    alces service install aws
+    alces service install aws || true
