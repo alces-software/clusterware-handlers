@@ -45,12 +45,12 @@ end
 config = YAML.load_file('${cw_ROOT}/etc/config.yml')['cluster']
 
 if config['master']
-  h = { start_join: [config['master']] }
+  h = { retry_join: [config['master']] }
   write_file('serf/join.json', h.to_json)
-else
-  h = { discover: config['uuid'] }
-  write_file('serf/cluster.json', h.to_json)
 end
+
+h = { discover: config['uuid'] }
+write_file('serf/cluster.json', h.to_json)
 
 if config['interface']
   h = { interface: config['interface'] }
@@ -68,6 +68,9 @@ if config['master']
 end
 if config['name']
   cluster_vars << %(cw_CLUSTER_name="#{config['name']}")
+end
+if config['interface']
+  cluster_vars << %(cw_CLUSTER_iface="#{config['interface']}")
 end
 cluster_vars << %(cw_CLUSTER_quorum="#{config['quorum'] || 1}")
 cluster_vars << %(cw_CLUSTER_service_url="#{config['service_url']}")
@@ -96,9 +99,6 @@ RUBY
 
     iptables -I INPUT -p tcp --dport 7946 -j ACCEPT
     iptables -I INPUT -p udp --dport 7946 -j ACCEPT
-
-    # Enable serf service for future boots and start it up
-    distro_enable_service clusterware-serf
 }
 
 setup
