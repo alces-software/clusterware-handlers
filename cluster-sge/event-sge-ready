@@ -28,7 +28,7 @@ main() {
         log "Parsed payload as: master: ${master_name} (${master_ip}) target: ${target_ip}" \
             "${cw_CLUSTER_SGE_log}"
 
-        intf="$(network_get_network_device ${master_ip})"
+        intf="$(network_get_route_iface ${master_ip})"
         instance_ip="$(network_get_network_address ${master_ip})"
         log "Instance IP is: ${instance_ip}" "${cw_CLUSTER_SGE_log}"
 

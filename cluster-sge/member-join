@@ -40,7 +40,7 @@ main() {
             hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
             ${hook_dir}/share/sge-add-node "${cw_MEMBER_name}" "${cw_MEMBER_ip}" "${slots}" "${vmem_gb}" 2>&1 | log_blob "${cw_CLUSTER_SGE_log}" "sge-add-node"
 
-            intf="$(network_get_network_device ${cw_MEMBER_ip})"
+            intf="$(network_get_route_iface ${cw_MEMBER_ip})"
             master_ip="$(network_get_network_address ${cw_MEMBER_ip})"
 
             if ! iptables -C INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT &>/dev/null; then

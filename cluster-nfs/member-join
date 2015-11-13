@@ -28,7 +28,7 @@ main() {
                 fi
             done
 
-            intf="$(network_get_network_device ${cw_MEMBER_ip})"
+            intf="$(network_get_route_iface ${cw_MEMBER_ip})"
             master_ip="$(network_get_network_address ${cw_MEMBER_ip})"
 
             for a in $cw_CLUSTER_NFS_exports; do
