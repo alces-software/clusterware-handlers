@@ -96,9 +96,6 @@ RUBY
             fi
         fi
     fi
-
-    iptables -I INPUT -p tcp --dport 7946 -j ACCEPT
-    iptables -I INPUT -p udp --dport 7946 -j ACCEPT
 }
 
 setup

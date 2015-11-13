@@ -22,6 +22,8 @@ setup() {
 }
 
 main() {
+    iptables -I INPUT -p tcp --dport 7946 -j ACCEPT
+    iptables -I INPUT -p udp --dport 7946 -j ACCEPT
     distro_start_service clusterware-serf
     echo "Clusterware Serf service started"
 }
