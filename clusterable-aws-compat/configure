@@ -22,10 +22,30 @@ setup() {
 }
 
 _setup_serf_joins() {
-    local srv_name ip
+    local srv_name ip wait records
+    if [ "$1" == "--wait" ]; then
+        wait=true
+        shift
+    fi
     srv_name="$1"
     ip="$2"
-    dig +short ${srv_name} SRV | (
+
+    tmr=0
+    tmout=120
+    records="$(dig +short ${srv_name} SRV)"
+    while [ -n "${wait}" -a "${tmr}" -lt "${tmout}" -a -z "${records}" ]; do
+        sleep 1 </dev/null &>/dev/null &
+        wait $!
+        tmr=$(($tmr+1))
+        records="$(dig +short ${srv_name} SRV)"
+    done
+    if [ "${tmr}" == "${tmout}" ]; then
+        echo "No SRV records found for ${srv_name} after timeout, giving up. :-("
+    else
+        echo "Processing SRV records: ${records}"
+    fi
+
+    echo "${records}" | (
         ips=""
         while read pri weight port target; do
             if [ "$target" != "$ip" ]; then
@@ -97,21 +117,21 @@ EOF
 }
 
 main() {
-    if [ ! -f "${cw_ROOT}/etc/config/cluster/cluster.vars.sh" ]; then
-        echo "Unable to locate cluster configuration"
-        exit 1
-    fi
-
-    . "${cw_ROOT}/etc/config/cluster/cluster.vars.sh"
+    files_load_config cluster config/cluster
+    files_load_config instance config/cluster
 
     srv_name="_serf._tcp.${cw_CLUSTER_name:-${cw_CLUSTER_uuid}}.cluster"
-    if [ "${cw_CLUSTER_iface}" ]; then
-        ip="$(network_get_device_address ${cw_CLUSTER_iface})"
+    ip="$(network_get_iface_address ${cw_CLUSTER_iface:-$(network_get_first_iface)})"
+
+    # If we're a master instance, then we'll be the first to add a
+    # record, otherwise we need to wait until there's at least one
+    # record so we can join the cluster!
+    if [ "${cw_INSTANCE_role}" != "master" ]; then
+        _setup_serf_joins --wait "${srv_name}" "${ip}"
     else
-        ip="$(network_get_public_address)"
+        _setup_serf_joins "${srv_name}" "${ip}"
     fi
 
-    _setup_serf_joins "${srv_name}" "${ip}"
     _configure_once
 }
 
@@ -119,6 +139,7 @@ setup
 
 require handler
 require network
+require files
 
 _AWS="${cw_ROOT}/opt/aws/bin/aws"
 _JQ="${cw_ROOT}/opt/jq/bin/jq"
