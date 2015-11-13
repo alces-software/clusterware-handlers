@@ -33,6 +33,9 @@ _setup_serf_joins() {
     tmr=0
     tmout=120
     records="$(dig +short ${srv_name} SRV)"
+    if [ "$?" -gt 0 ]; then
+        records=""
+    fi
     while [ -n "${wait}" -a "${tmr}" -lt "${tmout}" -a -z "${records}" ]; do
         sleep 1 </dev/null &>/dev/null &
         wait $!
