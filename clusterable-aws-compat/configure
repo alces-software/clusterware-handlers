@@ -120,7 +120,7 @@ main() {
     files_load_config cluster config/cluster
     files_load_config instance config/cluster
 
-    srv_name="_serf._tcp.${cw_CLUSTER_name:-${cw_CLUSTER_uuid}}.cluster"
+    srv_name="_serf._tcp.${cw_CLUSTER_uuid}.cluster"
     ip="$(network_get_iface_address ${cw_CLUSTER_iface:-$(network_get_first_iface)})"
 
     # If we're a master instance, then we'll be the first to add a
