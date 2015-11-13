@@ -42,13 +42,13 @@ _setup_serf_joins() {
     if [ "${tmr}" == "${tmout}" ]; then
         echo "No SRV records found for ${srv_name} after timeout, giving up. :-("
     else
-        echo "Processing SRV records: ${records}"
+        echo "Processing SRV records: ${records:-(NONE)}"
     fi
 
     echo "${records}" | (
         ips=""
         while read pri weight port target; do
-            if [ "$target" != "$ip" ]; then
+            if [ -n "${target}" -a "$target" != "$ip" ]; then
                 ips="\"$target\",$ips"
             fi
         done
