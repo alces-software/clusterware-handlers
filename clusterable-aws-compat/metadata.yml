@@ -15,5 +15,6 @@ install:
   _: |
     alces service install aws || true
     cat <<EOF > /etc/sudoers.d/clusterable-aws-compat-session-handling
+    Defaults!/opt/clusterware/etc/handlers/clusterable-aws-compat/session-* !requiretty
     ALL ALL=(root) NOPASSWD:${cw_ROOT}/etc/handlers/clusterable-aws-compat/session-*
     EOF
