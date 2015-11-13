@@ -28,6 +28,12 @@ main() {
     fi
 }
 
+if [ "$UID" != "0" ]; then
+  exec sudo "$0" "$@"
+elif [ "$SUDO_USER" ]; then
+  HOME=$(eval echo "~$SUDO_USER")
+fi
+
 setup
 require vnc
 require handler

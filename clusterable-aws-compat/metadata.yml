@@ -14,3 +14,6 @@ install:
     yum install -y -e0 bind-utils
   _: |
     alces service install aws || true
+    cat <<EOF > /etc/sudoers.d/clustrable-aws-compat-session-handling
+    ALL=(root) NOPASSWD:${cw_ROOT}/etc/handlers/clusterable-aws-compat/session-*
+    EOF
