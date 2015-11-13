@@ -48,8 +48,10 @@ _setup_serf_joins() {
     echo "${records}" | (
         ips=""
         while read pri weight port target; do
-            if [ -n "${target}" -a "$target" != "$ip" ]; then
-                ips="\"$target\",$ips"
+            # strip trailing '.' character
+            target="${target%?}"
+            if [ -n "${target}" -a "${target}" != "${ip}" ]; then
+                ips="\"${target}\",${ips}"
             fi
         done
         echo "{\"retry_join\":[${ips%?}]}" > "${cw_ROOT}/etc/serf/join.json"
