@@ -38,8 +38,8 @@ main() {
 require 'yaml'
 require 'json'
 
-def write_file(name, content)
-  File.write("${cw_ROOT}/etc/config/cluster/#{name}",content)
+def write_file(name, content, *args)
+  File.write("${cw_ROOT}/etc/config/cluster/#{name}",content,*args)
 end
 
 config = YAML.load_file('${cw_ROOT}/etc/config.yml')['cluster']
@@ -75,6 +75,13 @@ end
 cluster_vars << %(cw_CLUSTER_quorum="#{config['quorum'] || 1}")
 cluster_vars << %(cw_CLUSTER_service_url="#{config['service_url']}")
 write_file('cluster.vars.sh', cluster_vars.join("\n"))
+write_file('config.rc', cluster_vars.join("\n"))
+
+auth_vars = []
+if config['token']
+  auth_vars << %(cw_CLUSTER_auth_token="#{config['token']}")
+end
+write_file('auth.rc', auth_vars.join("\n"), perm: 0600)
 
 instance_vars = []
 instance_vars << %(cw_INSTANCE_role="#{config['role']}")
@@ -83,12 +90,13 @@ tags.each do |k,v|
   instance_vars << %(cw_INSTANCE_tag_#{k.upcase}="#{v}")
 end
 write_file('instance.vars.sh', instance_vars.join("\n"))
+write_file('instance.rc', instance_vars.join("\n"))
 RUBY
 
     cp "${cw_ROOT}/etc/config/cluster/serf"/*.json "${cw_ROOT}/etc/serf"
 
     if [ -f "${cw_ROOT}"/etc/genders ]; then
-        . "${cw_ROOT}"/etc/config/cluster/instance.vars.sh
+        . "${cw_ROOT}"/etc/config/cluster/instance.rc
         if [ "${cw_INSTANCE_role}" == "master" ]; then
             short_name="$(hostname -s)"
             if ! grep -q "^${short_name}" "${cw_ROOT}"/etc/genders; then
