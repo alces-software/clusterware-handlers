@@ -23,7 +23,7 @@ main() {
     if sessiondir=$(vnc_find_sessiondir "${sessionid}"); then
         sessionid=$(basename "$sessiondir")
         . "${sessiondir}"/metadata.vars.sh
-        . "${cw_ROOT}"/etc/config/cluster.vars.sh
+        . "${cw_ROOT}"/etc/config/cluster/config.rc
         cat <<JSON | webapi_post "${cw_CLUSTER_service_url}"/sessions
 {
     "data": {

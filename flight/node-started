@@ -40,10 +40,13 @@ main() {
     local ip
     . "${cw_ROOT}"/etc/config/cluster/instance.vars.sh
     if [ "${cw_INSTANCE_role}" == "master" ]; then
-        . "${cw_ROOT}"/etc/config/cluster.vars.sh
+        . "${cw_ROOT}"/etc/config/cluster/config.rc
+        . "${cw_ROOT}"/etc/config/cluster/auth.rc
         ip=$(network_get_public_address)
         echo "Notify ${cw_CLUSTER_service_url}/clusters: '${cw_CLUSTER_uuid}' is 'available' at '${ip}'"
-        cat <<JSON | webapi_post "${cw_CLUSTER_service_url}"/clusters
+        cat <<JSON | webapi_patch \
+            --auth "${cw_CLUSTER_uuid}:${cw_CLUSTER_auth_token}" \
+            "${cw_CLUSTER_service_url}"/clusters/"${cw_CLUSTER_uuid}"
 {
     "data": {
         "type": "clusters",
