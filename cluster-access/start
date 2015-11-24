@@ -1,0 +1,40 @@
+#!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2015 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+main() {
+    . ${cw_ROOT}/etc/config/cluster/instance.rc
+    if [[ "${cw_INSTANCE_role}" == "master" ]]; then
+        iptables -I INPUT -p tcp --dport 25268 -j ACCEPT
+        if distro_start_service clusterware-alces-storage-manager-daemon; then
+            echo "Alces Storage Manager Daemon service started"
+        else
+            echo "Unable to start Alces Storage Manager Daemon service"
+        fi
+    fi
+}
+
+setup
+require distro
+require handler
+
+handler_tee main "$@"
