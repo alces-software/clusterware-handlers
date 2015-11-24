@@ -67,23 +67,32 @@ EOF
 qconf -Ae "${tmpfile}" || qconf -Me "${tmpfile}"
 
 set -o pipefail
+# Remove any existing record from all hostgroups
+for a in $(qconf -shgrpl); do
+    if qconf -shgrp ${a} | grep -q "${name}"; then
+        qconf -shgrp ${a} | sed -e "s/^/hostlist /g" \
+            -e "s/^\(.*\) ${name}\(.*\)/\1\2/g" > "${tmpfile}" \
+            -e "s/hostlist\s*$/hostlist NONE/g" && \
+            qconf -Mhgrp "${tmpfile}"
+    fi
+done
+
 # Add to allhosts group
-if ! qconf -shgrp @allhosts | grep -q "${name}"; then
-    qconf -shgrp @allhosts | sed -e "s/^hostlist NONE/hostlist /g" \
+qconf -shgrp @allhosts | sed -e "s/^hostlist NONE/hostlist /g" \
+    -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > "${tmpfile}" && \
+    qconf -Mhgrp "${tmpfile}"
+
+if [ $slots -gt 1 ]; then
+    # Add to slot-aware hostgroup
+    qconf -shgrp @${slots}slot | sed -e "s/^hostlist NONE/hostlist /g" \
         -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > "${tmpfile}" && \
         qconf -Mhgrp "${tmpfile}"
 fi
-if [ $slots -gt 1 ]; then
-    # Add to slot-aware hostgroup
-    if ! qconf -shgrp @${slots}slot | grep -q "${name}"; then
-        qconf -shgrp @${slots}slot | sed -e "s/^hostlist NONE/hostlist /g" \
-            -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > "${tmpfile}" && \
-            qconf -Mhgrp "${tmpfile}"
-        # Workaround to make qmaster pay attention to hostgroup slots
-        qconf -sq byslot.q > "${tmpfile}" && \
-            qconf -Mq "${tmpfile}"
-    fi
-fi
+
+# Workaround to make qmaster pay attention to hostgroup slots
+qconf -sq byslot.q > "${tmpfile}" && \
+    qconf -Mq "${tmpfile}"
+
 set +o pipefail
 rm -f "${tmpfile}"
 
