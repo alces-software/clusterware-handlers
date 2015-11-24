@@ -61,6 +61,11 @@ tags = config['tags'] || {}
 h = { tags: tags.merge({ role: config['role'] }) }
 write_file('serf/tags.json', h.to_json)
 
+if config['token']
+  h = { rpc_auth: config['token'] }
+  write_file('serf/auth.json', h.to_json, perm: 0600)
+end
+
 cluster_vars = []
 cluster_vars << %(cw_CLUSTER_uuid="#{config['uuid']}")
 if config['master']
@@ -87,13 +92,13 @@ instance_vars = []
 instance_vars << %(cw_INSTANCE_role="#{config['role']}")
 instance_vars << %(cw_INSTANCE_log="#{config['log'] || '/var/log/clusterware/instance.log'}")
 tags.each do |k,v|
-  instance_vars << %(cw_INSTANCE_tag_#{k.upcase}="#{v}")
+  instance_vars << %(cw_INSTANCE_tag_#{k.upcase.tr('-','_')}="#{v}")
 end
 write_file('instance.vars.sh', instance_vars.join("\n"))
 write_file('instance.rc', instance_vars.join("\n"))
 RUBY
 
-    cp "${cw_ROOT}/etc/config/cluster/serf"/*.json "${cw_ROOT}/etc/serf"
+    cp -p "${cw_ROOT}/etc/config/cluster/serf"/*.json "${cw_ROOT}/etc/serf"
 
     if [ -f "${cw_ROOT}"/etc/genders ]; then
         . "${cw_ROOT}"/etc/config/cluster/instance.rc
