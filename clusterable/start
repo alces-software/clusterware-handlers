@@ -22,10 +22,23 @@ setup() {
 }
 
 main() {
-    iptables -I INPUT -p tcp --dport 7946 -j ACCEPT
-    iptables -I INPUT -p udp --dport 7946 -j ACCEPT
-    distro_start_service clusterware-serf
-    echo "Clusterware Serf service started"
+    if ! iptables -I INPUT -p tcp --dport 7946 -j ACCEPT &>/dev/null; then
+        echo "Adding iptables rule: -I INPUT -p tcp --dport 7946 -j ACCEPT"
+        iptables -I INPUT -p tcp --dport 7946 -j ACCEPT
+    else
+        echo "iptables rule already exists: -I INPUT -p tcp --dport 7946 -j ACCEPT"
+    fi
+    if ! iptables -I INPUT -p udp --dport 7946 -j ACCEPT &>/dev/null; then
+        echo "Adding iptables rule: -I INPUT -p udp --dport 7946 -j ACCEPT"
+        iptables -I INPUT -p udp --dport 7946 -j ACCEPT
+    else
+        echo "iptables rule already exists: -I INPUT -p udp --dport 7946 -j ACCEPT"
+    fi
+    if distro_start_service clusterware-serf; then
+        echo "Clusterware Serf service started"
+    else
+        echo "Unable to start Clusterware Serf service"
+    fi
 }
 
 setup
