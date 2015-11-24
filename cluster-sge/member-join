@@ -16,25 +16,26 @@ setup() {
 }
 
 main() {
-    local tags tag tuple key value vmem_gb slots hook_dir intf master_ip
-    . ${cw_ROOT}/etc/config/cluster/instance.vars.sh
-    if [ "${cw_INSTANCE_role}" == "master" ]; then
+    local tags tag tuple key value vmem_gb slots hook_dir intf master_ip scheduler_roles
+    . ${cw_ROOT}/etc/config/cluster/instance.rc
+    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
         eval "$(member_parse)"
-        if [ "${cw_MEMBER_role}" == "slave" ]; then
-            log "Tags for slave ${cw_MEMBER_name} (${cw_MEMBER_ip}): ${cw_MEMBER_tags}" "${cw_CLUSTER_SGE_log}"
-            IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
-            for tag in "${tags[@]}"; do
-                IFS='=' read -a tuple <<< "${tag}"
-                log "Found tuple: ${tag}, key: ${tuple[0]}, value: ${tuple[1]}" "${cw_CLUSTER_SGE_log}"
-                key=${tuple[0]}
-                value=${tuple[1]}
-                if [ "$key" == "ram_gb" ]; then
-                    vmem_gb="${value}"
-                elif [ "$key" == "slots" ]; then
-                    slots="${value}"
-                fi
-            done
-
+        log "Tags for member ${cw_MEMBER_name} (${cw_MEMBER_ip}): ${cw_MEMBER_tags}" "${cw_CLUSTER_SGE_log}"
+        IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
+        for tag in "${tags[@]}"; do
+            IFS='=' read -a tuple <<< "${tag}"
+            log "Found tuple: ${tag}, key: ${tuple[0]}, value: ${tuple[1]}" "${cw_CLUSTER_SGE_log}"
+            key=${tuple[0]}
+            value=${tuple[1]}
+            if [ "$key" == "scheduler_roles" ]; then
+                scheduler_roles="${value}"
+            elif [ "$key" == "ram_gb" ]; then
+                vmem_gb="${value}"
+            elif [ "$key" == "slots" ]; then
+                slots="${value}"
+            fi
+        done
+        if [[ "${scheduler_roles}" == *":compute:"* ]]; then
             log "Adding node: ${cw_MEMBER_name} (${cw_MEMBER_ip}) with slots=${slots} and vmem=${vmem_gb}G" \
                 "${cw_CLUSTER_SGE_log}"
             hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)

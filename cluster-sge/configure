@@ -23,10 +23,11 @@ main() {
 
     mkdir -p "${cw_ROOT}/etc/config/gridscheduler"
 
-    . ${cw_ROOT}/etc/config/cluster/instance.vars.sh
-    if [ "${cw_INSTANCE_role}" == "master" ]; then
+    . ${cw_ROOT}/etc/config/cluster/instance.rc
+    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
         "${cw_ROOT}"/bin/alces service enable gridscheduler/qmaster
-    elif [ "${cw_INSTANCE_role}" == "slave" ]; then
+    fi
+    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
         "${cw_ROOT}"/bin/alces service enable gridscheduler/execd
         ruby_run <<RUBY
 require 'json'

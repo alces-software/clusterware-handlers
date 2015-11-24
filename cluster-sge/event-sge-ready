@@ -18,8 +18,8 @@ setup() {
 main() {
     local payload master_ip master_name target_ip instance_ip master_short_name
 
-    . ${cw_ROOT}/etc/config/cluster/instance.vars.sh
-    if [ "${cw_INSTANCE_role}" == "slave" ]; then
+    . ${cw_ROOT}/etc/config/cluster/instance.rc
+    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
         payload=($(cat))
         log "Received payload from master: ${payload[*]}" "${cw_CLUSTER_SGE_log}"
         master_ip="${payload[1]}"
@@ -33,7 +33,7 @@ main() {
         log "Instance IP is: ${instance_ip}" "${cw_CLUSTER_SGE_log}"
 
         if [ "${instance_ip}" == "${target_ip}" ]; then
-            log "Applying slave configuration" "${cw_CLUSTER_SGE_log}"
+            log "Applying compute configuration" "${cw_CLUSTER_SGE_log}"
 
             if ! iptables -C INPUT -i ${intf} -s ${master_ip} -p tcp --dport 6445 -j ACCEPT &>/dev/null; then
                 log "Adding iptables rule: -I INPUT -i ${intf} -s ${master_ip} -p tcp --dport 6445 -j ACCEPT" \
