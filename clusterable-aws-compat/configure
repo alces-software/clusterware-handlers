@@ -75,6 +75,9 @@ content = ""
 config = YAML.load_file('${cw_ROOT}/etc/config.yml')['cluster']
 content << %(AWS_ACCESS_KEY_ID="#{config['aws_access_key']}"\n)
 content << %(AWS_SECRET_ACCESS_KEY="#{config['aws_secret_key']}"\n)
+if config.key?('aws_zone_name')
+  content << %(cw_AWS_zone_name="#{config['aws_zone_name']}"\n)
+end
 File.write("${cw_ROOT}/etc/config/clusterable-aws-compat/aws.rc", content, perm: 0600)
 RUBY
 
@@ -87,7 +90,7 @@ RUBY
     fi
 
     zone_id=$("${_AWS}" route53 list-hosted-zones | \
-        "${_JQ}" -r '.HostedZones[] | select(.Name == "cluster.") | .Id')
+        "${_JQ}" -r ".HostedZones[] | select(.Name == \"${cw_AWS_zone_name:-cluster}.\") | .Id")
 
     if [ -z "${zone_id}" ]; then
         echo "Unable to determine hosted zone"
