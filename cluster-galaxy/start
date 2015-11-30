@@ -25,12 +25,21 @@ main() {
     files_load_config instance config/cluster
 
     if [[ "${cw_INSTANCE_tag_GALAXY_ROLES}" == *":master:"* ]]; then
-        echo "Starting clusterware-galaxy service"
-        distro_start_service clusterware-galaxy
-        echo "Starting clusterware-galaxy-ftpd service"
-        distro_start_service clusterware-galaxy-ftpd
-        echo "Starting up clusterware-galaxy-proxy service"
-        distro_start_service clusterware-galaxy-proxy
+        if distro_start_service clusterware-galaxy; then
+            echo "Started Galaxy service"
+        else
+            echo "Unable to start Galaxy service"
+        fi
+        if distro_start_service clusterware-galaxy-ftpd; then
+            echo "Started Galaxy FTP Daemon service"
+        else
+            echo "Unable to start Galaxy FTP Daemon service"
+        fi
+        if distro_start_service clusterware-galaxy-proxy; then
+            echo "Started Galaxy Proxy service"
+        else
+            echo "Unable to start Galaxy Proxy service"
+        fi
 
         if ! iptables -I INPUT -p tcp --dport 64443 -j ACCEPT &>/dev/null; then
             echo "Adding iptables rule: -I INPUT -p tcp --dport 64443 -j ACCEPT"
