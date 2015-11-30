@@ -1,0 +1,61 @@
+#!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2015 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+main() {
+    files_load_config instance config/cluster
+
+    if [[ "${cw_INSTANCE_tag_GALAXY_ROLES}" == *":master:"* ]]; then
+        echo "Starting clusterware-galaxy service"
+        distro_start_service clusterware-galaxy
+        echo "Starting clusterware-galaxy-ftpd service"
+        distro_start_service clusterware-galaxy-ftpd
+        echo "Starting up clusterware-galaxy-proxy service"
+        distro_start_service clusterware-galaxy-proxy
+
+        if ! iptables -I INPUT -p tcp --dport 64443 -j ACCEPT &>/dev/null; then
+            echo "Adding iptables rule: -I INPUT -p tcp --dport 64443 -j ACCEPT"
+            iptables -I INPUT -p tcp --dport 64443 -j ACCEPT
+        else
+            echo "iptables rule already exists: -I INPUT -p tcp --dport 64443 -j ACCEPT"
+        fi
+        if ! iptables -I INPUT -p tcp --dport 21 -j ACCEPT &>/dev/null; then
+            echo "Adding iptables rule: -I INPUT -p tcp --dport 21 -j ACCEPT"
+            iptables -I INPUT -p tcp --dport 21 -j ACCEPT
+        else
+            echo "iptables rule already exists: -I INPUT -p tcp --dport 21 -j ACCEPT"
+        fi
+        if ! iptables -I INPUT -p tcp --dport 33219:33299 -j ACCEPT &>/dev/null; then
+            echo "Adding iptables rule: -I INPUT -p tcp --dport 33219:33299 -j ACCEPT"
+            iptables -I INPUT -p tcp --dport 33219:33299 -j ACCEPT
+        else
+            echo "iptables rule already exists: -I INPUT -p tcp --dport 33219:33299 -j ACCEPT"
+        fi
+    fi
+}
+
+setup
+require handler
+require files
+require distro
+
+handler_tee main "$@"
