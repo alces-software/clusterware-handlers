@@ -60,6 +60,20 @@ main() {
             echo "iptables rule already exists: -I INPUT -p tcp --dport 33219:33299 -j ACCEPT"
         fi
     fi
+
+    if [[ "${cw_INSTANCE_tag_GALAXY_ROLES}" == *":compute:"* ]]; then
+        if distro_start_service clusterware-galaxy-pulsar; then
+            echo "Started Galaxy Pulsar service"
+        else
+            echo "Unable to start Galaxy Pulsar service"
+        fi
+        if ! iptables -I INPUT -p tcp --dport 8913 -j ACCEPT &>/dev/null; then
+            echo "Adding iptables rule: -I INPUT -p tcp --dport 8913 -j ACCEPT"
+            iptables -I INPUT -p tcp --dport 8913 -j ACCEPT
+        else
+            echo "iptables rule already exists: -I INPUT -p tcp --dport 8913 -j ACCEPT"
+        fi
+    fi
 }
 
 setup

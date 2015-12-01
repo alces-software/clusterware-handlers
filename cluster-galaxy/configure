@@ -25,7 +25,11 @@ main() {
 
     . "${cw_ROOT}"/etc/config/cluster/instance.rc
     if [[ "${cw_INSTANCE_tag_GALAXY_ROLES}" == *":master:"* ]]; then
-        "${cw_ROOT}"/bin/alces service enable galaxy-1510
+        "${cw_ROOT}"/bin/alces service enable galaxy/webapp
+    fi
+
+    if [[ "${cw_INSTANCE_tag_GALAXY_ROLES}" == *":compute:"* ]]; then
+        "${cw_ROOT}"/bin/alces service enable galaxy/pulsar
     fi
 }
 
