@@ -27,51 +27,38 @@ main() {
     if [[ "${cw_INSTANCE_tag_GALAXY_ROLES}" == *":master:"* ]]; then
         if distro_start_service clusterware-galaxy; then
             echo "Started Galaxy service"
+            if ! iptables -I INPUT -p tcp --dport 64443 -j ACCEPT &>/dev/null; then
+                echo "Adding iptables rule: -I INPUT -p tcp --dport 64443 -j ACCEPT"
+                iptables -I INPUT -p tcp --dport 64443 -j ACCEPT
+            else
+                echo "iptables rule already exists: -I INPUT -p tcp --dport 64443 -j ACCEPT"
+            fi
         else
             echo "Unable to start Galaxy service"
         fi
+
         if distro_start_service clusterware-galaxy-ftpd; then
             echo "Started Galaxy FTP Daemon service"
+            if ! iptables -I INPUT -p tcp --dport 21 -j ACCEPT &>/dev/null; then
+                echo "Adding iptables rule: -I INPUT -p tcp --dport 21 -j ACCEPT"
+                iptables -I INPUT -p tcp --dport 21 -j ACCEPT
+            else
+                echo "iptables rule already exists: -I INPUT -p tcp --dport 21 -j ACCEPT"
+            fi
         else
             echo "Unable to start Galaxy FTP Daemon service"
         fi
+
         if distro_start_service clusterware-galaxy-proxy; then
             echo "Started Galaxy Proxy service"
+            if ! iptables -I INPUT -p tcp --dport 33219:33299 -j ACCEPT &>/dev/null; then
+                echo "Adding iptables rule: -I INPUT -p tcp --dport 33219:33299 -j ACCEPT"
+                iptables -I INPUT -p tcp --dport 33219:33299 -j ACCEPT
+            else
+                echo "iptables rule already exists: -I INPUT -p tcp --dport 33219:33299 -j ACCEPT"
+            fi
         else
             echo "Unable to start Galaxy Proxy service"
-        fi
-
-        if ! iptables -I INPUT -p tcp --dport 64443 -j ACCEPT &>/dev/null; then
-            echo "Adding iptables rule: -I INPUT -p tcp --dport 64443 -j ACCEPT"
-            iptables -I INPUT -p tcp --dport 64443 -j ACCEPT
-        else
-            echo "iptables rule already exists: -I INPUT -p tcp --dport 64443 -j ACCEPT"
-        fi
-        if ! iptables -I INPUT -p tcp --dport 21 -j ACCEPT &>/dev/null; then
-            echo "Adding iptables rule: -I INPUT -p tcp --dport 21 -j ACCEPT"
-            iptables -I INPUT -p tcp --dport 21 -j ACCEPT
-        else
-            echo "iptables rule already exists: -I INPUT -p tcp --dport 21 -j ACCEPT"
-        fi
-        if ! iptables -I INPUT -p tcp --dport 33219:33299 -j ACCEPT &>/dev/null; then
-            echo "Adding iptables rule: -I INPUT -p tcp --dport 33219:33299 -j ACCEPT"
-            iptables -I INPUT -p tcp --dport 33219:33299 -j ACCEPT
-        else
-            echo "iptables rule already exists: -I INPUT -p tcp --dport 33219:33299 -j ACCEPT"
-        fi
-    fi
-
-    if [[ "${cw_INSTANCE_tag_GALAXY_ROLES}" == *":compute:"* ]]; then
-        if distro_start_service clusterware-galaxy-pulsar; then
-            echo "Started Galaxy Pulsar service"
-        else
-            echo "Unable to start Galaxy Pulsar service"
-        fi
-        if ! iptables -I INPUT -p tcp --dport 8913 -j ACCEPT &>/dev/null; then
-            echo "Adding iptables rule: -I INPUT -p tcp --dport 8913 -j ACCEPT"
-            iptables -I INPUT -p tcp --dport 8913 -j ACCEPT
-        else
-            echo "iptables rule already exists: -I INPUT -p tcp --dport 8913 -j ACCEPT"
         fi
     fi
 }

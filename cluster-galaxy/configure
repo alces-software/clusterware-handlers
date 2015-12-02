@@ -1,4 +1,10 @@
 #!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2015 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
 setup() {
     local a xdg_config
     IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
@@ -26,15 +32,42 @@ main() {
     . "${cw_ROOT}"/etc/config/cluster/instance.rc
     if [[ "${cw_INSTANCE_tag_GALAXY_ROLES}" == *":master:"* ]]; then
         "${cw_ROOT}"/bin/alces service enable galaxy/webapp
+
+        # XXX - configure SSL cert for clusterware-galaxy-proxy!
+
+        if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
+            # set up Galaxy for DRMAA
+            sed -i -e 's,<!--plugin id="drmaa_sge,<plugin id="drmaa_sge,g' \
+                -e 's,plugin-->,plugin>,g' \
+                "${cw_ROOT}"/var/lib/galaxy/config/job_conf.xml
+            sed -i -e 's,#export SGE_,export SGE_,g' "${cw_ROOT}"/etc/galaxy/galaxy.rc
+            sed -i -e 's,^#DRMAA#,,g' "${cw_ROOT}"/etc/galaxy/destinations.yml
+        fi
     fi
 
     if [[ "${cw_INSTANCE_tag_GALAXY_ROLES}" == *":compute:"* ]]; then
         "${cw_ROOT}"/bin/alces service enable galaxy/pulsar
+
+        # XXX - configure SSL cert for clusterware-galaxy-pulsar!
+
+        if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
+            # set up Pulsar for DRMAA
+            sed -i -e 's,^#DRMAA#,,g' \
+                "${cw_ROOT}"/etc/galaxy/pulsar/app.yml \
+                "${cw_ROOT}"/etc/galaxy/pulsar/local_env.sh
+            ruby_run <<RUBY
+require 'json'
+config = JSON.load(File.read('${cw_ROOT}/etc/serf/tags.json'))
+config["tags"]["pulsar_managers"] = 'drmaa'
+File.write('${cw_ROOT}/etc/serf/tags.json', config.to_json)
+RUBY
+        fi
     fi
 }
 
 setup
 require ruby
 require handler
+require files
 
 handler_tee main "$@"

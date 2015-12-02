@@ -1,0 +1,95 @@
+#!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2015 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+_add_pulsar_node() {
+    local compute_ip pulsar_managers
+    compute_ip="$1"
+    pulsar_managers="${2:-default}"
+
+    ruby_run <<EOF
+require 'yaml'
+config = YAML.load_file('${cw_ROOT}/etc/galaxy/destinations.yml')
+"${pulsar_managers}".split(" ").each do |m|
+  url = "https://${compute_ip}:8913/"
+  pulsar_target = {'url' => url}
+  if m != 'default'
+    url << m
+    pulsar_target['type'] = m
+  end
+  config['pulsar']['targets'] << pulsar_target
+end
+File.write('${cw_ROOT}/etc/galaxy/destinations.yml', config.to_yaml)
+EOF
+}
+
+_read_pulsar_secret() {
+    ruby_run <<RUBY
+require 'yaml'
+puts YAML.load_file('${cw_ROOT}/etc/galaxy/destinations.yml')['pulsar']['token']
+RUBY
+}
+
+main() {
+    local tags tag tuple key value pulsar_managers hook_dir intf master_ip galaxy_roles
+    . ${cw_ROOT}/etc/config/cluster/instance.rc
+
+    secret="${1:-$(dd if=/dev/urandom bs=1 count=18 2>/dev/null | base64)}"
+    # configure secret for app.yml
+
+    if [[ "${cw_INSTANCE_tag_GALAXY_ROLES}" == *":master:"* ]]; then
+        eval "$(member_parse)"
+        echo "Tags for member ${cw_MEMBER_name} (${cw_MEMBER_ip}): ${cw_MEMBER_tags}"
+        IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
+        for tag in "${tags[@]}"; do
+            IFS='=' read -a tuple <<< "${tag}"
+            echo "Found tuple: ${tag}, key: ${tuple[0]}, value: ${tuple[1]}"
+            key=${tuple[0]}
+            value=${tuple[1]}
+            if [ "$key" == "pulsar_managers" ]; then
+                pulsar_managers="${value}"
+            elif [ "$key" == "galaxy_roles" ]; then
+                galaxy_roles="${value}"
+            fi
+        done
+        if [[ "${galaxy_roles}" == *":compute:"* ]]; then
+            echo "Adding Galaxy Pulsar node: ${cw_MEMBER_name} (${cw_MEMBER_ip}) with managers=${pulsar_managers}"
+
+            _add_pulsar_node "${cw_MEMBER_ip}" "${pulsar_managers}"
+            secret=$(_read_pulsar_secret)
+
+            intf="$(network_get_route_iface ${cw_MEMBER_ip})"
+            master_ip="$(network_get_network_address ${cw_MEMBER_ip})"
+
+            echo "Broadcasting 'galaxy-ready' event with: ${master_ip} ${cw_MEMBER_ip} <secret>"
+            handler_broadcast galaxy-ready ${master_ip} ${cw_MEMBER_ip} ${secret}
+        fi
+    fi
+}
+
+setup
+require member
+require network
+require handler
+require ruby
+
+handler_tee main "$@"

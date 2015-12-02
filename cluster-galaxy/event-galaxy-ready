@@ -1,0 +1,65 @@
+#!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2015 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+main() {
+    local payload master_ip target_ip instance_ip secret
+
+    . ${cw_ROOT}/etc/config/cluster/instance.rc
+    if [[ "${cw_INSTANCE_tag_GALAXY_ROLES}" == *":compute:"* ]]; then
+        payload=($(cat))
+        echo "Received payload from master: ${payload[*]}"
+        master_ip="${payload[1]}"
+        target_ip="${payload[2]}"
+        secret="${payload[3]}"
+        echo "Parsed payload as: master: ${master_ip} target: ${target_ip} secret: <elided>"
+
+        intf="$(network_get_route_iface ${master_ip})"
+        instance_ip="$(network_get_network_address ${master_ip})"
+        echo "Instance IP is: ${instance_ip}"
+
+        if [ "${instance_ip}" == "${target_ip}" ]; then
+            echo "Applying Pulsar configuration"
+            sed -e "s,_SECRET_,${secret},g" -i "${cw_ROOT}"/etc/galaxy/pulsar/app.yml
+            if distro_start_service clusterware-galaxy-pulsar; then
+                echo "Started Galaxy Pulsar service"
+                if ! iptables -I INPUT -i ${intf} -s ${master_ip} -p tcp -s --dport 8913 -j ACCEPT &>/dev/null; then
+                    echo "Adding iptables rule: -I INPUT -i ${intf} -s ${master_ip} -p tcp --dport 8913 -j ACCEPT"
+                    iptables -I INPUT -i ${intf} -s ${master_ip} -p tcp --dport 8913 -j ACCEPT
+                else
+                    echo "iptables rule already exists: -I INPUT -i ${intf} -s ${master_ip} -p tcp --dport 8913 -j ACCEPT"
+                fi
+            else
+                echo "Unable to start Galaxy Pulsar service"
+            fi
+        else
+            echo "Configuration message not intended for this node."
+        fi
+    fi
+}
+
+setup
+require network
+require distro
+require handler
+
+handler_tee main "$@"
