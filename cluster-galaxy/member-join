@@ -33,7 +33,7 @@ config = YAML.load_file('${cw_ROOT}/etc/galaxy/destinations.yml')
   url = "https://${compute_ip}:8913/"
   pulsar_target = {'url' => url}
   if m != 'default'
-    url << m
+    url << "managers/#{m}"
     pulsar_target['type'] = m
   end
   config['pulsar']['targets'] << pulsar_target
