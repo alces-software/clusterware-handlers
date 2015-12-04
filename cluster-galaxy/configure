@@ -33,6 +33,9 @@ main() {
     if [[ "${cw_INSTANCE_tag_GALAXY_ROLES}" == *":master:"* ]]; then
         "${cw_ROOT}"/bin/alces service enable galaxy/webapp
 
+        sed -i -e 's,^\(cw_CLUSTER_NFS_exports=".*\)"$,\1 ${cw_ROOT}/var/lib/galaxy/share",g' \
+            "${cw_ROOT}"/etc/cluster-nfs.rc
+
         # XXX - configure SSL cert for clusterware-galaxy-proxy!
 
         if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
