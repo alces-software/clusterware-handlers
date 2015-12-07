@@ -53,9 +53,6 @@ main() {
     local tags tag tuple key value pulsar_managers hook_dir intf master_ip galaxy_roles
     . ${cw_ROOT}/etc/config/cluster/instance.rc
 
-    secret="${1:-$(dd if=/dev/urandom bs=1 count=18 2>/dev/null | base64)}"
-    # configure secret for app.yml
-
     if [[ "${cw_INSTANCE_tag_GALAXY_ROLES}" == *":master:"* ]]; then
         eval "$(member_parse)"
         echo "Tags for member ${cw_MEMBER_name} (${cw_MEMBER_ip}): ${cw_MEMBER_tags}"
