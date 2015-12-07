@@ -70,9 +70,8 @@ set -o pipefail
 # Remove any existing record from all hostgroups
 for a in $(qconf -shgrpl); do
     if qconf -shgrp ${a} | grep -q "${name}"; then
-        qconf -shgrp ${a} | sed -e "s/^/hostlist /g" \
-            -e "s/^\(.*\) ${name}\(.*\)/\1\2/g" > "${tmpfile}" \
-            -e "s/hostlist\s*$/hostlist NONE/g" && \
+        qconf -shgrp ${a} | sed -e "s/^\(.*\) ${name}\(.*\)/\1\2/g" \
+            -e "s/hostlist\s*$/hostlist NONE/g" > "${tmpfile}" && \
             qconf -Mhgrp "${tmpfile}"
     fi
 done
