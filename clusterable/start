@@ -22,13 +22,19 @@ setup() {
 }
 
 main() {
-    if ! iptables -I INPUT -p tcp --dport 7946 -j ACCEPT &>/dev/null; then
+    if ! iptables -C INPUT -p udp --dport 5353 -d 224.0.0.251 -j ACCEPT &>/dev/null; then
+        echo "Adding iptables rule: -I INPUT -p udp --dport 5353 -d 224.0.0.251 -j ACCEPT"
+        iptables -I INPUT -p udp --dport 5353 -d 224.0.0.251 -j ACCEPT
+    else
+        echo "iptables rule already exists: -I INPUT -p udp --dport 5353 -d 224.0.0.251 -j ACCEPT"
+    fi
+    if ! iptables -C INPUT -p tcp --dport 7946 -j ACCEPT &>/dev/null; then
         echo "Adding iptables rule: -I INPUT -p tcp --dport 7946 -j ACCEPT"
         iptables -I INPUT -p tcp --dport 7946 -j ACCEPT
     else
         echo "iptables rule already exists: -I INPUT -p tcp --dport 7946 -j ACCEPT"
     fi
-    if ! iptables -I INPUT -p udp --dport 7946 -j ACCEPT &>/dev/null; then
+    if ! iptables -C INPUT -p udp --dport 7946 -j ACCEPT &>/dev/null; then
         echo "Adding iptables rule: -I INPUT -p udp --dport 7946 -j ACCEPT"
         iptables -I INPUT -p udp --dport 7946 -j ACCEPT
     else
