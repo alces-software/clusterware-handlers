@@ -45,8 +45,8 @@ main() {
         ip=$(network_get_public_address)
         echo "Notify ${cw_CLUSTER_service_url}/clusters: '${cw_CLUSTER_uuid}' is 'available' at '${ip}'"
         cat <<JSON | webapi_patch \
-            --auth "${cw_CLUSTER_uuid}:${cw_CLUSTER_auth_token}" \
-            "${cw_CLUSTER_service_url}"/clusters/"${cw_CLUSTER_uuid}"
+            "${cw_CLUSTER_service_url}"/clusters/"${cw_CLUSTER_uuid}" \
+            --auth "${cw_CLUSTER_uuid}:${cw_CLUSTER_auth_token}"
 {
     "data": {
         "type": "clusters",

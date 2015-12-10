@@ -21,8 +21,8 @@ main() {
     . "${cw_ROOT}"/etc/config/cluster/config.rc
     . "${cw_ROOT}"/etc/config/cluster/auth.rc
     cat <<JSON | webapi_patch \
-        --auth "${cw_CLUSTER_uuid}:${cw_CLUSTER_auth_token}" \
-        "${cw_CLUSTER_service_url}"/clusters/"${cw_CLUSTER_uuid}"
+        "${cw_CLUSTER_service_url}"/clusters/"${cw_CLUSTER_uuid}" \
+        --auth "${cw_CLUSTER_uuid}:${cw_CLUSTER_auth_token}"
 {
     "data": {
         "type": "clusters",
@@ -34,7 +34,6 @@ main() {
     }
 }
 JSON
-    fi
 }
 
 setup
