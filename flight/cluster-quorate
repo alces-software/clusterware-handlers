@@ -28,7 +28,7 @@ main() {
         "type": "clusters",
         "id": "${cw_CLUSTER_uuid}",
         "attributes": {
-            "state": "quorate",
+            "status": "quorate",
             "count": "${count}"
         }
     }

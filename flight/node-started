@@ -52,7 +52,7 @@ main() {
         "type": "clusters",
         "id": "${cw_CLUSTER_uuid}",
         "attributes": {
-            "state": "available",
+            "status": "available",
             "ip": "${ip}"
         }
     }
