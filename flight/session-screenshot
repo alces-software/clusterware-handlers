@@ -31,9 +31,9 @@ main() {
     "data": {
         "type": "screens",
         "attributes": {
-            "content": "${content}",
+            "content": "${content}"
         },
-        "relationships: {
+        "relationships": {
             "session": {
                  "data": {"type": "sessions", "id": "${sessionid}"}
             }
