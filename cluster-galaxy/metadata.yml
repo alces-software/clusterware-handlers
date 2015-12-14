@@ -2,4 +2,5 @@
 install:
   _: |
     alces service install galaxy
+    alces service install simp_le
     alces handler enable cluster-nfs || true
