@@ -37,7 +37,7 @@ main() {
             "password": "${vnc[PASSWORD]}",
             "websocket": "${vnc[WEBSOCKET]}"
         },
-        "relationships: {
+        "relationships": {
             "cluster": {
                  "data": {"type": "clusters", "id": "${cw_CLUSTER_uuid}"}
             }
