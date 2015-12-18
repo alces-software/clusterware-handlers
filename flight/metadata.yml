@@ -1,4 +1,4 @@
 ---
 install:
   _: |
-    alces handler enable clusterable || true
+    alces handler enable clusterable

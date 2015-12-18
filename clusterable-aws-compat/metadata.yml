@@ -13,7 +13,7 @@ install:
   el7: |
     yum install -y -e0 bind-utils
   _: |
-    alces service install aws || true
+    alces service install aws
     cat <<EOF > /etc/sudoers.d/clusterable-aws-compat-session-handling
     Defaults!/opt/clusterware/etc/handlers/clusterable-aws-compat/session-* !requiretty
     ALL ALL=(root) NOPASSWD:${cw_ROOT}/etc/handlers/clusterable-aws-compat/session-*
