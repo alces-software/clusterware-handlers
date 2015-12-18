@@ -6,11 +6,10 @@
 ################################################################################
 ---
 description: |
-  Configure services for handling a cluster of nodes.
+  Configure firewall to expose sessions.
 install:
-  el6: |
-    yum install -y -e0 bind-utils
-  el7: |
-    yum install -y -e0 bind-utils
   _: |
-    alces service install aws
+    cat <<EOF > /etc/sudoers.d/clusterware-handler-session-firewall
+    Defaults!${cw_ROOT}/etc/handlers/session-firewall/session-* !requiretty
+    ALL ALL=(root) NOPASSWD:${cw_ROOT}/etc/handlers/session-firewall/session-*
+    EOF
