@@ -36,7 +36,12 @@ main() {
         sed -i -e 's,^\(cw_CLUSTER_NFS_exports=".*\)"$,\1 ${cw_ROOT}/var/lib/galaxy/share",g' \
             "${cw_ROOT}"/etc/cluster-nfs.rc
 
-        # XXX - configure SSL cert for clusterware-galaxy-proxy!
+        # configure SSL cert for clusterware-galaxy-proxy
+        "${cw_ROOT}"/libexec/share/allocate-ssl-certificate
+        rm -f "${cw_ROOT}"/etc/clusterware-galaxy-proxy_key.pem \
+           "${cw_ROOT}"/etc/clusterware-galaxy-proxy_crt.pem
+        ln -s "${cw_ROOT}"/etc/cluster/key.pem "${cw_ROOT}"/etc/clusterware-galaxy-proxy_key.pem
+        ln -s "${cw_ROOT}"/etc/cluster/cert.pem "${cw_ROOT}"/etc/clusterware-galaxy-proxy_crt.pem
 
         if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
             # set up Galaxy for DRMAA
@@ -51,7 +56,13 @@ main() {
     if [[ "${cw_INSTANCE_tag_GALAXY_ROLES}" == *":compute:"* ]]; then
         "${cw_ROOT}"/bin/alces service enable galaxy/pulsar
 
-        # XXX - configure SSL cert for clusterware-galaxy-pulsar!
+        files_load_config config config/cluster
+        # configure SSL cert for clusterware-galaxy-pulsar
+        naming_issue_self_signed_cert "pulsar.${cw_CLUSTER_name:-mycluster}.${cw_CLUSTER_uuid}" \
+                                      "Galaxy Pulsar" \
+                                      "${cw_ROOT}"/etc/ssl/pulsar
+        cat "${cw_ROOT}"/etc/ssl/pulsar/cert.pem \
+            "${cw_ROOT}"/etc/ssl/pulsar/key.pem > "${cw_ROOT}"/etc/ssl/clusterware-galaxy-pulsar_crt_and_key.pem
 
         if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
             # set up Pulsar for DRMAA
@@ -72,5 +83,6 @@ setup
 require ruby
 require handler
 require files
+require naming
 
 handler_tee main "$@"
