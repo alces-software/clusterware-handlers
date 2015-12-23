@@ -41,7 +41,7 @@ main() {
         rm -f "${cw_ROOT}"/etc/clusterware-galaxy-proxy_key.pem \
            "${cw_ROOT}"/etc/clusterware-galaxy-proxy_crt.pem
         ln -s "${cw_ROOT}"/etc/cluster/key.pem "${cw_ROOT}"/etc/clusterware-galaxy-proxy_key.pem
-        ln -s "${cw_ROOT}"/etc/cluster/cert.pem "${cw_ROOT}"/etc/clusterware-galaxy-proxy_crt.pem
+        ln -s "${cw_ROOT}"/etc/cluster/fullchain.pem "${cw_ROOT}"/etc/clusterware-galaxy-proxy_crt.pem
 
         if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
             # set up Galaxy for DRMAA
