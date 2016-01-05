@@ -36,13 +36,6 @@ main() {
         sed -i -e 's,^\(cw_CLUSTER_NFS_exports=".*\)"$,\1 ${cw_ROOT}/var/lib/galaxy/share",g' \
             "${cw_ROOT}"/etc/cluster-nfs.rc
 
-        # configure SSL cert for clusterware-galaxy-proxy
-        "${cw_ROOT}"/libexec/share/allocate-ssl-certificate
-        rm -f "${cw_ROOT}"/etc/clusterware-galaxy-proxy_key.pem \
-           "${cw_ROOT}"/etc/clusterware-galaxy-proxy_crt.pem
-        ln -s "${cw_ROOT}"/etc/cluster/key.pem "${cw_ROOT}"/etc/clusterware-galaxy-proxy_key.pem
-        ln -s "${cw_ROOT}"/etc/cluster/fullchain.pem "${cw_ROOT}"/etc/clusterware-galaxy-proxy_crt.pem
-
         if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
             # set up Galaxy for DRMAA
             sed -i -e 's,<!--plugin id="drmaa_sge,<plugin id="drmaa_sge,g' \
