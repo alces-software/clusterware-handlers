@@ -35,7 +35,7 @@ main() {
             for a in $imports; do
                 test -f $a || mkdir -p $a
                 log "Mounting export: ${master_ip}:$a" "${cw_CLUSTER_NFS_log}"
-                mount -t nfs -o _netdev,bg,intr $master_ip:$a $a
+                mount -t nfs -o _netdev,bg,intr,vers=3 $master_ip:$a $a
             done
         fi
     fi
