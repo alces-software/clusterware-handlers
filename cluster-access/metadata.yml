@@ -2,3 +2,14 @@
 install:
   _: |
     alces service install alces-storage-manager-daemon
+    cat <<EOF > "${cw_ROOT}"/etc/cluster-access.rc
+    ################################################################################
+    ##
+    ## Alces Clusterware - Shell configuration
+    ## Copyright (c) 2016 Alces Software Ltd
+    ##
+    ################################################################################
+    # Enable the following if you don't want the default storage setup to
+    # be enabled when your instance is configured.
+    #cw_ACCESS_skip_storage_defaults="true"
+    EOF
