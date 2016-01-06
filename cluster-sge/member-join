@@ -17,10 +17,15 @@ setup() {
 
 main() {
     local tags tag tuple key value vmem_gb slots hook_dir intf master_ip scheduler_roles
-    . ${cw_ROOT}/etc/config/cluster/instance.rc
+    . "${cw_ROOT}"/etc/config/cluster/instance.rc
+
+    eval "$(member_parse)"
+    log "Member data parsed: ${cw_MEMBER_name} (${cw_MEMBER_ip}) -- ${cw_MEMBER_tags}" "${cw_CLUSTER_SGE_log}"
+    "${cw_ROOT}"/libexec/share/update-etc-hosts "${cw_MEMBER_name}" "${cw_MEMBER_ip}"
+
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
-        eval "$(member_parse)"
-        log "Tags for member ${cw_MEMBER_name} (${cw_MEMBER_ip}): ${cw_MEMBER_tags}" "${cw_CLUSTER_SGE_log}"
+	log "This instance is a scheduler master; checking new member for scheduler compute role" \
+	    "${cw_CLUSTER_SGE_log}"
         IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
         for tag in "${tags[@]}"; do
             IFS='=' read -a tuple <<< "${tag}"
@@ -56,6 +61,9 @@ main() {
             log "Broadcasting 'sge-ready' event with: ${master_ip} $(hostname -f) ${cw_MEMBER_ip}" \
                 "${cw_CLUSTER_SGE_log}"
             handler_broadcast sge-ready ${master_ip} $(hostname -f) ${cw_MEMBER_ip}
+	else
+	    log "New member does not have scheduler compute role; no further processing required" \
+		"${cw_CLUSTER_SGE_log}"
         fi
     fi
 }
