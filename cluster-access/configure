@@ -33,10 +33,19 @@ main() {
     if [[ "${cw_INSTANCE_role}" == "master" ]]; then
         "${cw_ROOT}"/bin/alces service enable alces-storage-manager-daemon
 	files_load_config --optional cluster-access
-	if [ "${cw_ACCESS_skip_storage_defaults}" != "true" ]; then
+	if [ "${cw_ACCESS_storage_SKIP_DEFAULTS}" != "true" ]; then
             "${cw_ROOT}"/bin/alces storage enable posix
 	    echo -e "Home\n%#{dir}\n" | alces storage configure --system home posix
             "${cw_ROOT}"/bin/alces storage use --system home
+	fi
+    elif [[ "${cw_INSTANCE_role}" == "appliance" ]]; then
+	if [[ "${cw_INSTANCE_tag_APPLIANCE_ROLES}" == "*:storage:*" ]]; then
+            "${cw_ROOT}"/bin/alces service enable alces-storage-manager
+            if distro_start_service alces-storage-manager; then
+		echo "Alces Storage Manager service started"
+            else
+		echo "Unable to start Alces Storage Manager service"
+            fi
 	fi
     fi
 }

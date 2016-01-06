@@ -1,0 +1,85 @@
+#!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+_add_storage_master_node() {
+    local addr port
+    addr="$1"
+    port="$2"
+    files_load_config --optional cluster-access
+    cw_ACCESS_storage_MANAGER_ROOT="${cw_ACCESS_storage_MANAGER_ROOT:-/opt/alces-storage-manager}"
+    if [ -f "${cw_ACCESS_storage_MANAGER_ROOT}"/config/storagemanager.yml ]; then
+	echo "Cowardly refusing to reconfigure existing Alces Storage Manager"
+    else
+	mkdir -p "${cw_ACCESS_storage_MANAGER_ROOT}"/config
+	cat <<EOF > "${cw_ACCESS_storage_MANAGER_ROOT}"/config/storagemanager.yml
+---
+:auth:
+  :address: "${addr}:${port}"
+  :ssl: true
+:ssl:
+  :root: ${cw_ROOT}/etc/ssl/alces-storage-manager
+  :certificate: cert.pem
+  :key: key.pem
+  :ca: alces-ca_crt.pem
+EOF
+	if distro_restart_service alces-storage-manager; then
+            echo "Alces Storage Manager service restarted"
+	else
+            echo "Unable to restart Alces Storage Manager service"
+	fi
+    fi
+}
+
+main() {
+    local tags tag tuple key value storage_roles storage_daemon_port
+
+    files_load_config instance config/cluster
+
+    if [[ "${cw_INSTANCE_role}" == "appliance" ]]; then
+        eval "$(member_parse)"
+        echo "Tags for member ${cw_MEMBER_name} (${cw_MEMBER_ip}): ${cw_MEMBER_tags}"
+        IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
+        for tag in "${tags[@]}"; do
+            IFS='=' read -a tuple <<< "${tag}"
+            echo "Found tuple: ${tag}, key: ${tuple[0]}, value: ${tuple[1]}"
+            key=${tuple[0]}
+            value=${tuple[1]}
+            if [ "$key" == "storage_roles" ]; then
+                storage_roles="${value}"
+            elif [ "$key" == "storage_daemon_port" ]; then
+                storage_daemon_port="${value}"
+            fi
+        done
+        if [[ "${storage_roles}" == *":master:"* ]]; then
+            echo "Adding Storage Manager master node: ${cw_MEMBER_name} (${cw_MEMBER_ip}:${storage_daemon_port:-25268})"
+            _add_storage_master_node "${cw_MEMBER_ip}" "${storage_daemon_port:-25268}"
+        fi
+    fi
+}
+
+setup
+require member
+require handler
+require files
+
+handler_tee main "$@"
