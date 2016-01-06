@@ -2,7 +2,7 @@
 ################################################################################
 ##
 ## Alces Clusterware - Handler hook
-## Copyright (C) 2015 Stephen F. Norledge and Alces Software Ltd.
+## Copyright (C) 2015-2016 Stephen F. Norledge and Alces Software Ltd.
 ##
 ################################################################################
 setup() {
@@ -22,7 +22,7 @@ setup() {
 }
 
 main() {
-    . ${cw_ROOT}/etc/config/cluster/instance.rc
+    files_load_config instance config/cluster
     if [[ "${cw_INSTANCE_role}" == "master" ]]; then
         if ! iptables -C INPUT -p tcp --dport 25268 -j ACCEPT &>/dev/null; then
             echo "Adding iptables rule: -I INPUT -p tcp --dport 25268 -j ACCEPT"
@@ -41,5 +41,6 @@ main() {
 setup
 require distro
 require handler
+require files
 
 handler_tee main "$@"

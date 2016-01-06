@@ -1,4 +1,10 @@
 #!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2015-2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
 setup() {
     local a xdg_config
     IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
@@ -23,13 +29,20 @@ main() {
 
     mkdir -p "${cw_ROOT}/etc/config/cluster-access"
 
-    . ${cw_ROOT}/etc/config/cluster/instance.rc
+    files_load_config instance config/cluster
     if [[ "${cw_INSTANCE_role}" == "master" ]]; then
         "${cw_ROOT}"/bin/alces service enable alces-storage-manager-daemon
+	files_load_config --optional cluster-access
+	if [ -z "${cw_ACCESS_skip_storage_defaults}" ]; then
+            "${cw_ROOT}"/bin/alces storage enable posix
+	    echo -e "Home\n%#{dir}\n" | alces storage configure --system home posix
+            "${cw_ROOT}"/bin/alces storage use --system home
+	fi
     fi
 }
 
 setup
 require handler
+require files
 
 handler_tee main "$@"
