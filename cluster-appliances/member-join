@@ -37,7 +37,7 @@ _add_storage_master_node() {
   :address: "${addr}:${port}"
   :ssl: true
 :ssl:
-  :root: ${cw_ROOT}/etc/ssl/alces-storage-manager
+  :root: /opt/alces-storage-manager/etc/ssl/client
   :certificate: cert.pem
   :key: key.pem
   :ca: alces-ca_crt.pem
