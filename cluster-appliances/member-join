@@ -27,11 +27,16 @@ _add_storage_master_node() {
     port="$2"
     files_load_config --optional cluster-access
     cw_ACCESS_storage_MANAGER_ROOT="${cw_ACCESS_storage_MANAGER_ROOT:-/opt/alces-storage-manager}"
-    if [ -f "${cw_ACCESS_storage_MANAGER_ROOT}"/config/storagemanager.yml ]; then
+    if [ -f "${cw_ROOT}"/etc/config/cluster-appliances/storage-endpoints.yml ]; then
 	echo "Cowardly refusing to reconfigure existing Alces Storage Manager"
     else
-	mkdir -p "${cw_ACCESS_storage_MANAGER_ROOT}"/config
-	cat <<EOF > "${cw_ACCESS_storage_MANAGER_ROOT}"/config/storagemanager.yml
+	mkdir -p "${cw_ACCESS_storage_MANAGER_ROOT}"/webapp/config
+	cat <<EOF > "${cw_ROOT}"/etc/config/cluster-appliances/storage-endpoints.yml
+---
+:endpoints:
+- "${addr}:${port}"
+EOF
+	cat <<EOF > "${cw_ACCESS_storage_MANAGER_ROOT}"/webapp/config/storagemanager.yml
 ---
 :auth:
   :address: "${addr}:${port}"
