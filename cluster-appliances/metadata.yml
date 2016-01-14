@@ -2,7 +2,7 @@
 install:
   _: |
     alces service install alces-storage-manager-daemon
-    cat <<EOF > "${cw_ROOT}"/etc/cluster-access.rc
+    cat <<EOF > "${cw_ROOT}"/etc/cluster-appliances.rc
     ################################################################################
     ##
     ## Alces Clusterware - Shell configuration
@@ -11,5 +11,5 @@ install:
     ################################################################################
     # Enable the following if you don't want the default storage setup to
     # be enabled when your instance is configured.
-    #cw_ACCESS_storage_SKIP_DEFAULTS="true"
+    #cw_APPLIANCES_storage_SKIP_DEFAULTS="true"
     EOF

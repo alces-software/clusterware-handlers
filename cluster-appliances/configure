@@ -23,24 +23,24 @@ setup() {
 
 main() {
     # Bail out if we're already configured (this is a reboot)
-    if [ -d "${cw_ROOT}/etc/config/cluster-access" ]; then
+    if [ -d "${cw_ROOT}/etc/config/cluster-appliances" ]; then
         exit 0
     fi
 
-    mkdir -p "${cw_ROOT}/etc/config/cluster-access"
+    mkdir -p "${cw_ROOT}/etc/config/cluster-appliances"
 
     files_load_config instance config/cluster
-    if [[ "${cw_INSTANCE_tag_STORAGE_ROLES}" == "*:master:*" ]]; then
-	files_load_config --optional cluster-access
+    if [[ "${cw_INSTANCE_tag_STORAGE_ROLES}" == *":master:"* ]]; then
+	files_load_config --optional cluster-appliances
         "${cw_ROOT}"/bin/alces service enable alces-storage-manager-daemon \
           "${cw_INSTANCE_tag_STORAGE_DAEMON_PORT:-25268}"
-	if [ "${cw_ACCESS_storage_SKIP_DEFAULTS}" != "true" ]; then
+	if [ "${cw_APPLIANCES_storage_SKIP_DEFAULTS}" != "true" ]; then
             "${cw_ROOT}"/bin/alces storage enable posix
-	    echo -e "Home\n%#{dir}\n" | alces storage configure --system home posix
+	    echo -e "Home\n%#{dir}\n" | "${cw_ROOT}"/bin/alces storage configure --system home posix
             "${cw_ROOT}"/bin/alces storage use --system home
 	fi
     elif [[ "${cw_INSTANCE_role}" == "appliance" ]]; then
-	if [[ "${cw_INSTANCE_tag_APPLIANCE_ROLES}" == "*:storage:*" ]]; then
+	if [[ "${cw_INSTANCE_tag_APPLIANCE_ROLES}" == *":storage:"* ]]; then
             "${cw_ROOT}"/bin/alces service enable appliance/alces-storage-manager/base
             if distro_start_service alces-storage-manager; then
 		echo "Alces Storage Manager service started"
@@ -58,6 +58,7 @@ main() {
 
 setup
 require handler
+require distro
 require files
 
 handler_tee main "$@"

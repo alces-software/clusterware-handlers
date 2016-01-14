@@ -25,7 +25,7 @@ main() {
     local port
     files_load_config instance config/cluster
     port="${cw_INSTANCE_tag_STORAGE_DAEMON_PORT:-25268}"
-    if [[ "${cw_INSTANCE_tag_STORAGE_ROLES}" == "*:master:*" ]]; then	
+    if [[ "${cw_INSTANCE_tag_STORAGE_ROLES}" == *":master:"* ]]; then	
         if ! iptables -C INPUT -p tcp --dport ${port} -j ACCEPT &>/dev/null; then
             echo "Adding iptables rule: -I INPUT -p tcp --dport ${port} -j ACCEPT"
             iptables -I INPUT -p tcp --dport ${port} -j ACCEPT
