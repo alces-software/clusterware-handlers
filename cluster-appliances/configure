@@ -32,6 +32,9 @@ main() {
     files_load_config instance config/cluster
     if [[ "${cw_INSTANCE_tag_STORAGE_ROLES}" == *":master:"* ]]; then
 	files_load_config --optional cluster-appliances
+	naming_issue_self_signed_cert "storage.${hostname -f}" \
+				      "Alces Storage Manager Daemon" \
+				      "${cw_ROOT}"/etc/ssl/alces-storage-manager-daemon
         "${cw_ROOT}"/bin/alces service enable alces-storage-manager-daemon \
           "${cw_INSTANCE_tag_STORAGE_DAEMON_PORT:-25268}"
 	if [ "${cw_APPLIANCES_storage_SKIP_DEFAULTS}" != "true" ]; then
@@ -60,5 +63,6 @@ setup
 require handler
 require distro
 require files
+require naming
 
 handler_tee main "$@"
