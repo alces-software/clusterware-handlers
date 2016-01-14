@@ -33,8 +33,10 @@ main() {
     if [[ "${cw_INSTANCE_tag_GALAXY_ROLES}" == *":master:"* ]]; then
         "${cw_ROOT}"/bin/alces service enable galaxy/webapp
 
-        sed -i -e 's,^\(cw_CLUSTER_NFS_exports=".*\)"$,\1 ${cw_ROOT}/var/lib/galaxy/share",g' \
-            "${cw_ROOT}"/etc/cluster-nfs.rc
+	if [ -f "${cw_ROOT}"/etc/cluster-nfs.rc ]; then
+            sed -i -e 's,^\(cw_CLUSTER_NFS_exports=".*\)"$,\1 ${cw_ROOT}/var/lib/galaxy/share",g' \
+		"${cw_ROOT}"/etc/cluster-nfs.rc
+	fi
 
         if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
             # set up Galaxy for DRMAA
