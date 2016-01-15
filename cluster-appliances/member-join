@@ -45,6 +45,7 @@ EOF
   :root: /opt/alces-storage-manager/etc/ssl/client
   :certificate: cert.pem
   :key: key.pem
+  :verify: false
   :ca: alces-ca_crt.pem
 EOF
 	if distro_restart_service alces-storage-manager; then
