@@ -1,7 +1,7 @@
 ################################################################################
 ##
 ## Alces Clusterware - Handler metadata
-## Copyright (C) 2015 Stephen F. Norledge and Alces Software Ltd.
+## Copyright (C) 2015-2016 Stephen F. Norledge and Alces Software Ltd.
 ##
 ################################################################################
 ---
@@ -17,7 +17,7 @@ install:
         }
         emit '+++++++++++++++++++++++++++++++++++++++++++++'
         emit "Welcome to $1"
-        emit "An Alces Clusterware environment (r$2)"
+        emit "Alces Clusterware (r$2)"
         emit "Based on $(sed 's/\(.*\) release \(.*\) .*/\1 \2/g' /etc/redhat-release)"
         emit '+++++++++++++++++++++++++++++++++++++++++++++'
     )
@@ -50,14 +50,43 @@ install:
     ################################################################################
     ${distro_preamble}
     EOF
-    cat <<'EOF' >> ${cw_ROOT}/etc/profile.d/clusterable.sh
+    cat <<'END' >> ${cw_ROOT}/etc/profile.d/clusterable.sh
     if [ "$PS1" ]; then
-        if [ -f "${cw_ROOT}"/etc/config/cluster/cluster.vars.sh ]; then
-            eval $(egrep '^cw_CLUSTER_(name|uuid)=' "${cw_ROOT}"/etc/config/cluster/cluster.vars.sh)
-            cw_CLUSTER_name="${cw_CLUSTER_name:-${cw_CLUSTER_uuid}}"
-            PS1="[\u@\h\[\e[1;34m\](${cw_CLUSTER_name})\[\e[0m\] \W]\\$ "
-            unset cw_CLUSTER_name cw_CLUSTER_uuid
+        _cw_set_prompt() {
+            if [ -f "${cw_ROOT}"/etc/config/cluster/cluster.vars.sh ]; then
+                eval $(egrep '^cw_CLUSTER_(name|uuid)=' "${cw_ROOT}"/etc/config/cluster/cluster.vars.sh)
+                cw_CLUSTER_name="${cw_CLUSTER_name:-${cw_CLUSTER_uuid}}"
+                PS1="[\u@\h\[\e[1;34m\](${cw_CLUSTER_name})\[\e[0m\] \W]\\$ "
+                unset cw_CLUSTER_name cw_CLUSTER_uuid
+            else
+                PS1="[\u@\h\[\e[1;33m\](unknown)\[\e[0m\] \W]\\$ "
+            fi
+        }
+        eval $(grep '^cw_STATUS=' "${cw_ROOT}"/etc/clusterware.rc)
+        if [ "${cw_STATUS}" != "ready" ]; then
+            PS1="[\u@\h\[\e[1;31m\](unconfigured)\[\e[0m\] \W]\\$ "
+            _cw_check_ready() {
+                eval $(grep '^cw_STATUS=' "${cw_ROOT}"/etc/clusterware.rc)
+                if [ "${cw_STATUS}" == "ready" ]; then
+                    cat <<EOF
+    $(echo -e "\e[1;33m")========
+     NOTICE
+    ========$(echo -e "\e[0m")
+    Configuration of this cluster is complete and it is now operational.
+
+    EOF
+                    _cw_set_prompt
+                    PROMPT_COMMAND="$(echo "${PROMPT_COMMAND}" | sed "s,; cw_ROOT=\"${cw_ROOT}\" _cw_check_ready,,g")"
+                    unset -f _cw_check_ready _cw_set_prompt
+                fi
+                unset cw_STATUS
+            }
+            PROMPT_COMMAND="${PROMPT_COMMAND:-:}; cw_ROOT=\"${cw_ROOT}\" _cw_check_ready"
+        else
+            _cw_set_prompt
+            unset -f _cw_set_prompt
         fi
+        unset cw_STATUS
     fi
     if [[ "$0" == '-'* ]]; then
         # Respect .hushlogin setting
@@ -67,15 +96,27 @@ install:
                 eval $(grep '^cw_CLUSTER_name=' "${cw_ROOT}"/etc/config/cluster/cluster.vars.sh)
             fi
             if [ -f "${cw_ROOT}"/etc/clusterware.rc ]; then
-                eval $(grep '^cw_RELEASE=' "${cw_ROOT}"/etc/clusterware.rc)
+                eval $(egrep '^cw_(RELEASE|STATUS)=' "${cw_ROOT}"/etc/clusterware.rc)
             fi
             welcome "${cw_CLUSTER_name:-your cluster}" "${cw_RELEASE:-1}"
             if [ -f "${cw_ROOT}"/etc/motd ]; then
                 cat ${cw_ROOT}/etc/motd
                 echo ""
             fi
-            unset cw_CLUSTER_name cw_RELEASE
+            if [ "${cw_STATUS}" == "unconfigured" ]; then
+                cat <<EOF
+    $(echo -e "\e[1;33m")=============
+     PLEASE NOTE
+    =============$(echo -e "\e[0m")
+    Configuration of this cluster has not yet been completed and it is not yet
+    operational.  When configuration is complete you will receive a notice at the
+    prompt.  Additionally, the prompt will be updated to include the name of the
+    cluster.
+
+    EOF
+            fi
+            unset cw_CLUSTER_name cw_RELEASE cw_STATUS
         fi
     fi
-    EOF
+    END
     echo "${distro_postamble}" >> ${cw_ROOT}/etc/profile.d/clusterable.sh
