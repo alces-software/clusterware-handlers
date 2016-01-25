@@ -34,6 +34,9 @@ main() {
             distro_enable_service nfs
             distro_start_service nfs
         fi
+    elif [ "${cw_INSTANCE_role}" == "slave" ]; then
+        distro_enable_service rpcbind
+        distro_start_service rpcbind
     fi
 }
 
