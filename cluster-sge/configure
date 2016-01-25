@@ -33,7 +33,7 @@ main() {
 require 'json'
 
 config = JSON.load(File.read('${cw_ROOT}/etc/serf/tags.json'))
-config["tags"]["slots"] = $(grep -ic 'processor' /proc/cpuinfo).to_s
+config["tags"]["slots"] = $(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo).to_s
 ram_kb = $(grep 'MemTotal' /proc/meminfo | awk '{print $2};')
 ram_approx_gb = (2 ** Math.log(ram_kb,2).ceil) / 1_048_576
 config["tags"]["ram_gb"] = ram_approx_gb.to_s
