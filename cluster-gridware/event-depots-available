@@ -30,12 +30,6 @@ main() {
             depot_state="${depot_meta[2]}"
             echo "Found depot: id: ${depot_id}, name: ${depot_name}, state: ${depot_state}"
             mkdir -p "/opt/gridware/depots/${depot_id}"
-            if [ "${depot_name}" == "local" ]; then
-                echo "Updating local repository configuration to use ${depot_id}"
-                source="$(readlink /opt/gridware/local)"
-                target="/opt/gridware/depots/${depot_id}"
-                sed -e "s,${source},${target},g" -i "${cw_ROOT}/etc/packager.yml"
-            fi
             ln -snf "/opt/gridware/depots/${depot_id}" "/opt/gridware/${depot_name}"
             export HOME=${HOME:-/tmp}
             if [ "${depot_state}" == "enabled" ]; then
