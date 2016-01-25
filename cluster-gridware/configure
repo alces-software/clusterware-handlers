@@ -51,7 +51,7 @@ end
 write_file('gridware.rc', gridware_vars.join("\n"))
 RUBY
 
-    files_load_config config config/cluster
+    files_load_config instance config/cluster
     if [ "${cw_INSTANCE_role}" == "master" ]; then
 	files_load_config gridware config/gridware
 	files_load_config gridware
