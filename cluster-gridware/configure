@@ -55,6 +55,16 @@ RUBY
     if [ "${cw_INSTANCE_role}" == "master" ]; then
 	files_load_config gridware config/gridware
 	files_load_config gridware
+        depots="local"
+        for a in $depots; do
+            if [ -L "/opt/gridware/${a}" ]; then
+                source="$(readlink /opt/gridware/${a})"
+                target="/opt/gridware/depots/$(uuid -v4 | cut -f1 -d'-')"
+                mv "${source}" "${target}"
+                ln -snf "${target}" /opt/gridware/${a}
+            fi
+        done
+
 	cat <<EOF > "${cw_ROOT}"/etc/cluster-nfs.d/cluster-gridware.rc
 ################################################################################
 ##
@@ -71,18 +81,7 @@ if [ -d "${cw_GRIDWARE_root:-/opt/gridware}" ]; then
     cw_CLUSTER_NFS_exports="\${cw_CLUSTER_NFS_exports} ${cw_GRIDWARE_root:-/opt/gridware}/etc"
 fi
 EOF
-        depots="local"
-        for a in $depots; do
-            if [ -L "/opt/gridware/${a}" ]; then
-                source="$(readlink /opt/gridware/${a})"
-                target="/opt/gridware/depots/$(uuid -v4 | cut -f1 -d'-')"
-                mv "${source}" "${target}"
-                ln -snf "${target}" /opt/gridware/${a}
-                if [ "${a}" == "local" ]; then
-                    sed -e "s,${source},${target},g" -i "/opt/gridware/etc/gridware.*.yml"
-                fi
-            fi
-        done
+
         export HOME=${HOME:-/tmp}
         for a in ${cw_GRIDWARE_depots}; do
             urlvar="cw_GRIDWARE_depot_url_${a}"

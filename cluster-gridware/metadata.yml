@@ -1,0 +1,7 @@
+---
+install:
+  _: |
+    files_load_config gridware
+    if [ ! -d "${cw_GRIDWARE_root:-/opt/gridware}" ]; then
+        alces gridware init
+    fi
