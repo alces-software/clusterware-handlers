@@ -32,9 +32,11 @@ EOF
 }
 
 main() {
-    # Clear out current list of pulsars -- these will be repopulated
-    # by member-join events.
-    _clear_pulsar_nodes
+    if [ -f "${cw_ROOT}/etc/galaxy/destinations.yml" ]; then
+	# Clear out current list of pulsars -- these will be repopulated
+	# by member-join events.
+	_clear_pulsar_nodes
+    fi
 
     # Bail out if we're already configured (this is a reboot)
     if [ -d "${cw_ROOT}/etc/config/cluster-galaxy" ]; then
