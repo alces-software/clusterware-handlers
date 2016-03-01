@@ -2,7 +2,7 @@
 ################################################################################
 ##
 ## Alces Clusterware - Handler hook
-## Copyright (C) 2015 Stephen F. Norledge and Alces Software Ltd.
+## Copyright (C) 2015-2016 Stephen F. Norledge and Alces Software Ltd.
 ##
 ################################################################################
 setup() {
@@ -21,7 +21,21 @@ setup() {
     kernel_load
 }
 
+_clear_pulsar_nodes() {
+    ruby_run <<EOF
+require 'yaml'
+config = YAML.load_file('${cw_ROOT}/etc/galaxy/destinations.yml')
+config['pulsar']['targets'] = []
+File.write('${cw_ROOT}/etc/galaxy/destinations.yml', config.to_yaml)
+EOF
+    echo '{next_pulsar: 0}' > "${cw_ROOT}"/etc/galaxy/state.yml
+}
+
 main() {
+    # Clear out current list of pulsars -- these will be repopulated
+    # by member-join events.
+    _clear_pulsar_nodes
+
     # Bail out if we're already configured (this is a reboot)
     if [ -d "${cw_ROOT}/etc/config/cluster-galaxy" ]; then
         exit 0
