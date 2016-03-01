@@ -37,6 +37,10 @@ main() {
             echo "Unable to start Galaxy service"
         fi
 
+	# Set current public IP in FTP configuration - this allows the
+	# older PASV transfer protocol to work correctly.
+	sed -e "s,^MasqueradeAddress.*,MasqueradeAddress $(network_get_public_address),g" \
+	    -i "${cw_ROOT}"/opt/galaxy/etc/proftpd.conf
         if distro_start_service clusterware-galaxy-ftpd; then
             echo "Started Galaxy FTP Daemon service"
             if ! iptables -I INPUT -p tcp --dport 21 -j ACCEPT &>/dev/null; then
@@ -67,5 +71,6 @@ setup
 require handler
 require files
 require distro
+require network
 
 handler_tee main "$@"
