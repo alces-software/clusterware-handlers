@@ -36,7 +36,9 @@ config = YAML.load_file('${cw_ROOT}/etc/galaxy/destinations.yml')
     url << "managers/#{m}"
     pulsar_target['type'] = m
   end
-  config['pulsar']['targets'] << pulsar_target
+  unless config['pulsar']['targets'].include?(pulsar_target)
+    config['pulsar']['targets'] << pulsar_target
+  end
 end
 File.write('${cw_ROOT}/etc/galaxy/destinations.yml', config.to_yaml)
 EOF
