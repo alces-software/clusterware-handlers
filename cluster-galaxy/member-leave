@@ -1,0 +1,67 @@
+#!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+_remove_pulsar_node() {
+    local compute_ip
+    compute_ip="$1"
+
+    ruby_run <<EOF
+require 'yaml'
+config = YAML.load_file('${cw_ROOT}/etc/galaxy/destinations.yml')
+url = "https://${compute_ip}:8913/"
+config['pulsar']['targets'].reject! { |h| h['url'] == url }
+File.write('${cw_ROOT}/etc/galaxy/destinations.yml', config.to_yaml)
+EOF
+    echo '{next_pulsar: 0}' > "${cw_ROOT}"/etc/galaxy/state.yml
+}
+
+main() {
+    local tags tag tuple key value galaxy_roles
+    . ${cw_ROOT}/etc/config/cluster/instance.rc
+
+    if [[ "${cw_INSTANCE_tag_GALAXY_ROLES}" == *":master:"* ]]; then
+        eval "$(member_parse)"
+        echo "Tags for member ${cw_MEMBER_name} (${cw_MEMBER_ip}): ${cw_MEMBER_tags}"
+        IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
+        for tag in "${tags[@]}"; do
+            IFS='=' read -a tuple <<< "${tag}"
+            echo "Found tuple: ${tag}, key: ${tuple[0]}, value: ${tuple[1]}"
+            key=${tuple[0]}
+            value=${tuple[1]}
+            if [ "$key" == "galaxy_roles" ]; then
+                galaxy_roles="${value}"
+            fi
+        done
+        if [[ "${galaxy_roles}" == *":compute:"* ]]; then
+            echo "Removing Galaxy Pulsar node: ${cw_MEMBER_name} (${cw_MEMBER_ip})"
+            _remove_pulsar_node "${cw_MEMBER_ip}"
+        fi
+    fi
+}
+
+setup
+require member
+require handler
+require ruby
+
+handler_tee main "$@"
