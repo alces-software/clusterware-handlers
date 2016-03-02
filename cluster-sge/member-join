@@ -44,6 +44,10 @@ main() {
             log "Adding node: ${cw_MEMBER_name} (${cw_MEMBER_ip}) with slots=${slots} and vmem=${vmem_gb}G" \
                 "${cw_CLUSTER_SGE_log}"
             hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+	    # Wait for a short while to ensure that the addition of
+	    # the name to /etc/hosts percolates through to SGEs name
+	    # resolution routines.
+	    sleep 2
             ${hook_dir}/share/sge-add-node "${cw_MEMBER_name}" "${cw_MEMBER_ip}" "${slots}" "${vmem_gb}" 2>&1 | log_blob "${cw_CLUSTER_SGE_log}" "sge-add-node"
 
             intf="$(network_get_route_iface ${cw_MEMBER_ip})"
