@@ -72,7 +72,7 @@ install:
     $(echo -e "\e[1;33m")========
      NOTICE
     ========$(echo -e "\e[0m")
-    Configuration of this cluster is complete and it is now operational.
+    Configuration of this node is complete and it is now operational.
 
     EOF
                     _cw_set_prompt
@@ -108,10 +108,10 @@ install:
     $(echo -e "\e[1;33m")=============
      PLEASE NOTE
     =============$(echo -e "\e[0m")
-    Configuration of this cluster has not yet been completed and it is not yet
-    operational.  When configuration is complete you will receive a notice at the
-    prompt.  Additionally, the prompt will be updated to include the name of the
-    cluster.
+    Configuration of this node has not yet been completed and it is not yet
+    operational.  When configuration is complete you will receive a notice at
+    the prompt.  Additionally, the prompt will be updated to include the name of
+    the cluster.
 
     EOF
             fi
