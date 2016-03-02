@@ -1,0 +1,49 @@
+#!/bin/bash
+
+. /etc/profile.d/alces-clusterware.sh
+. /etc/xdg/clusterware/config.vars.sh
+module purge
+module use "${cw_ROOT}"/etc/modules
+module load services/gridscheduler
+
+if [ -f "${cw_ROOT}/etc/cluster-sge.rc" ]; then
+    . "${cw_ROOT}/etc/cluster-sge.rc"
+fi
+
+name="$1"
+domainname="$(hostname -d)"
+if [[ "${name}" != *"."* ]]; then
+    # name is simply "<hostname>"
+    short_name="${name}"
+    name="${name}.${domainname}"
+else
+    if [[ "${name}" != *".${domainname}" ]]; then
+        # name is "<hostname>.<subdomain>"
+        name="$1.${domainname}"
+    fi
+    short_name=$(echo ${name} | cut -f1 -d'.')
+fi
+
+tmpfile="$(mktemp /tmp/sge-prune-node.XXXXXXXX)"
+
+set -o pipefail
+# Remove any existing record from all hostgroups
+for a in $(qconf -shgrpl); do
+    if qconf -shgrp ${a} | grep -q "${name}"; then
+        qconf -shgrp ${a} | sed -e "s/^\(.*\) ${name}\(.*\)/\1\2/g" \
+            -e "s/hostlist\s*$/hostlist NONE/g" > "${tmpfile}" && \
+            qconf -Mhgrp "${tmpfile}"
+    fi
+done
+set +o pipefail
+
+qconf -de "${name}"
+
+if [ -f "${cw_ROOT}"/etc/genders ]; then
+    if grep -q "^${short_name} " "${cw_ROOT}"/etc/genders; then
+	grep -v "^${short_name} " "${cw_ROOT}"/etc/genders > "${tmpfile}"
+	cat "${tmpfile}" > "${cw_ROOT}"/etc/genders
+    fi
+fi
+
+rm -f "${tmpfile}"

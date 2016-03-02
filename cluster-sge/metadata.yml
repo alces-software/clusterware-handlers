@@ -1,3 +1,9 @@
+################################################################################
+##
+## Alces Clusterware - Handler metadata
+## Copyright (C) 2015-2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
 ---
 install:
   _: |
@@ -11,5 +17,6 @@ install:
     cw_CLUSTER_SGE_log=/var/log/clusterware/cluster-sge.log
     cw_CLUSTER_SGE_max_rt_seconds=259200
     cw_CLUSTER_SGE_min_vmem_gb=4
+    cw_CLUSTER_SGE_cleanup=true
     EOF
     alces service install gridscheduler
