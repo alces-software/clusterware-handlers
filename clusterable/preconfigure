@@ -21,7 +21,15 @@ setup() {
     kernel_load
 }
 
+_member_purge() {
+    type member_purge &>/dev/null && member_purge
+}
+
 main() {
+    # Purge any known existing members in advance of rejoining the
+    # cluster service ring.
+    _member_purge
+
     # Bail out if we're already configured (this is a reboot)
     if [ -d "${cw_ROOT}/etc/config/cluster" ]; then
         exit 0
@@ -116,5 +124,6 @@ setup
 require ruby
 require distro
 require handler
+require member
 
 handler_tee main "$@"
