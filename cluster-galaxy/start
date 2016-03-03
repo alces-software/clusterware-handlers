@@ -43,7 +43,7 @@ main() {
 	    -i "${cw_ROOT}"/opt/galaxy/etc/proftpd.conf
         if distro_start_service clusterware-galaxy-ftpd; then
             echo "Started Galaxy FTP Daemon service"
-            if ! iptables -I INPUT -p tcp --dport 21 -j ACCEPT &>/dev/null; then
+            if ! iptables -C INPUT -p tcp --dport 21 -j ACCEPT &>/dev/null; then
                 echo "Adding iptables rule: -I INPUT -p tcp --dport 21 -j ACCEPT"
                 iptables -I INPUT -p tcp --dport 21 -j ACCEPT
             else
@@ -55,7 +55,7 @@ main() {
 
         if distro_start_service clusterware-galaxy-proxy; then
             echo "Started Galaxy Proxy service"
-            if ! iptables -I INPUT -p tcp --dport 33219:33299 -j ACCEPT &>/dev/null; then
+            if ! iptables -C INPUT -p tcp --dport 33219:33299 -j ACCEPT &>/dev/null; then
                 echo "Adding iptables rule: -I INPUT -p tcp --dport 33219:33299 -j ACCEPT"
                 iptables -I INPUT -p tcp --dport 33219:33299 -j ACCEPT
             else

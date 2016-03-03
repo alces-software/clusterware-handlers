@@ -1,0 +1,63 @@
+#!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+_setup_certs() {
+    local hook_dir
+    openssl dhparam -out "${cw_ROOT}"/etc/openvpn/clusterware/dh1024.pem -2 1024
+    hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+    ruby_exec "${hook_dir}"/share/generate-certs "${cw_CLUSTER_name:-mycluster}" \
+      "${cw_ROOT}/etc/openvpn/clusterware"
+}
+
+main() {
+    # Bail out if we're already configured (this is a reboot)
+    if [ -d "${cw_ROOT}/etc/config/cluster-vpn" ]; then
+        exit 0
+    fi
+
+    mkdir -p "${cw_ROOT}/etc/config/cluster-vpn"
+
+    files_load_config instance config/cluster
+
+    if [[ "${cw_INSTANCE_role}" == "master" ]]; then
+	alces service enable openvpn
+	files_load_config config config/cluster
+	_setup_certs
+	cp "${cw_ROOT}"/etc/openvpn/clusterware/ca.crt.pem "${cw_ROOT}"/etc/openvpn/client/clusterware
+    fi
+}
+
+setup
+require handler
+require ruby
+require files
+
+files_load_config clusterware
+case "${cw_VERSION:-1.0.0}" in
+    1.[012].*)
+	exit 0
+	;;
+    *)
+	handler_tee main "$@"
+	;;
+esac
