@@ -63,8 +63,12 @@ output_dir = ARGV[1] || '/tmp'
 ca_key = OpenSSL::PKey::RSA.new(2048)
 ca_cert = generate_ca_cert("ca-#{cluster_name}", ca_key)
 server_key = OpenSSL::PKey::RSA.new(2048)
-server_cert = generate_cert("vpn-#{cluster_name}", ca_cert, ca_key, server_key, type: :server)
+server_cert = generate_cert("server-#{cluster_name}", ca_cert, ca_key, server_key, type: :server)
+client_key = OpenSSL::PKey::RSA.new(2048)
+client_cert = generate_cert("client-#{cluster_name}", ca_cert, ca_key, client_key, type: :client)
 
 File.write(File.join(output_dir,'ca.crt.pem'), ca_cert.to_pem)
 File.write(File.join(output_dir,'server.crt.pem'), server_cert.to_pem)
 File.write(File.join(output_dir,'server.key.pem'), server_key.to_pem, perm: 0600)
+File.write(File.join(output_dir,'client.crt.pem'), client_cert.to_pem)
+File.write(File.join(output_dir,'client.key.pem'), client_key.to_pem)

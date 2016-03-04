@@ -40,10 +40,11 @@ main() {
     files_load_config instance config/cluster
 
     if [[ "${cw_INSTANCE_role}" == "master" ]]; then
-	alces service enable openvpn
+	"${cw_ROOT}"/bin/alces service enable openvpn
 	files_load_config config config/cluster
 	_setup_certs
 	cp "${cw_ROOT}"/etc/openvpn/clusterware/ca.crt.pem "${cw_ROOT}"/etc/openvpn/client/clusterware
+	mv "${cw_ROOT}"/etc/openvpn/clusterware/client.*.pem "${cw_ROOT}"/etc/openvpn/client/clusterware
     fi
 }
 

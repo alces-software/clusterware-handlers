@@ -24,6 +24,9 @@ install:
     cw_CLUSTER_VPN_port=1194
     cw_CLUSTER_VPN_network=10.41.41.0/24
     cw_CLUSTER_VPN_cluster_intf=eth0
+    # set cw_CLUSTER_VPN_auth to 'cert' for certificate-based
+    # authentication, or 'pam' for password authentication.
+    cw_CLUSTER_VPN_auth=cert
     EOF
 
     mkdir -p "${cw_ROOT}"/etc/openvpn/clusterware \
@@ -73,6 +76,8 @@ install:
     persist-key
     persist-tun
     ca ca.crt.pem
+    cert client.crt.pem
+    key client.key.pem
     auth-user-pass
     ns-cert-type server
     comp-lzo
