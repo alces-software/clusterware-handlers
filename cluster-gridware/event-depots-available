@@ -23,6 +23,7 @@ main() {
         payload=($(cat))
         echo "Received payload from master: ${payload[*]}"
         depots="${payload[@]:1}"
+	files_load_config distro
         for a in $depots; do
             IFS=':' read -a depot_meta <<< "${a}"
             depot_id="${depot_meta[0]}"
@@ -44,5 +45,6 @@ main() {
 setup
 require log
 require handler
+require files
 
 handler_tee main "$@"
