@@ -1,6 +1,6 @@
 #!/bin/bash
 #==============================================================================
-# Copyright (C) 2015 Stephen F. Norledge and Alces Software Ltd.
+# Copyright (C) 2015-2016 Stephen F. Norledge and Alces Software Ltd.
 #
 # This file/package is part of Alces Clusterware.
 #
@@ -36,17 +36,13 @@ setup() {
     kernel_load
 }
 
-main() {
+_notify_available() {
     local ip
-    . "${cw_ROOT}"/etc/config/cluster/instance.vars.sh
-    if [ "${cw_INSTANCE_role}" == "master" ]; then
-        . "${cw_ROOT}"/etc/config/cluster/config.rc
-        . "${cw_ROOT}"/etc/config/cluster/auth.rc
-        ip=$(network_get_public_address)
-        echo "Notify ${cw_CLUSTER_service_url}/clusters: '${cw_CLUSTER_uuid}' is 'available' at '${ip}'"
-        cat <<JSON | webapi_patch \
-            "${cw_CLUSTER_service_url}"/clusters/"${cw_CLUSTER_uuid}" \
-            --auth "${cw_CLUSTER_uuid}:${cw_CLUSTER_auth_token}"
+    ip=$(network_get_public_address)
+    echo "Notify ${cw_CLUSTER_service_url}/clusters: '${cw_CLUSTER_uuid}' is 'available' at '${ip}'"
+    cat <<JSON | webapi_patch \
+		     "${cw_CLUSTER_service_url}"/clusters/"${cw_CLUSTER_uuid}" \
+		     --auth "${cw_CLUSTER_uuid}:${cw_CLUSTER_auth_token}"
 {
     "data": {
         "type": "clusters",
@@ -58,6 +54,38 @@ main() {
     }
 }
 JSON
+}
+
+_notify_running() {
+    echo "Notify ${cw_CLUSTER_service_url}/clusterNodes: '${cw_FLIGHT_instance_uuid}' is 'running'"
+    cat <<JSON | webapi_patch \
+		     "${cw_CLUSTER_service_url}"/cluster-nodes/"${cw_FLIGHT_instance_uuid}" \
+		     --auth "${cw_CLUSTER_uuid}:${cw_CLUSTER_auth_token}"
+{
+    "data": {
+        "type": "clusterNodes",
+        "id": "${cw_FLIGHT_instance_uuid}",
+        "attributes": {
+            "status": "running"
+        }
+    }
+}
+JSON
+}
+
+main() {
+    files_load_config instance config/cluster
+    files_load_config config config/cluster
+    files_load_config auth config/cluster
+
+    if [ "${cw_INSTANCE_role}" == "master" ]; then
+	_notify_available
+    fi
+
+    if files_load_config --optional flight config/flight; then
+	if [ "${cw_FLIGHT_instance_uuid}" ]; then
+	    _notify_running
+	fi
     fi
 }
 
@@ -65,5 +93,6 @@ setup
 require webapi
 require handler
 require network
+require files
 
 handler_tee main "$@"
