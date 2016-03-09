@@ -1,0 +1,95 @@
+#!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook helper
+## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+_initialize_depots() {
+    export cw_UI_disable_spinner=true
+    "${cw_ROOT}"/bin/alces gridware init
+}
+
+_relink_depots() {
+    local depots a source target
+    depots="${cw_GRIDWARE_default_depot} ${cw_GRIDWARE_depots}"
+    for a in $depots; do
+        if [ -L "${cw_GRIDWARE_root}/${a}" ]; then
+            source="$(readlink ${cw_GRIDWARE_root}/${a})"
+            target="${cw_GRIDWARE_root}/depots/$(uuid -v4 | cut -f1 -d'-')"
+            mv "${source}" "${target}"
+            ln -snf "${target}" ${cw_GRIDWARE_root}/${a}
+        fi
+    done
+}
+
+_configure_depot_nfs() {
+    cat <<EOF > "${cw_ROOT}"/etc/cluster-nfs.d/cluster-gridware.rc
+################################################################################
+##
+## Alces Clusterware - Shell configuration
+## Copyright (c) 2008-2015 Alces Software Ltd
+##
+################################################################################
+if [ -d "${cw_GRIDWARE_root:-/opt/gridware}" ]; then
+    for a in ${cw_GRIDWARE_root:-/opt/gridware}/*; do
+        if [ -L "\$a" ]; then
+            cw_CLUSTER_NFS_exports="\${cw_CLUSTER_NFS_exports} \$(readlink \$a)"
+        fi
+    done
+    cw_CLUSTER_NFS_exports="\${cw_CLUSTER_NFS_exports} ${cw_GRIDWARE_root:-/opt/gridware}/etc"
+fi
+EOF
+}
+
+_fetch_depots() {
+   local urlvar a
+
+   files_load_config distro
+   for a in ${cw_GRIDWARE_depots}; do
+       urlvar="cw_GRIDWARE_depot_url_${a}"
+       if [ "${!urlvar}" ]; then
+           "${cw_ROOT}"/bin/alces gridware depot fetch "${!urlvar}" "${a}"
+       fi
+       if [[ "${cw_GRIDWARE_depots_disabled}" == *":${a}:"* ]]; then
+           "${cw_ROOT}"/bin/alces gridware depot disable $a
+       else
+           "${cw_ROOT}"/bin/alces gridware depot enable $a
+       fi
+   done
+}
+
+main() {
+    files_load_config gridware config/gridware
+    files_load_config gridware
+
+    export HOME=${HOME:-/tmp}
+
+    _initialize_depots
+    # relink in case depots were initialized as part of base image
+    _relink_depots
+    _configure_depot_nfs
+    _fetch_depots
+}
+
+setup
+require files
+require handler
+
+main "$@"

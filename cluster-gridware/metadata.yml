@@ -1,6 +1,7 @@
 ---
 install:
   _: |
+    alces handler enable cluster-nfs
     require files
     files_load_config gridware
     if [ ! -d "${cw_GRIDWARE_root:-/opt/gridware}" ]; then

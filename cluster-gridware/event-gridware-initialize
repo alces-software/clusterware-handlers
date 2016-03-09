@@ -1,4 +1,10 @@
 #!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
 setup() {
     local a xdg_config
     IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
@@ -15,24 +21,34 @@ setup() {
     kernel_load
 }
 
+_initialize_gridware() {
+    local hook_dir
+    hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+    "${hook_dir}"/share/initialize-gridware
+}
+
 _notify_depots() {
-    local depots depot_name depot_id
+    local depots depot_name depot_id depot_path exports
 
     files_load_config gridware
     depots=()
+    exports=()
     for a in ${cw_GRIDWARE_root:-/opt/gridware}/*; do
         if [ -L "$a" ]; then
             depot_name=$(basename $a)
-            depot_id=$(basename $(readlink $a))
+	    depot_path=$(readlink $a)
+            depot_id=$(basename ${depot_path})
             if [[ "${cw_GRIDWARE_depots_disabled}" == *":${depot_name}:"* ]]; then
                 depot_state="disabled"
             else
                 depot_state="enabled"
             fi
             depots+=(${depot_id}:${depot_name}:${depot_state})
+	    exports+=("${depot_path}")
         fi
     done
     if [ "${depots}" ]; then
+	handler_broadcast nfs-export "${cw_GRIDWARE_root:-/opt/gridware}/etc" "${exports[@]}"
         handler_broadcast gridware-depots ${depots[*]}
     fi
 }
@@ -41,8 +57,14 @@ main() {
     files_load_config instance config/cluster
     if [ "${cw_INSTANCE_role}" == "master" ]; then
 	files_load_config gridware config/gridware
-	if [ "${cw_GRIDWARE_trigger:-immediate}" == 'immediate' ]; then
+	files_load_config gridware
+	if [ "${cw_GRIDWARE_trigger:-immediate}" == 'delayed' ]; then
+	    _initialize_gridware
 	    _notify_depots
+	    # Rewrite cw_GRIDWARE_trigger to 'immediate' to trigger on
+	    # future member-join events.
+	    sed -i -e 's/^cw_GRIDWARE_trigger=.*/cw_GRIDWARE_trigger="immediate"/g' \
+		"${cw_ROOT}"/etc/config/gridware/gridware.rc
 	fi
     fi
 }
