@@ -24,7 +24,7 @@ setup() {
 main() {
     local a payload master_ip target_ip imports instance_ip
 
-    . ${cw_ROOT}/etc/config/cluster/instance.vars.sh
+    files_load_config instance config/cluster
     if [ "${cw_INSTANCE_role}" == "slave" ]; then
         payload=($(cat))
         log "Received payload from master: ${payload[*]}" "${cw_CLUSTER_NFS_log}"
@@ -52,9 +52,7 @@ require network
 require log
 require handler
 
-if [ -f "${cw_ROOT}/etc/cluster-nfs.rc" ]; then
-    . "${cw_ROOT}/etc/cluster-nfs.rc"
-fi
+files_load_config --optional cluster-nfs
 cw_CLUSTER_NFS_log="${cw_CLUSTER_NFS_log:-/var/log/clusterware/cluster-nfs.log}"
 
 handler_tee main "$@"

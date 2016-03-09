@@ -53,14 +53,16 @@ _notify_exports() {
 }
 
 main() {
-    local payload
-    payload=($(cat))
-    for a in "${payload[@]:1}"; do
-	# iterate over each existing member and configure export
-	member_each _configure_export "$a"
-    done
-    # trigger nfs-import event for applicable members
-    member_each _notify_exports "${payload[@]:1}"
+    local a
+    files_load_config instance config/cluster
+    if [ "${cw_INSTANCE_role}" == "master" ]; then
+	for a in "$@"; do
+	    # iterate over each existing member and configure export
+	    member_each _configure_export "$a"
+	done
+	# trigger nfs-import event for applicable members
+	member_each _notify_exports "$@"
+    fi
 }
 
 setup
