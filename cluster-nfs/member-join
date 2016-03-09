@@ -47,9 +47,9 @@ main() {
                     "${cw_CLUSTER_NFS_log}"
             fi
 
-            log "Broadcasting 'nfs-ready' event with: ${master_ip} ${cw_MEMBER_ip} ${cw_CLUSTER_NFS_exports}" \
+            log "Broadcasting 'nfs-import' event with: ${master_ip} ${cw_MEMBER_ip} ${cw_CLUSTER_NFS_exports}" \
                 "${cw_CLUSTER_NFS_log}"
-            handler_broadcast nfs-ready ${master_ip} ${cw_MEMBER_ip} ${cw_CLUSTER_NFS_exports}
+            handler_broadcast nfs-import ${master_ip} ${cw_MEMBER_ip} ${cw_CLUSTER_NFS_exports}
         fi
     fi
 }
