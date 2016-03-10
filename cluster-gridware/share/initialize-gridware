@@ -86,6 +86,8 @@ main() {
     _relink_depots
     _configure_depot_nfs
     _fetch_depots
+
+    echo 'cw_GRIDWARE_notify=true' >> "${cw_ROOT}"/etc/gridware.rc
 }
 
 setup
