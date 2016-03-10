@@ -51,6 +51,7 @@ setup
 require network
 require log
 require handler
+require files
 
 files_load_config --optional cluster-nfs
 cw_CLUSTER_NFS_log="${cw_CLUSTER_NFS_log:-/var/log/clusterware/cluster-nfs.log}"
