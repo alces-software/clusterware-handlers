@@ -21,6 +21,35 @@ setup() {
     kernel_load
 }
 
+_fulfil_appliance_role() {
+    local role
+    role="$1"
+    if [[ "${cw_INSTANCE_tag_APPLIANCE_ROLES}" == *":${role}:"* ]]; then
+        "${cw_ROOT}"/bin/alces service enable appliance/alces-${role}-manager/base
+        if distro_start_service alces-${role}-manager; then
+	    echo "Flight appliance service started: ${role}"
+	    if distro_start_service alces-${role}-manager-proxy; then
+		echo "Flight appliance proxy service started: ${role}"
+	    else
+		echo "Unable to start Flight appliance proxy service: ${role}"
+	    fi
+        else
+	    echo "Unable to start Flight appliance service: ${role}"
+        fi
+    fi
+}
+
+_fulfil_endpoint_role() {
+    local role port
+    role="$1"
+    port="$2"
+    files_load_config --optional cluster-appliances
+    naming_issue_self_signed_cert "${role}.$(hostname -f)" \
+				  "Alces Appliance Endpoint (${role})" \
+				  "${cw_ROOT}"/etc/ssl/alces-${role}-manager-daemon
+    "${cw_ROOT}"/bin/alces service enable alces-${role}-manager-daemon ${port}
+}
+
 main() {
     # Bail out if we're already configured (this is a reboot)
     if [ -d "${cw_ROOT}/etc/config/cluster-appliances" ]; then
@@ -31,31 +60,21 @@ main() {
 
     files_load_config instance config/cluster
     if [[ "${cw_INSTANCE_tag_STORAGE_ROLES}" == *":master:"* ]]; then
-	files_load_config --optional cluster-appliances
-	naming_issue_self_signed_cert "storage.$(hostname -f)" \
-				      "Alces Storage Manager Daemon" \
-				      "${cw_ROOT}"/etc/ssl/alces-storage-manager-daemon
-        "${cw_ROOT}"/bin/alces service enable alces-storage-manager-daemon \
-          "${cw_INSTANCE_tag_STORAGE_DAEMON_PORT:-25268}"
+	_fulfil_endpoint_role "storage" "${cw_INSTANCE_tag_STORAGE_DAEMON_PORT:-25268}"
 	if [ "${cw_APPLIANCES_storage_SKIP_DEFAULTS}" != "true" ]; then
             "${cw_ROOT}"/bin/alces storage enable posix
 	    echo -e "Home\n%#{dir}\n" | "${cw_ROOT}"/bin/alces storage configure --system home posix
             "${cw_ROOT}"/bin/alces storage use --system home
 	fi
-    elif [[ "${cw_INSTANCE_role}" == "appliance" ]]; then
-	if [[ "${cw_INSTANCE_tag_APPLIANCE_ROLES}" == *":storage:"* ]]; then
-            "${cw_ROOT}"/bin/alces service enable appliance/alces-storage-manager/base
-            if distro_start_service alces-storage-manager; then
-		echo "Alces Storage Manager service started"
-		if distro_start_service alces-storage-manager-proxy; then
-		    echo "Alces Storage Manager Proxy service started"
-		else
-		    echo "Unable to start Alces Storage Manager Proxy service"
-		fi
-            else
-		echo "Unable to start Alces Storage Manager service"
-            fi
-	fi
+    fi
+
+    if [[ "${cw_INSTANCE_tag_ACCESS_ROLES}" == *":master:"* ]]; then
+	_fulfil_endpoint_role "access" "${cw_INSTANCE_tag_ACCESS_DAEMON_PORT:-25269}"
+    fi
+
+    if [[ "${cw_INSTANCE_role}" == "appliance" ]]; then
+	_fulfil_appliance_role storage
+	_fulfil_appliance_role access
     fi
 }
 

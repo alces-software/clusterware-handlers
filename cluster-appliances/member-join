@@ -25,18 +25,18 @@ _add_storage_master_node() {
     local addr port
     addr="$1"
     port="$2"
-    files_load_config --optional cluster-access
-    cw_ACCESS_storage_MANAGER_ROOT="${cw_ACCESS_storage_MANAGER_ROOT:-/opt/alces-storage-manager}"
+    files_load_config --optional cluster-appliances
+    cw_APPLIANCES_storage_MANAGER_ROOT="${cw_APPLIANCES_storage_MANAGER_ROOT:-/opt/alces-storage-manager}"
     if [ -f "${cw_ROOT}"/etc/config/cluster-appliances/storage-endpoints.yml ]; then
 	echo "Cowardly refusing to reconfigure existing Alces Storage Manager"
     else
-	mkdir -p "${cw_ACCESS_storage_MANAGER_ROOT}"/webapp/config
+	mkdir -p "${cw_APPLIANCES_storage_MANAGER_ROOT}"/webapp/config
 	cat <<EOF > "${cw_ROOT}"/etc/config/cluster-appliances/storage-endpoints.yml
 ---
 :endpoints:
 - "${addr}:${port}"
 EOF
-	cat <<EOF > "${cw_ACCESS_storage_MANAGER_ROOT}"/webapp/config/storagemanager.yml
+	cat <<EOF > "${cw_APPLIANCES_storage_MANAGER_ROOT}"/webapp/config/storagemanager.yml
 ---
 :auth:
   :address: "${addr}:${port}"
@@ -56,8 +56,42 @@ EOF
     fi
 }
 
+_add_access_master_node() {
+    local addr port
+    addr="$1"
+    port="$2"
+    files_load_config --optional cluster-appliances
+    cw_APPLIANCES_access_MANAGER_ROOT="${cw_APPLIANCES_access_MANAGER_ROOT:-/opt/alces-access-manager}"
+    if [ -f "${cw_ROOT}"/etc/config/cluster-appliances/access-endpoints.yml ]; then
+	echo "Cowardly refusing to reconfigure existing Alces Access Manager"
+    else
+	cat <<EOF > "${cw_ROOT}"/etc/config/cluster-appliances/access-endpoints.yml
+---
+:endpoints:
+- "${addr}:${port}"
+EOF
+	cat <<EOF > "${cw_APPLIANCES_access_MANAGER_ROOT}"/webapp/config.yaml
+---
+clusters:
+  - name: Cluster
+    ip: ${addr}
+    auth_port: ${port}
+    ssl: true
+    ssl_connection:
+      root: /opt/alces-access-manager/etc/ssl/client
+      certificate: cert.pem
+      key: key.pem
+      ca: alces-ca_crt.pem
+      verify: false
+    timeout: 5
+environment:
+  name: Cluster
+EOF
+    fi
+}
+
 main() {
-    local tags tag tuple key value storage_roles storage_daemon_port
+    local tags tag tuple key value storage_roles storage_daemon_port access_roles access_daemon_port
 
     files_load_config instance config/cluster
 
@@ -74,11 +108,19 @@ main() {
                 storage_roles="${value}"
             elif [ "$key" == "storage_daemon_port" ]; then
                 storage_daemon_port="${value}"
+            elif [ "$key" == "access_roles" ]; then
+                access_roles="${value}"
+            elif [ "$key" == "access_daemon_port" ]; then
+                access_daemon_port="${value}"
             fi
         done
-        if [[ "${storage_roles}" == *":master:"* ]]; then
+        if [[ "${cw_INSTANCE_tag_APPLIANCE_ROLES}" == *":storage:"* && "${storage_roles}" == *":master:"* ]]; then
             echo "Adding Storage Manager master node: ${cw_MEMBER_name} (${cw_MEMBER_ip}:${storage_daemon_port:-25268})"
             _add_storage_master_node "${cw_MEMBER_ip}" "${storage_daemon_port:-25268}"
+        fi
+        if [[ "${cw_INSTANCE_tag_APPLIANCE_ROLES}" == *":access:"* && "${access_roles}" == *":master:"* ]]; then
+            echo "Adding Access Manager master node: ${cw_MEMBER_name} (${cw_MEMBER_ip}:${access_daemon_port:-25269})"
+            _add_access_master_node "${cw_MEMBER_ip}" "${access_daemon_port:-25269}"
         fi
     fi
 }

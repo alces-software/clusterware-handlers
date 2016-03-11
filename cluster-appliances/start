@@ -22,20 +22,22 @@ setup() {
 }
 
 main() {
-    local port
+    local storage_daemon_port access_daemon_port
     files_load_config instance config/cluster
-    port="${cw_INSTANCE_tag_STORAGE_DAEMON_PORT:-25268}"
     if [[ "${cw_INSTANCE_tag_STORAGE_ROLES}" == *":master:"* ]]; then	
-        if ! iptables -C INPUT -p tcp --dport ${port} -j ACCEPT &>/dev/null; then
-            echo "Adding iptables rule: -I INPUT -p tcp --dport ${port} -j ACCEPT"
-            iptables -I INPUT -p tcp --dport ${port} -j ACCEPT
-        else
-            echo "iptables rule already exists: -I INPUT -p tcp --dport ${port} -j ACCEPT"
-        fi
+	handler_iptables_insert INPUT -p tcp --dport "${cw_INSTANCE_tag_STORAGE_DAEMON_PORT:-25268}" -j ACCEPT
         if distro_start_service clusterware-alces-storage-manager-daemon; then
             echo "Alces Storage Manager Daemon service started"
         else
             echo "Unable to start Alces Storage Manager Daemon service"
+        fi
+    fi
+    if [[ "${cw_INSTANCE_tag_ACCESS_ROLES}" == *":master:"* ]]; then	
+	handler_iptables_insert INPUT -p tcp --dport "${cw_INSTANCE_tag_ACCESS_DAEMON_PORT:-25269}" -j ACCEPT
+        if distro_start_service clusterware-alces-access-manager-daemon; then
+            echo "Alces Access Manager Daemon service started"
+        else
+            echo "Unable to start Alces Access Manager Daemon service"
         fi
     fi
 }
