@@ -70,23 +70,10 @@ _add_access_master_node() {
 :endpoints:
 - "${addr}:${port}"
 EOF
-	cat <<EOF > "${cw_APPLIANCES_access_MANAGER_ROOT}"/webapp/config.yaml
----
-clusters:
-  - name: Cluster
-    ip: ${addr}
-    auth_port: ${port}
-    ssl: true
-    ssl_connection:
-      root: /opt/alces-access-manager/etc/ssl/client
-      certificate: cert.pem
-      key: key.pem
-      ca: alces-ca_crt.pem
-      verify: false
-    timeout: 5
-environment:
-  name: Cluster
-EOF
+	files_load_config config config/cluster
+        sed -e 's/^clusters: []$/clusters:/g' \
+	    -e "s/^clusters:$/clusters:\n  - name: ${cw_CLUSTER_name}\n    ip: ${addr}\n    auth_port: ${port}\n    ssl: true\n/g" \
+	    -i "${cw_APPLIANCES_access_MANAGER_ROOT}"/webapp/config.yaml
     fi
 }
 
