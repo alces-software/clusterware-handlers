@@ -21,6 +21,24 @@ setup() {
     kernel_load
 }
 
+_write_configuration() {
+    ruby_run <<RUBY
+require 'yaml'
+
+def write_file(name, content)
+  File.write("${cw_ROOT}/etc/config/cluster-appliances/#{name}",content)
+end
+
+config = YAML.load_file('${cw_ROOT}/etc/config.yml')['cluster']['appliances'] || {}
+
+appliances_vars = []
+config.each do |k,v|
+  appliances_vars << %(cw_APPLIANCES_#{k}_ADDRESS="#{v}")
+end
+write_file('cluster-appliances.rc', appliances_vars.join("\n"))
+RUBY
+}
+
 _fulfil_appliance_role() {
     local role
     role="$1"
@@ -60,6 +78,7 @@ main() {
 
     files_load_config instance config/cluster
     if [[ "${cw_INSTANCE_tag_STORAGE_ROLES}" == *":master:"* ]]; then
+	_write_configuration
 	_fulfil_endpoint_role "storage" "${cw_INSTANCE_tag_STORAGE_DAEMON_PORT:-25268}"
 	if [ "${cw_APPLIANCES_storage_SKIP_DEFAULTS}" != "true" ]; then
             "${cw_ROOT}"/bin/alces storage enable posix

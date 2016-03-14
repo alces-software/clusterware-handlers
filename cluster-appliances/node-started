@@ -1,0 +1,62 @@
+#!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+_notify_appliance() {
+    local port address
+    port="$1"
+    address="$2"
+    files_load_config config config/cluster
+    cat <<JSON | webapi_post "${address}"/clusters/register
+{
+  "cluster": {
+    "name": "${cw_CLUSTER_name}",
+    "ip": "$(network_get_public_address)",
+    "auth_port": ${port},
+    "ssl": true,
+  }
+}
+JSON
+}
+
+main() {
+    files_load_config instance config/cluster
+    files_load_config --optional cluster-appliances config/cluster-appliances
+    if [[ "${cw_INSTANCE_tag_STORAGE_ROLES}" == *":master:"* ]]; then
+	if [ "${cw_APPLIANCES_storage_ADDRESS}" ]; then
+	    _notify_appliance "${cw_INSTANCE_tag_ACCESS_DAEMON_PORT:-25268}" "${cw_APPLIANCES_storage_ADDRESS}"
+	fi
+    fi
+    if [[ "${cw_INSTANCE_tag_ACCESS_ROLES}" == *":master:"* ]]; then
+	if [ "${cw_APPLIANCES_access_ADDRESS}" ]; then
+	    _notify_appliance "${cw_INSTANCE_tag_ACCESS_DAEMON_PORT:-25269}" "${cw_APPLIANCES_access_ADDRESS}"
+	fi
+    fi
+}
+
+setup
+
+require handler
+require files
+require webapi
+
+handler_tee main "$@"
