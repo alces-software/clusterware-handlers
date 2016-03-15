@@ -1,0 +1,37 @@
+---
+install:
+  _: |
+    require files
+    files_load_config clusterware
+    case "${cw_VERSION:-1.0.0}" in
+      1.[0123].*)
+          echo "This handler cannot be enabled as Alces Clusterware v${cw_VERSION} is too old."
+          echo "Please upgrade to Alces Clusterware v1.4.0 or higher."
+          exit 1
+          ;;
+    esac
+
+    if [ ! -f "${cw_ROOT}"/etc/cluster-firewall.rc ]; then
+        cat <<EOF >> "${cw_ROOT}"/etc/cluster-firewall.rc
+    ################################################################################
+    ##
+    ## Alces Clusterware - Shell configuration
+    ## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+    ##
+    ################################################################################
+    # Uncomment the line below to entirely disable Clusterware firewall rules
+    #cw_CLUSTER_FIREWALL_disabled=true
+    EOF
+    fi
+
+    mkdir -p "${cw_ROOT}"/etc/cluster-firewall.d
+    cat <<\EOF > "${cw_ROOT}"/etc/cluster-firewall.d/base.rc
+    ################################################################################
+    ##
+    ## Alces Clusterware - Firewall rules
+    ## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+    ##
+    ################################################################################
+    cw_CLUSTER_FIREWALL_rules="prv"
+    cw_CLUSTER_FIREWALL_rule_prv="INPUT -i $(network_get_route_iface ${cw_MEMBER_ip}) -s ${cw_MEMBER_ip} -j ACCEPT"
+    EOF
