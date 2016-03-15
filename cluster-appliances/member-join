@@ -71,7 +71,7 @@ _add_access_master_node() {
 - "${addr}:${port}"
 EOF
 	files_load_config config config/cluster
-        sed -e 's/^clusters: []$/clusters:/g' \
+        sed -e 's/^clusters: \[\]$/clusters:/g' \
 	    -e "s/^clusters:$/clusters:\n  - name: ${cw_CLUSTER_name}\n    ip: ${addr}\n    auth_port: ${port}\n    ssl: true\n/g" \
 	    -i "${cw_APPLIANCES_access_MANAGER_ROOT}"/webapp/config.yaml
     fi
