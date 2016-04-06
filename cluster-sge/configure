@@ -1,4 +1,10 @@
 #!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2015-2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
 setup() {
     local a xdg_config
     IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
@@ -15,35 +21,89 @@ setup() {
     kernel_load
 }
 
-main() {
-    # Bail out if we're already configured (this is a reboot)
-    if [ -d "${cw_ROOT}/etc/config/gridscheduler" ]; then
-        exit 0
-    fi
-
-    mkdir -p "${cw_ROOT}/etc/config/gridscheduler"
-
-    . ${cw_ROOT}/etc/config/cluster/instance.rc
+_configure_gridscheduler() {
+    echo "Configuring GridScheduler"
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
+        echo "Instance is GridScheduler qmaster"
         "${cw_ROOT}"/bin/alces service enable gridscheduler/qmaster
     fi
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
+        echo "Instance is GridScheduler exec host"
         "${cw_ROOT}"/bin/alces service enable gridscheduler/execd
         ruby_run <<RUBY
 require 'json'
 
-config = JSON.load(File.read('${cw_ROOT}/etc/serf/tags.json'))
 config["tags"]["slots"] = $(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo).to_s
 ram_kb = $(grep 'MemTotal' /proc/meminfo | awk '{print $2};')
-ram_approx_gb = (2 ** Math.log(ram_kb,2).ceil) / 1_048_576
-config["tags"]["ram_gb"] = ram_approx_gb.to_s
-File.write('${cw_ROOT}/etc/serf/tags.json', config.to_json)
+swap_kb = $(grep 'SwapTotal' /proc/meminfo | awk '{print $2};')
+ram_approx_kb = (2 ** Math.log(ram_kb,2).ceil)
+if ram_approx_kb > (ram_kb + swap_kb)
+  ram_approx_kb = (2 ** Math.log(ram_kb + swap_kb,2).floor)
+end
+config["tags"]["ram_gb"] = (ram_approx_kb / 1_048_576).to_s
+File.write('${cw_ROOT}/etc/serf/tags-cluster-sge-resources.json', config.to_json)
 RUBY
     fi
+}
+
+_configure_aws_autoscaling() {
+    local group tags hook_dir
+
+    # determine if we're running on EC2
+    if files_load_config --optional instance-aws config/cluster; then
+        echo "Instance is running on EC2; configuring for autoscaling"
+        files_load_config config config/cluster
+
+        # we are; ensure aws serviceware is installed
+        "${_ALCES}" service install aws
+
+        # install autoscale management cron job if we're a master
+        if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
+            echo "Installing autoscaler cronjob: ${hook_dir}/share/sge-autoscaler"
+            hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+            echo "*/5 * * * * root ${hook_dir}/share/sge-autoscaler" > /etc/cron.d/clusterware-cluster-sge-autoscaler
+        fi
+
+        # set serf tags containing:
+        #  - instance creation time
+        #  - instance id
+        #  - autoscaling group name (if available)
+        tags=(tags[aws_ctime]=${cw_INSTANCE_aws_ctime})
+        tags+=(tags[aws_instanceid]=${cw_INSTANCE_aws_instanceid})
+
+        group=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
+                          autoscaling describe-auto-scaling-groups | \
+                       grep AutoScalingGroupName | grep "${cw_CLUSTER_name}" | \
+                       awk '{print $2}' | tr -d '",')
+        if [ "$group" ]; then
+            tags+=(tags[aws_group]=${group})
+        fi
+        echo "Setting autoscaler tags: ${tags[@]}"
+        "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-cluster-sge-aws.json
+    fi
+}
+
+main() {
+    # Bail out if we're already configured (this is a reboot)
+    if [ -d "${cw_ROOT}/etc/config/cluster-sge" ]; then
+        exit 0
+    fi
+
+    mkdir -p "${cw_ROOT}/etc/config/cluster-sge"
+
+    files_load_config instance config/cluster
+
+    _configure_gridscheduler
+    _configure_aws_autoscaling
 }
 
 setup
 require ruby
 require handler
+require files
+
+_AWS="${cw_ROOT}"/opt/aws/bin/aws
+_JO="${cw_ROOT}"/opt/jo/bin/jo
+_ALCES="${cw_ROOT}"/bin/alces
 
 handler_tee main "$@"

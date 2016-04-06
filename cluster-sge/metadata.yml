@@ -7,6 +7,16 @@
 ---
 install:
   _: |
+    require files
+    files_load_config clusterware
+    case "${cw_VERSION:-1.0.0}" in
+      1.[01234].*)
+          echo "This handler cannot be enabled as Alces Clusterware v${cw_VERSION} is too old."
+          echo "Please upgrade to Alces Clusterware v1.5.0 or higher."
+          exit 1
+          ;;
+    esac
+
     cat <<EOF > ${cw_ROOT}/etc/cluster-sge.rc
     ################################################################################
     ##

@@ -25,6 +25,25 @@ _member_purge() {
     type member_purge &>/dev/null && member_purge
 }
 
+_setup_aws() {
+    if [ -f /sys/hypervisor/uuid -a "$(head -c3 /sys/hypervisor/uuid)" == "ec2" ]; then
+        eval $(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | \
+                 ${_JQ} -r \
+                 '"region=\(.region)"','"ctime=\(.pendingTime)"','"instanceid=\(.instanceId)"')
+        cat <<EOF > "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
+cw_INSTANCE_aws_region="${region}"
+cw_INSTANCE_aws_ctime="${ctime}"
+cw_INSTANCE_aws_instanceid="${instanceid}"
+EOF
+    elif [ "$cw_TEST_mock_aws" ]; then
+        cat <<EOF > "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
+cw_INSTANCE_aws_region="eu-west-1"
+cw_INSTANCE_aws_ctime="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+cw_INSTANCE_aws_instanceid="i-$(hostname | md5sum | cut -c1-8)"
+EOF
+    fi
+}
+
 main() {
     # Purge any known existing members in advance of rejoining the
     # cluster service ring.
@@ -42,6 +61,8 @@ main() {
 
     # Parse YAML file into something useful
     mkdir -p "${cw_ROOT}/etc/config/cluster/serf"
+    _setup_aws
+
     ruby_run <<RUBY
 require 'yaml'
 require 'json'
@@ -125,5 +146,7 @@ require ruby
 require distro
 require handler
 require member
+
+_JQ="${cw_ROOT}"/opt/jq/bin/jq
 
 handler_tee main "$@"
