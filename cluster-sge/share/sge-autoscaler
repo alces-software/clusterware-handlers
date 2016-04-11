@@ -80,12 +80,12 @@ _set_job_metrics() {
     )
 
     log "[autoscaler:metrics] Sending metric data to cloudwatch"
-    cat "${tmpfile}" | log_blob "${cw_CLUSTER_SGE_log}" "autoscaler:metrics"
+    cat "${tmpfile}" | _log_blob "metrics"
 
     "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
       cloudwatch put-metric-data \
       --namespace "ALCES-SGE" \
-      --metric-data file://${tmpfile}
+      --metric-data file://${tmpfile} 2>&1 | _log_blob "metrics:aws"
 
     rm -f "${tmpfile}"
 }
@@ -123,6 +123,12 @@ RUBY
     done
 }
 
+_log_blob() {
+    local prefix
+    prefix="$1"
+    log_blob "${cw_CLUSTER_SGE_log}" "autoscaler:${prefix}"
+}
+
 _shoot_node() {
     local node instanceid group
     node="$1"
@@ -135,7 +141,7 @@ _shoot_node() {
       autoscaling set-instance-protection \
       --instance-ids "${instanceid}" \
       --auto-scaling-group-name "${group}" \
-      --no-protected-from-scale-in
+      --no-protected-from-scale-in 2>&1 | _log_blob "autoscaling:aws"
 
     # scale in the capacity
     log "[autoscaler:shoot] Reading capacity of scaling group ${group}"
@@ -147,7 +153,7 @@ _shoot_node() {
     "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
       autoscaling update-auto-scaling-group \
       --auto-scaling-group-name "${group}" \
-      --desired-capacity $((${capacity}-1))
+      --desired-capacity $((${capacity}-1)) 2>&1 | _log_blob "autoscaling:aws"
 
     # tell the instance to halt
     member_ip="$(member_ip ${node})"
@@ -177,8 +183,8 @@ _scale_in() {
         fi
     done
 
-    unexhausted_nodes=" $(_unexhausted_nodes ${empty_nodes}) "
-    for node in $empty_nodes; do
+    unexhausted_nodes=" $(_unexhausted_nodes ${empty_nodes[@]}) "
+    for node in "${empty_nodes[@]}"; do
         group=$(member_get_member_tag "${node}" "aws_group")
         if [ "${group}" ]; then
             if [[ "$unexhausted_nodes" == *" $node "* ]]; then
