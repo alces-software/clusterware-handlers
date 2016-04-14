@@ -38,9 +38,6 @@ if config['depots']
   config['depots'].each do |d|
     depot_names << d['name']
     disabled_depot_names << d['name'] if d['disabled']
-    if d['url']
-      gridware_vars << "cw_GRIDWARE_depot_url_#{d['name']}=\"#{d['url']}\""
-    end
   end
   gridware_vars << ('cw_GRIDWARE_depots="' << depot_names.join(' ') << '"')
   gridware_vars << ('cw_GRIDWARE_depots_disabled=":' << disabled_depot_names.join(':') << ':"')
