@@ -11,15 +11,16 @@ install:
   el6: |
     distro_preamble="$(cat <<'EOF'
     welcome() (
-        w=79
-        emit() {
-          printf "%*s\n" $(((${#1}+${w})/2)) "$1"
-        }
-        emit '+++++++++++++++++++++++++++++++++++++++++++++'
-        emit "Welcome to $1"
-        emit "Alces Clusterware (r$2)"
-        emit "Based on $(sed 's/\(.*\) release \(.*\) .*/\1 \2/g' /etc/redhat-release)"
-        emit '+++++++++++++++++++++++++++++++++++++++++++++'
+      local distro
+      emit() {
+        printf "%40s\n" "$1"
+      }
+      if [ -f "${cw_ROOT}"/etc/banner ]; then
+        distro="$(sed 's/\(.*\) release \(.*\) .*/\1 \2/g' /etc/redhat-release)"
+        sed -e "s/%CLUSTER%/$(emit "Welcome to $1")/g" \
+          -e "s/%RELEASE%/$(emit "Alces Clusterware (r$2)")/g" \
+          -e "s/%DISTRO%/$(emit "Based on ${distro}")/g" /opt/clusterware/etc/banner
+      fi
     )
     EOF
     )"
@@ -27,15 +28,16 @@ install:
   el7: |
     distro_preamble="$(cat <<'EOF'
     welcome() (
-        w=80
-        emit() {
-          printf "%*s\n" $(((${#1}+${w})/2)) "$1"
-        }
-        emit '+++++++++++++++++++++++++++++++++++++++++++++'
-        emit "Welcome to $1"
-        emit "Alces Clusterware (r$2)"
-        emit "Based on $(sed 's/\(.*\) release \(.*\) .*/\1 \2/g' /etc/redhat-release)"
-        emit '+++++++++++++++++++++++++++++++++++++++++++++'
+      local distro
+      emit() {
+        printf "%40s\n" "$1"
+      }
+      if [ -f "${cw_ROOT}"/etc/banner ]; then
+        distro="$(sed 's/\(.*\) release \(.*\) .*/\1 \2/g' /etc/redhat-release)"
+        sed -e "s/%CLUSTER%/$(emit "Welcome to $1")/g" \
+          -e "s/%RELEASE%/$(emit "Alces Clusterware (r$2)")/g" \
+          -e "s/%DISTRO%/$(emit "Based on ${distro}")/g" /opt/clusterware/etc/banner
+      fi
     )
     EOF
     )"
