@@ -33,7 +33,7 @@ _configure_gridscheduler() {
         ruby_run <<RUBY
 require 'json'
 
-config = {tags: {}}
+config = {"tags" => {}}
 config["tags"]["slots"] = $(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo).to_s
 ram_kb = $(grep 'MemTotal' /proc/meminfo | awk '{print $2};')
 swap_kb = $(grep 'SwapTotal' /proc/meminfo | awk '{print $2};')
