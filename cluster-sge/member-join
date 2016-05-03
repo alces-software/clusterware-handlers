@@ -79,16 +79,6 @@ main() {
             log "New member does not have scheduler compute role; no further processing required" \
                 "${cw_CLUSTER_SGE_log}"
         fi
-
-        if [ -n "${group}" -a -n "${instanceid}" ]; then
-            echo "Protecting new EC2 member (${instanceid}) from scale-in (autoscaling group ${group})"
-            files_load_config instance-aws config/cluster
-            "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-              autoscaling set-instance-protection \
-              --instance-ids "${instanceid}" \
-              --auto-scaling-group-name "${group}" \
-              --protected-from-scale-in
-        fi
     fi
 }
 

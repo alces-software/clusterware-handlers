@@ -135,31 +135,12 @@ _shoot_node() {
     group="$2"
     instanceid=$(member_get_member_tag "${node}" "aws_instanceid")
 
-    log "[autoscaler:shoot] Removing scale-in protection for ${node} (${instanceid})"
-    # deprotect the instance
-    "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-      autoscaling set-instance-protection \
-      --instance-ids "${instanceid}" \
-      --auto-scaling-group-name "${group}" \
-      --no-protected-from-scale-in 2>&1 | _log_blob "autoscaling:aws"
-
     # scale in the capacity
-    log "[autoscaler:shoot] Reading capacity of scaling group ${group}"
-    capacity=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-                 autoscaling describe-auto-scaling-groups \
-                 --auto-scaling-group-names "${group}" | \
-                 grep DesiredCapacity | awk '{print $2}' | tr -d ',')
-    log "[autoscaler:shoot] Reducing capacity of scaling group ${group} from ${capacity} to $((${capacity}-1))"
+    log "[autoscaler:shoot] Shooting node ${instanceid} in group ${group}"
     "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-      autoscaling update-auto-scaling-group \
-      --auto-scaling-group-name "${group}" \
-      --desired-capacity $((${capacity}-1)) 2>&1 | _log_blob "autoscaling:aws"
-
-    # tell the instance to halt
-    member_ip="$(member_ip ${node})"
-    master_ip="$(network_get_network_address ${member_ip})"
-    log "[autoscaler:shoot] Instructing ${node} (${member_ip}) to halt"
-    handler_broadcast sge-halt "${master_ip}" "${member_ip}" &>/dev/null
+      autoscaling terminate-instance-in-auto-scaling-group \
+      --instance-id ${instanceid} \
+      --should-decrement-desired-capacity 2>&1 | _log_blob "autoscaling:aws"
 }
 
 _scale_in() {
@@ -192,8 +173,7 @@ _scale_in() {
                 log "[autoscaler:scale-in] Enabling queues on ${node} (not exhausted)"
                 qmod -e "*@${node}" > /dev/null
             else
-                # time for this one to go away
-                log "[autoscaler:scale-in] Shooting node: ${node}"
+                log "[autoscaler:scale-in] Attempting to shoot node: ${node}"
                 _shoot_node "${node}" "${group}"
             fi
         fi
@@ -228,6 +208,7 @@ require log
 PATH=$PATH:/sbin
 
 _JO="${cw_ROOT}"/opt/jo/bin/jo
+_JQ="${cw_ROOT}"/opt/jq/bin/jq
 _AWS="${cw_ROOT}"/opt/aws/bin/aws
 
 main "$@"
