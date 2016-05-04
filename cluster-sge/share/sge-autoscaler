@@ -174,7 +174,10 @@ _scale_in() {
                 qmod -e "*@${node}" > /dev/null
             else
                 log "[autoscaler:scale-in] Attempting to shoot node: ${node}"
-                _shoot_node "${node}" "${group}"
+                if ! _shoot_node "${node}" "${group}"; then
+                    log "[autoscaler:scale-in] Unable to shoot node, re-enabling queues"
+                    qmod -e "*@${node}" > /dev/null
+                fi
             fi
         fi
     done
