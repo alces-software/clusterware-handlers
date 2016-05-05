@@ -43,7 +43,7 @@ install:
     )"
     distro_postamble="unset -f welcome"
   _: |
-    cat <<EOF > ${cw_ROOT}/etc/profile.d/clusterable.sh
+    cat <<EOF > ${cw_ROOT}/etc/profile.d/10-clusterable.sh
     ################################################################################
     ##
     ## Alces Clusterware - Shell configuration
@@ -52,7 +52,7 @@ install:
     ################################################################################
     ${distro_preamble}
     EOF
-    cat <<'END' >> ${cw_ROOT}/etc/profile.d/clusterable.sh
+    cat <<'END' >> ${cw_ROOT}/etc/profile.d/10-clusterable.sh
     if [ "$PS1" ]; then
         _cw_set_prompt() {
             if [ -f "${cw_ROOT}"/etc/config/cluster/config.rc ]; then
@@ -90,7 +90,7 @@ install:
         fi
         unset cw_STATUS
     fi
-    if [[ "$0" == '-'* ]]; then
+    if [[ "$0" == '-'* || "$1" == "force" ]]; then
         if [ ! -f "${XDG_CONFIG_HOME:-$HOME/.config}/clusterware/settings.rc.ex" ]; then
           mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/clusterware"
           cat <<EOF > "${XDG_CONFIG_HOME:-$HOME/.config}/clusterware/settings.rc.ex"
@@ -190,4 +190,16 @@ install:
         export cw_SETTINGS_theme
     fi
     END
-    echo "${distro_postamble}" >> ${cw_ROOT}/etc/profile.d/clusterable.sh
+    echo "${distro_postamble}" >> ${cw_ROOT}/etc/profile.d/10-clusterable.sh
+
+    cat <<EOF > ${cw_ROOT}/etc/profile.d/10-clusterable.csh
+    ################################################################################
+    ##
+    ## Alces Clusterware - Shell configuration
+    ## Copyright (c) 2016 Stephen F. Norledge and Alces Software Ltd
+    ##
+    ################################################################################
+    setenv cw_ROOT "$cw_ROOT"
+    /bin/bash "$cw_ROOT"/etc/profile.d/clusterable.sh force
+    unsetenv cw_ROOT
+    EOF
