@@ -190,8 +190,13 @@ main() {
     log_set_default "${cw_CLUSTER_SGE_log}"
     log "[autoscaler] Performing job metric scan"
     _set_job_metrics
-    log "[autoscaler] Performing scale-in check"
-    _scale_in
+
+    if [ "${cw_INSTANCE_aws_autoscaling}" == "enabled" ]; then
+        log "[autoscaler] Performing scale-in check"
+        _scale_in
+    else
+        log "[autoscaler] Autoscaling is disabled"
+    fi
 }
 
 . /etc/profile.d/alces-clusterware.sh
