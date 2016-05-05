@@ -54,6 +54,18 @@ _initialize_gridware() {
 }
 
 main() {
+    local a
+    files_load_config gridware
+    for a in ${cw_GRIDWARE_boot_update_package_repos}; do
+        echo "Updating package repo at boot: ${a}"
+        "${_ALCES}" gridware update "$a"
+    done
+
+    for a in ${cw_GRIDWARE_boot_update_depot_repos}; do
+        echo "Updating depot repo at boot: ${a}"
+        "${_ALCES}" gridware depot update "$a"
+    done
+
     # Bail out if we're already configured (this is a reboot)
     if [ -d "${cw_ROOT}/etc/config/gridware" ]; then
         exit 0
@@ -63,11 +75,11 @@ main() {
 
     files_load_config instance config/cluster
     if [ "${cw_INSTANCE_role}" == "master" ]; then
-	_write_configuration
-	files_load_config gridware config/gridware
-	if [ "${cw_GRIDWARE_trigger:-immediate}" == 'immediate' ]; then
-	    _initialize_gridware
-	fi
+        _write_configuration
+        files_load_config gridware config/gridware
+        if [ "${cw_GRIDWARE_trigger:-immediate}" == 'immediate' ]; then
+            _initialize_gridware
+        fi
     fi
 }
 
@@ -75,5 +87,7 @@ setup
 require handler
 require files
 require ruby
+
+_ALCES="${cw_ROOT}"/bin/alces
 
 handler_tee main "$@"
