@@ -47,7 +47,7 @@ install:
     ################################################################################
     ##
     ## Alces Clusterware - Shell configuration
-    ## Copyright (c) 2015 Alces Software Ltd
+    ## Copyright (C) 2015-2016 Stephen F. Norledge and Alces Software Ltd.
     ##
     ################################################################################
     ${distro_preamble}
@@ -55,8 +55,8 @@ install:
     cat <<'END' >> ${cw_ROOT}/etc/profile.d/clusterable.sh
     if [ "$PS1" ]; then
         _cw_set_prompt() {
-            if [ -f "${cw_ROOT}"/etc/config/cluster/cluster.vars.sh ]; then
-                eval $(egrep '^cw_CLUSTER_(name|uuid)=' "${cw_ROOT}"/etc/config/cluster/cluster.vars.sh)
+            if [ -f "${cw_ROOT}"/etc/config/cluster/config.rc ]; then
+                eval $(egrep '^cw_CLUSTER_(name|uuid)=' "${cw_ROOT}"/etc/config/cluster/config.rc)
                 cw_CLUSTER_name="${cw_CLUSTER_name:-${cw_CLUSTER_uuid}}"
                 PS1="[\u@\h\[\e[1;34m\](${cw_CLUSTER_name})\[\e[0m\] \W]\\$ "
                 unset cw_CLUSTER_name cw_CLUSTER_uuid
@@ -91,47 +91,103 @@ install:
         unset cw_STATUS
     fi
     if [[ "$0" == '-'* ]]; then
+        if [ ! -f "${XDG_CONFIG_HOME:-$HOME/.config}/clusterware/settings.rc.ex" ]; then
+          mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/clusterware"
+          cat <<EOF > "${XDG_CONFIG_HOME:-$HOME/.config}/clusterware/settings.rc.ex"
+    ################################################################################
+    ##
+    ## Alces Clusterware - Shell configuration
+    ## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+    ##
+    ################################################################################
+    # Rename this file to settings.rc to activate.
+    #===============================================================================
+    #
+    # Set the theme used by Clusterware tools. Options are: standard, light, dark
+    # Choose 'light' for a light-colored terminal, 'dark' for a dark-colored terminal.
+    #cw_SETTINGS_theme=dark
+    #
+    # The following options suppress various parts of the login banners:
+    #
+    # Set to true to stop display of the Alces Flight logo, cluster
+    # name and version information.
+    #cw_SETTINGS_skip_banner=true
+    #
+    # Set to true to stop display of "tips" and other MOTD content.
+    #cw_SETTINGS_skip_motd=true
+    #
+    # Set to true to stop display of cluster initialization status information.
+    #cw_SETTINGS_skip_status=true
+    EOF
+        fi
+        IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+        for a in "${xdg_config[@]}"; do
+          if [ -e "${a}"/clusterware/settings.rc ]; then
+            source "${a}"/clusterware/settings.rc
+            break
+          fi
+        done
+        unset xdg_config a
         # Respect .hushlogin setting
         if [ ! -f "$HOME/.hushlogin" ]; then
+          if [ "${cw_SETTINGS_skip_banner:-false}" == "false" ]; then
             # this is a login shell, so we show a login message
-            if [ -f "${cw_ROOT}"/etc/config/cluster/cluster.vars.sh ]; then
-                eval $(grep '^cw_CLUSTER_name=' "${cw_ROOT}"/etc/config/cluster/cluster.vars.sh)
+            if [ -f "${cw_ROOT}"/etc/config/cluster/config.rc ]; then
+              eval $(grep '^cw_CLUSTER_name=' "${cw_ROOT}"/etc/config/cluster/config.rc)
             fi
             if [ -f "${cw_ROOT}"/etc/clusterware.rc ]; then
-                eval $(egrep '^cw_(RELEASE|STATUS)=' "${cw_ROOT}"/etc/clusterware.rc)
+              eval $(egrep '^cw_(RELEASE|STATUS)=' "${cw_ROOT}"/etc/clusterware.rc)
             fi
             welcome "${cw_CLUSTER_name:-your cluster}" "${cw_RELEASE:-1}"
-            if [ -f "${cw_ROOT}"/etc/motd ]; then
-                cat ${cw_ROOT}/etc/motd
-                echo ""
+          fi
+          if [ "${cw_SETTINGS_skip_motd:-false}" == "false" ]; then
+            if [ -d "${cw_ROOT}"/etc/motd.d ]; then
+              for a in "${cw_ROOT}"/etc/motd.d/*; do
+                if [ -f "$a" ]; then
+                  if [ "${a##*.}" == "sh" ]; then
+                    . "$a"
+                  elif [ "${a##*.}" == "txt" ]; then
+                    grep -v '^#' "$a"
+                  fi
+                fi
+              done
             fi
+            if [ -f "${cw_ROOT}"/etc/motd ]; then
+              grep -v '^#' ${cw_ROOT}/etc/motd
+              echo ""
+            fi
+          fi
+          if [ "${cw_SETTINGS_skip_status:-false}" == "false" ]; then
             if [ "${cw_STATUS}" == "unconfigured" ]; then
-                  cat <<EOF
+              cat <<EOF
     $(echo -e "\e[1;33m")=============
      PLEASE NOTE
     =============$(echo -e "\e[0m")
     EOF
-                . "${cw_ROOT}"/etc/clusterware.rc
-                if [[ "${cw_VERSION}" != 1.[0123].* ]] && [ ! -f "${cw_ROOT}"/etc/config.yml ]; then
-                  cat <<EOF
+              . "${cw_ROOT}"/etc/clusterware.rc
+              if [[ "${cw_VERSION}" != 1.[0123].* ]] && [ ! -f "${cw_ROOT}"/etc/config.yml ]; then
+                cat <<EOF
     Configuration of this node has $(echo -e "\e[1;31m")not yet been completed$(echo -e "\e[0m") and it is not yet
     operational.
 
     Please proceed with configuration by running the "$(echo -e "\e[1;37m")alces configure$(echo -e "\e[0m")" command.
 
     EOF
-                else
-                  cat <<EOF
+              else
+                cat <<EOF
     Configuration of this node has not yet been completed and it is not yet
     operational.  When configuration is complete you will receive a notice at
     the prompt.  Additionally, the prompt will be updated to include the name of
     the cluster.
 
     EOF
-                fi
+              fi
             fi
-            unset cw_CLUSTER_name cw_RELEASE cw_STATUS
+          fi
+          unset cw_CLUSTER_name cw_RELEASE cw_STATUS
         fi
+        unset cw_SETTINGS_skip_motd cw_SETTINGS_skip_banner cw_SETTINGS_skip_status
+        export cw_SETTINGS_theme
     fi
     END
     echo "${distro_postamble}" >> ${cw_ROOT}/etc/profile.d/clusterable.sh

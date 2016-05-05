@@ -26,6 +26,23 @@ _member_purge() {
 }
 
 _setup_aws() {
+    local autoscaling
+    autscaling=$(
+        ruby_run <<RUBY
+require 'yaml'
+
+config = YAML.load_file('${cw_ROOT}/etc/config.yml')['cluster']
+
+if config['autoscaling'] == 'enabled'
+  echo 'enabled'
+elsif config['autoscaling'] == 'disabled'
+  echo 'disabled'
+else
+  echo 'autodetect'
+end
+RUBY
+              )
+    echo "[setup-aws] Autoscaling configured as: ${autoscaling}"
     if [ -f /sys/hypervisor/uuid -a "$(head -c3 /sys/hypervisor/uuid)" == "ec2" ]; then
         eval $(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | \
                  ${_JQ} -r \
@@ -34,12 +51,14 @@ _setup_aws() {
 cw_INSTANCE_aws_region="${region}"
 cw_INSTANCE_aws_ctime="${ctime}"
 cw_INSTANCE_aws_instanceid="${instanceid}"
+cw_INSTANCE_aws_autoscaling="${autoscaling}"
 EOF
     elif [ "$cw_TEST_mock_aws" ]; then
         cat <<EOF > "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
 cw_INSTANCE_aws_region="eu-west-1"
 cw_INSTANCE_aws_ctime="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 cw_INSTANCE_aws_instanceid="i-$(hostname | md5sum | cut -c1-8)"
+cw_INSTANCE_aws_autoscaling="${autoscaling}"
 EOF
     fi
 }
@@ -61,7 +80,6 @@ main() {
 
     # Parse YAML file into something useful
     mkdir -p "${cw_ROOT}/etc/config/cluster/serf"
-    _setup_aws
 
     ruby_run <<RUBY
 require 'yaml'
@@ -138,6 +156,8 @@ RUBY
             fi
         fi
     fi
+
+    _setup_aws
 }
 
 setup
@@ -146,6 +166,7 @@ require ruby
 require distro
 require handler
 require member
+require files
 
 _JQ="${cw_ROOT}"/opt/jq/bin/jq
 
