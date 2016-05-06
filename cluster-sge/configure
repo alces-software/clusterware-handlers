@@ -91,7 +91,7 @@ _configure_aws_autoscaling() {
 
         group=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
                           autoscaling describe-auto-scaling-groups | \
-                       grep AutoScalingGroupName | grep "${cw_CLUSTER_name}" | \
+                       grep AutoScalingGroupName | grep "\"${cw_CLUSTER_name}-" | \
                        awk '{print $2}' | tr -d '",')
         if [ "$group" ]; then
             tags+=(tags[aws_group]=${group})
