@@ -63,20 +63,22 @@ _configure_aws_autoscaling() {
         # we are; ensure aws serviceware is installed
         "${_ALCES}" service install aws
 
-        if [ "${cw_INSTANCE_aws_autoscaling}" == "detect" ]; then
+        if [ "${cw_INSTANCE_aws_autoscaling}" == "autodetect" ]; then
             if _detect_autoscaling; then
                 echo "Autoscaling detected as enabled"
-                sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=enabled/'
+                sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=enabled/' \
+                    "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
             else
                 echo "Autoscaling detected as disabled"
-                sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=disabled/'
+                sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=disabled/' \
+                    "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
             fi
         fi
 
         # install autoscale management cron job if we're a master
         if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
-            echo "Installing autoscaler cronjob: ${hook_dir}/share/sge-autoscaler"
             hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+            echo "Installing autoscaler cronjob: ${hook_dir}/share/sge-autoscaler"
             echo "*/5 * * * * root ${hook_dir}/share/sge-autoscaler" > /etc/cron.d/clusterware-cluster-sge-autoscaler
         fi
 

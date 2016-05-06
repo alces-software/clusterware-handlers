@@ -27,18 +27,18 @@ _member_purge() {
 
 _setup_aws() {
     local autoscaling
-    autscaling=$(
+    autoscaling=$(
         ruby_run <<RUBY
 require 'yaml'
 
 config = YAML.load_file('${cw_ROOT}/etc/config.yml')['cluster']
 
 if config['autoscaling'] == 'enabled'
-  echo 'enabled'
+  puts 'enabled'
 elsif config['autoscaling'] == 'disabled'
-  echo 'disabled'
+  puts 'disabled'
 else
-  echo 'autodetect'
+  puts 'autodetect'
 end
 RUBY
               )
