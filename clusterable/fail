@@ -22,7 +22,7 @@ setup() {
 }
 
 main() {
-    "${cw_ROOT}"/libexec/share/nologin-control enable
+    "${cw_ROOT}"/libexec/share/nologin-control disable
 }
 
 setup
