@@ -10,38 +10,20 @@ description: |
 install:
   el6: |
     distro_preamble="$(cat <<'EOF'
-    welcome() (
-      local distro
-      emit() {
-        printf "%40s\n" "$1"
-      }
-      if [ -f "${cw_ROOT}"/etc/banner ]; then
-        distro="$(sed 's/\(.*\) release \(.*\) .*/\1 \2/g' /etc/redhat-release)"
-        sed -e "s/%CLUSTER%/$(emit "Welcome to $1")/g" \
-          -e "s/%RELEASE%/$(emit "Alces Clusterware (r$2)")/g" \
-          -e "s/%DISTRO%/$(emit "Based on ${distro}")/g" /opt/clusterware/etc/banner
-      fi
-    )
+    _cw_distro() {
+      sed 's/\(.*\) release \(.*\) .*/\1 \2/g' /etc/redhat-release
+    }
     EOF
     )"
-    distro_postamble="unset -f welcome"
+    distro_postamble="unset -f _cw_distro"
   el7: |
     distro_preamble="$(cat <<'EOF'
-    welcome() (
-      local distro
-      emit() {
-        printf "%40s\n" "$1"
-      }
-      if [ -f "${cw_ROOT}"/etc/banner ]; then
-        distro="$(sed 's/\(.*\) release \(.*\) .*/\1 \2/g' /etc/redhat-release)"
-        sed -e "s/%CLUSTER%/$(emit "Welcome to $1")/g" \
-          -e "s/%RELEASE%/$(emit "Alces Clusterware (r$2)")/g" \
-          -e "s/%DISTRO%/$(emit "Based on ${distro}")/g" /opt/clusterware/etc/banner
-      fi
-    )
+    _cw_distro() {
+      sed 's/\(.*\) release \(.*\) .*/\1 \2/g' /etc/redhat-release
+    }
     EOF
     )"
-    distro_postamble="unset -f welcome"
+    distro_postamble="unset -f _cw_distro"
   _: |
     cat <<EOF > ${cw_ROOT}/etc/profile.d/10-clusterable.sh
     ################################################################################
@@ -53,12 +35,38 @@ install:
     ${distro_preamble}
     EOF
     cat <<'END' >> ${cw_ROOT}/etc/profile.d/10-clusterable.sh
+    _cw_banner() {
+      local bannerfile
+      if [ "$1" == "--short" ]; then
+        _cw_emit() {
+          printf "%*s\n" $(((${#1}+80)/2)) "$1"
+        }
+        bannerfile=banner.short
+        shift
+      else
+        _cw_emit() {
+          printf "%40s\n" "$1"
+        }
+        bannerfile=banner
+      fi
+      if [ -f "${cw_ROOT}"/etc/${bannerfile} ]; then
+        sed -e "s/%CLUSTER%/$(_cw_emit "Welcome to $1")/g" \
+          -e "s/%RELEASE%/$(_cw_emit "Alces Clusterware (r$2)")/g" \
+          -e "s/%DISTRO%/$(_cw_emit "Based on $(_cw_distro)")/g" "${cw_ROOT}"/etc/${bannerfile}
+      fi
+      unset -f _cw_emit
+    }
     if [ "$PS1" ]; then
         _cw_set_prompt() {
             if [ -f "${cw_ROOT}"/etc/config/cluster/config.rc ]; then
                 eval $(egrep '^cw_CLUSTER_(name|uuid)=' "${cw_ROOT}"/etc/config/cluster/config.rc)
+                eval $(egrep '^cw_INSTANCE_role=' "${cw_ROOT}"/etc/config/cluster/instance.rc)
                 cw_CLUSTER_name="${cw_CLUSTER_name:-${cw_CLUSTER_uuid}}"
-                PS1="[\u@\h\[\e[1;34m\](${cw_CLUSTER_name})\[\e[0m\] \W]\\$ "
+                if [ "$cw_INSTANCE_role" == "master" ]; then
+                  PS1="[\u@\h\[\e[1;34m\](${cw_CLUSTER_name})\[\e[0m\] \W]\\$ "
+                else
+                  PS1="[\u@\h\[\e[48;5;17;38;5;33m\](${cw_CLUSTER_name})\[\e[0m\] \W]\\$ "
+                fi
                 unset cw_CLUSTER_name cw_CLUSTER_uuid
             else
                 PS1="[\u@\h\[\e[1;33m\](unknown)\[\e[0m\] \W]\\$ "
@@ -91,6 +99,7 @@ install:
         unset cw_STATUS
     fi
     if [[ "$0" == '-'* || "$1" == "force" ]]; then
+        # this is a login shell, so we show a login message
         if [ ! -f "${XDG_CONFIG_HOME:-$HOME/.config}/clusterware/settings.rc.ex" ]; then
           mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/clusterware"
           cat <<EOF > "${XDG_CONFIG_HOME:-$HOME/.config}/clusterware/settings.rc.ex"
@@ -131,16 +140,25 @@ install:
         # Respect .hushlogin setting
         if [ ! -f "$HOME/.hushlogin" ]; then
           if [ "${cw_SETTINGS_skip_banner:-false}" == "false" ]; then
-            # this is a login shell, so we show a login message
             if [ -f "${cw_ROOT}"/etc/config/cluster/config.rc ]; then
               eval $(grep '^cw_CLUSTER_name=' "${cw_ROOT}"/etc/config/cluster/config.rc)
             fi
             if [ -f "${cw_ROOT}"/etc/clusterware.rc ]; then
               eval $(egrep '^cw_(RELEASE|STATUS)=' "${cw_ROOT}"/etc/clusterware.rc)
             fi
-            welcome "${cw_CLUSTER_name:-your cluster}" "${cw_RELEASE:-1}"
+            if [ -f "${cw_ROOT}"/etc/config/cluster/instance.rc ]; then
+              eval $(egrep '^cw_INSTANCE_role=' "${cw_ROOT}"/etc/config/cluster/instance.rc)
+            else
+              # default to master-type behaviour if no configuration has been found yet.
+              cw_INSTANCE_role=master
+            fi
+            if [ "${cw_INSTANCE_role}" == "master" ]; then
+              _cw_banner "${cw_CLUSTER_name:-your cluster}" "${cw_RELEASE:-1}"
+            else
+              _cw_banner --short "${cw_CLUSTER_name:-your cluster}" "${cw_RELEASE:-1}"
+            fi
           fi
-          if [ "${cw_SETTINGS_skip_motd:-false}" == "false" ]; then
+          if [ "${cw_INSTANCE_role}" == "master" -a "${cw_SETTINGS_skip_motd:-false}" == "false" ]; then
             if [ -d "${cw_ROOT}"/etc/motd.d ]; then
               for a in "${cw_ROOT}"/etc/motd.d/*; do
                 if [ -f "$a" ]; then
@@ -184,11 +202,12 @@ install:
               fi
             fi
           fi
-          unset cw_CLUSTER_name cw_RELEASE cw_STATUS
+          unset cw_INSTANCE_role cw_CLUSTER_name cw_RELEASE cw_STATUS
         fi
         unset cw_SETTINGS_skip_motd cw_SETTINGS_skip_banner cw_SETTINGS_skip_status
         export cw_SETTINGS_theme
     fi
+    unset -f _cw_banner
     END
     echo "${distro_postamble}" >> ${cw_ROOT}/etc/profile.d/10-clusterable.sh
 
