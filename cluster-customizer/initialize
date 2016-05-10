@@ -1,0 +1,98 @@
+#!/bin/bash
+#==============================================================================
+# Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+#
+# This file/package is part of Alces Clusterware.
+#
+# Alces Clusterware is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Affero General Public License
+# as published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+#
+# Alces Clusterware is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this package.  If not, see <http://www.gnu.org/licenses/>.
+#
+# For more information on the Alces Clusterware, please visit:
+# https://github.com/alces-software/clusterware
+#==============================================================================
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.rc ]; then
+            source "${a}"/clusterware/config.rc
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+main() {
+    local account hashed_account bucket args a s3cfg
+    if network_has_metadata_service 1; then
+        if [ -z "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
+            if network_is_ec2; then
+                bucket="s3://$(network_ec2_hashed_account).alces-flight.com"
+            else
+                echo "Unable to determine bucket name for customizations"
+                exit 0
+            fi
+        else
+            bucket="${cw_CLUSTER_CUSTOMIZER_bucket}"
+        fi
+        echo "Retrieving customizations from: ${bucket}/customizer/${cw_CLUSTER_CUSTOMIZER_personality}"
+        s3cfg="$(mktemp /tmp/cluster-customizer.s3cfg.XXXXXXXX)"
+        cat <<EOF > "${s3cfg}"
+[default]
+access_key = "${cw_CLUSTER_CUSTOMIZER_access_key_id}"
+secret_key = "${cw_CLUSTER_CUSTOMIZER_secret_access_key}"
+security_token = ""
+use_https = True
+check_ssl_certificate = False
+EOF
+        mkdir -p "${cw_CLUSTER_CUSTOMIZER_path}"
+        "${_S3CMD}" -c ${s3cfg} -r get "${bucket}"/customizer/${cw_CLUSTER_CUSTOMIZER_personality}/ "${cw_CLUSTER_CUSTOMIZER_path}"
+        chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}"
+        rm -f "${s3cfg}"
+    fi
+    for p in ${cw_CLUSTER_CUSTOMIZER_path} ${cw_CLUSTER_CUSTOMIZER_custom_paths}; do
+        if [ -d "${p}"/initialize.d ]; then
+            args=()
+            if [ ! -d "${cw_ROOT}"/etc/config ]; then
+                args+=(once)
+            fi
+            for a in "${p}"/initialize.d/*; do
+                if [ -x "$a" ] && [[ "$a" != *~ ]]; then
+                    echo "Running initialize hook: ${a}"
+                    "${a}" "initialize" "${args[@]}"
+                elif [[ "$a" != *~ ]]; then
+                    echo "Skipping non-executable initialize hook: ${a}"
+                fi
+            done
+        else
+            echo "No initialize hooks found in ${p}"
+        fi
+    done
+}
+
+setup
+require handler
+require files
+require network
+
+files_load_config cluster-customizer
+cw_CLUSTER_CUSTOMIZER_path="${cw_CLUSTER_CUSTOMIZER_path:-${cw_ROOT}/var/lib/customizer}"
+cw_CLUSTER_CUSTOMIZER_personality="${cw_CLUSTER_CUSTOMIZER_personality:-default}"
+
+_S3CMD="${cw_ROOT}"/opt/s3cmd/s3cmd
+
+handler_tee main "$@"

@@ -1,0 +1,39 @@
+################################################################################
+##
+## Alces Clusterware - Handler metadata
+## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+---
+install:
+  _: |
+    require files
+    files_load_config clusterware
+    case "${cw_VERSION:-1.0.0}" in
+      1.[01234].*)
+          echo "This handler cannot be enabled as Alces Clusterware v${cw_VERSION} is too old."
+          echo "Please upgrade to Alces Clusterware v1.5.0 or higher."
+          exit 1
+          ;;
+    esac
+
+    cat <<EOF > ${cw_ROOT}/etc/cluster-customizer.rc
+    ################################################################################
+    ##
+    ## Alces Clusterware - Shell configuration
+    ## Copyright (c) 2016 Stephen F. Norledge and Alces Software Ltd.
+    ##
+    ################################################################################
+    #cw_CLUSTER_CUSTOMIZER_bucket="s3://yourbucket"
+    #cw_CLUSTER_CUSTOMIZER_personality="default"
+    #cw_CLUSTER_CUSTOMIZER_access_key_id=""
+    #cw_CLUSTER_CUSTOMIZER_secret_access_key=""
+    #cw_CLUSTER_CUSTOMIZER_path="${cw_ROOT}/var/lib/customizer"
+    #cw_CLUSTER_CUSTOMIZER_custom_paths="/opt/alces"
+    EOF
+
+    cat <<\EOF >> "${cw_ROOT}"/etc/meta.rc
+    . "${cw_ROOT}"/etc/cluster-customizer.rc
+    cw_META_customizer_s3path="${cw_CLUSTER_CUSTOMIZER_bucket:-s3://$(network_ec2_hashed_account).alces-flight.com}/customizer/${cw_CLUSTER_CUSTOMIZER_personality:-default}"
+    cw_META_customizer_s3path_desc="Customizer bucket prefix"
+    EOF
