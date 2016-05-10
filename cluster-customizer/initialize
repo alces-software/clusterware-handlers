@@ -39,6 +39,7 @@ setup() {
 main() {
     local account hashed_account bucket args a s3cfg
     if network_has_metadata_service 1; then
+        ${_ALCES} service install s3cmd
         if [ -z "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
             if network_is_ec2; then
                 bucket="s3://$(network_ec2_hashed_account).alces-flight.com"
@@ -94,5 +95,6 @@ cw_CLUSTER_CUSTOMIZER_path="${cw_CLUSTER_CUSTOMIZER_path:-${cw_ROOT}/var/lib/cus
 cw_CLUSTER_CUSTOMIZER_personality="${cw_CLUSTER_CUSTOMIZER_personality:-default}"
 
 _S3CMD="${cw_ROOT}"/opt/s3cmd/s3cmd
+_ALCES="${cw_ROOT}"/bin/alces
 
 handler_tee main "$@"
