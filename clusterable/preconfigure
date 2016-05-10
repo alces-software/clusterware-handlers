@@ -43,21 +43,14 @@ end
 RUBY
               )
     echo "[setup-aws] Autoscaling configured as: ${autoscaling}"
-    if [ -f /sys/hypervisor/uuid -a "$(head -c3 /sys/hypervisor/uuid)" == "ec2" ]; then
-        eval $(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | \
+    if network_is_ec2; then
+        eval $(network_fetch_ec2_document | \
                  ${_JQ} -r \
                  '"region=\(.region)"','"ctime=\(.pendingTime)"','"instanceid=\(.instanceId)"')
         cat <<EOF > "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
 cw_INSTANCE_aws_region="${region}"
 cw_INSTANCE_aws_ctime="${ctime}"
 cw_INSTANCE_aws_instanceid="${instanceid}"
-cw_INSTANCE_aws_autoscaling="${autoscaling}"
-EOF
-    elif [ "$cw_TEST_mock_aws" ]; then
-        cat <<EOF > "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
-cw_INSTANCE_aws_region="eu-west-1"
-cw_INSTANCE_aws_ctime="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-cw_INSTANCE_aws_instanceid="i-$(hostname | md5sum | cut -c1-8)"
 cw_INSTANCE_aws_autoscaling="${autoscaling}"
 EOF
     fi
@@ -167,6 +160,7 @@ require distro
 require handler
 require member
 require files
+require network
 
 _JQ="${cw_ROOT}"/opt/jq/bin/jq
 
