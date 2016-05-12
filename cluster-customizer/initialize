@@ -36,9 +36,37 @@ setup() {
     kernel_load
 }
 
+_parse_user_data() {
+    local customizer_data o_pers o_buck
+    customizer_data=$(network_fetch_ec2_userdata 1 | grep "^#=FlightCustomizer ")
+    if [ "${customizer_data}" ]; then
+        o_pers="${cw_CLUSTER_CUSTOMIZER_personalities}"
+        o_buck="${cw_CLUSTER_CUSTOMIZER_bucket}"
+        cw_CLUSTER_CUSTOMIZER_bucket=$(echo "${customizer_data}" | cut -f2 -d' ')
+        cw_CLUSTER_CUSTOMIZER_personalities=$(echo "${customizer_data}" | cut -f3- -d' ')
+        if [[ "$cw_CLUSTER_CUSTOMIZER_bucket" != "" && "$cw_CLUSTER_CUSTOMIZER_bucket" != "s3://"* ]]; then
+            cw_CLUSTER_CUSTOMIZER_personalities="${cw_CLUSTER_CUSTOMIZER_bucket} ${cw_CLUSTER_CUSTOMIZER_personalities}"
+            cw_CLUSTER_CUSTOMIZER_bucket=""
+        fi
+        if [ "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
+            sed -i -e "s,^#\?cw_CLUSTER_CUSTOMIZER_bucket=.*,cw_CLUSTER_CUSTOMIZER_bucket=\"${cw_CLUSTER_CUSTOMIZER_bucket}\",g" \
+                "${cw_ROOT}"/etc/cluster-customizer.rc
+        else
+            cw_CLUSTER_CUSTOMIZER_bucket="${o_buck}"
+        fi
+        if [ "${cw_CLUSTER_CUSTOMIZER_personalities}" ]; then
+            sed -i -e "s,^#\?cw_CLUSTER_CUSTOMIZER_personalities=.*,cw_CLUSTER_CUSTOMIZER_personalities=\"${cw_CLUSTER_CUSTOMIZER_personalities}\",g" \
+                "${cw_ROOT}"/etc/cluster-customizer.rc
+        else
+            cw_CLUSTER_CUSTOMIZER_personalities="${o_pers}"
+        fi
+    fi
+}
+
 main() {
-    local account hashed_account bucket args a s3cfg
+    local account hashed_account bucket args a s3cfg paths
     if network_has_metadata_service 1; then
+        _parse_user_data
         ${_ALCES} service install s3cmd
         if [ -z "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
             if network_is_ec2; then
@@ -50,7 +78,6 @@ main() {
         else
             bucket="${cw_CLUSTER_CUSTOMIZER_bucket}"
         fi
-        echo "Retrieving customizations from: ${bucket}/customizer/${cw_CLUSTER_CUSTOMIZER_personality}"
         s3cfg="$(mktemp /tmp/cluster-customizer.s3cfg.XXXXXXXX)"
         cat <<EOF > "${s3cfg}"
 [default]
@@ -58,14 +85,20 @@ access_key = "${cw_CLUSTER_CUSTOMIZER_access_key_id}"
 secret_key = "${cw_CLUSTER_CUSTOMIZER_secret_access_key}"
 security_token = ""
 use_https = True
-check_ssl_certificate = False
 EOF
         mkdir -p "${cw_CLUSTER_CUSTOMIZER_path}"
-        "${_S3CMD}" -c ${s3cfg} -r get "${bucket}"/customizer/${cw_CLUSTER_CUSTOMIZER_personality}/ "${cw_CLUSTER_CUSTOMIZER_path}"
+        for personality in ${cw_CLUSTER_CUSTOMIZER_personalities}; do
+            echo "Retrieving customizations from: ${bucket}/customizer/$personality"
+            "${_S3CMD}" -c ${s3cfg} --force -r get "${bucket}"/customizer/${personality} "${cw_CLUSTER_CUSTOMIZER_path}"
+        done
         chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}"
         rm -f "${s3cfg}"
     fi
-    for p in ${cw_CLUSTER_CUSTOMIZER_path} ${cw_CLUSTER_CUSTOMIZER_custom_paths}; do
+    paths="${cw_CLUSTER_CUSTOMIZER_custom_paths}"
+    for p in ${cw_CLUSTER_CUSTOMIZER_personalities:-default}; do
+        paths="${paths} ${cw_CLUSTER_CUSTOMIZER_path}/${p}"
+    done
+    for p in ${paths}; do
         if [ -d "${p}"/initialize.d ]; then
             args=()
             if [ ! -d "${cw_ROOT}"/etc/config ]; then
@@ -92,7 +125,7 @@ require network
 
 files_load_config cluster-customizer
 cw_CLUSTER_CUSTOMIZER_path="${cw_CLUSTER_CUSTOMIZER_path:-${cw_ROOT}/var/lib/customizer}"
-cw_CLUSTER_CUSTOMIZER_personality="${cw_CLUSTER_CUSTOMIZER_personality:-default}"
+cw_CLUSTER_CUSTOMIZER_personalities="${cw_CLUSTER_CUSTOMIZER_personalities:-default}"
 
 _S3CMD="${cw_ROOT}"/opt/s3cmd/s3cmd
 _ALCES="${cw_ROOT}"/bin/alces

@@ -22,14 +22,18 @@
 require files
 
 _run_custom_hooks() {
-    local a p hook
+    local a p hook paths
     hook="$1"
     shift
     files_load_config config config/cluster
     files_load_config instance config/cluster
     files_load_config cluster-customizer
     cw_CLUSTER_CUSTOMIZER_path=${cw_CLUSTER_CUSTOMIZER_path:-"${cw_ROOT}"/var/lib/customizer}
-    for p in ${cw_CLUSTER_CUSTOMIZER_path} ${cw_CLUSTER_CUSTOMIZER_custom_paths}; do
+    paths="${cw_CLUSTER_CUSTOMIZER_custom_paths}"
+    for p in ${cw_CLUSTER_CUSTOMIZER_personalities:-default}; do
+        paths="${paths} ${cw_CLUSTER_CUSTOMIZER_path}/${p}"
+    done
+    for p in ${paths}; do
         if [ -d "${p}"/${hook}.d ]; then
             for a in "${p}"/${hook}.d/*; do
                 if [ -x "$a" ] && [[ "$a" != *~ ]]; then
