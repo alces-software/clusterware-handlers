@@ -70,7 +70,7 @@ main() {
         ${_ALCES} service install s3cmd
         if [ -z "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
             if network_is_ec2; then
-                bucket="s3://$(network_ec2_hashed_account).alces-flight.com"
+                bucket="s3://alces-flight-$(network_ec2_hashed_account)"
             else
                 echo "Unable to determine bucket name for customizations"
                 exit 0
@@ -85,6 +85,7 @@ access_key = "${cw_CLUSTER_CUSTOMIZER_access_key_id}"
 secret_key = "${cw_CLUSTER_CUSTOMIZER_secret_access_key}"
 security_token = ""
 use_https = True
+check_ssl_certificate = True
 EOF
         mkdir -p "${cw_CLUSTER_CUSTOMIZER_path}"
         for personality in ${cw_CLUSTER_CUSTOMIZER_personalities}; do
