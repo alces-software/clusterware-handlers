@@ -84,10 +84,8 @@ _configure_aws_autoscaling() {
 
         # set serf tags containing:
         #  - instance creation time
-        #  - instance id
         #  - autoscaling group name (if available)
         tags=(tags[aws_ctime]=${cw_INSTANCE_aws_ctime})
-        tags+=(tags[aws_instanceid]=${cw_INSTANCE_aws_instanceid})
 
         group=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
                           autoscaling describe-auto-scaling-groups | \

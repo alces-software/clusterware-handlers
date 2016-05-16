@@ -2,7 +2,7 @@
 ################################################################################
 ##
 ## Alces Clusterware - Handler hook
-## Copyright (C) 2015-2016 Stephen F. Norledge and Alces Software Ltd.
+## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
 ##
 ################################################################################
 setup() {
@@ -22,25 +22,15 @@ setup() {
 }
 
 main() {
-    local count member_data
-    member_data="$(cat)"
-    member_unregister <<< "${member_data}"
-    count="$(member_count)"
-    if [ "${count}" -lt "$(member_quorum)" ]; then
-        handler_run_hook cluster-inquorate "${count}"
-    fi
-
-    eval $(member_parse <<< "${member_data}")
-    instance_id=$(member_find_tag aws_instanceid "${cw_MEMBER_tags}")
-    if [ "${instance_id}" ]; then
-        machine_type=$(member_find_tag aws_machinetype "${cw_MEMBER_tags}")
-        "${cw_ROOT}"/libexec/share/flight-recorder "join" "${instance_id}" "${cw_MEMBER_role}" "${machine_type}"
+    files_load_config --optional instance-aws config/cluster
+    if [ "${cw_INSTANCE_aws_instanceid}" ]; then
+        "${cw_ROOT}"/libexec/share/flight-recorder ping
     fi
 }
 
 setup
 
-require member
 require handler
+require files
 
 handler_tee main "$@"

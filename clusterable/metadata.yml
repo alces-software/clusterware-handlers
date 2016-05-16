@@ -222,3 +222,6 @@ install:
     /bin/bash "$cw_ROOT"/etc/profile.d/clusterable.sh force
     unsetenv cw_ROOT
     EOF
+
+    echo "Installing Clusterware periodic cronjob: ${cw_ROOT}/libexec/share/trigger-periodic"
+    echo "*/5 * * * * root ${cw_ROOT}/libexec/share/trigger-event periodic >/dev/null 2>&1" > /etc/cron.d/clusterware-clusterable-trigger-periodic
