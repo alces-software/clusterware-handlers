@@ -34,7 +34,7 @@ main() {
     instance_id=$(member_find_tag aws_instanceid "${cw_MEMBER_tags}")
     if [ "${instance_id}" ]; then
         machine_type=$(member_find_tag aws_machinetype "${cw_MEMBER_tags}")
-        "${cw_ROOT}"/libexec/share/flight-recorder "join" "${instance_id}" "${cw_MEMBER_role}" "${machine_type}"
+        "${cw_ROOT}"/libexec/share/flight-recorder "leave" "${instance_id}" "${cw_MEMBER_role}" "${machine_type}"
     fi
 }
 
