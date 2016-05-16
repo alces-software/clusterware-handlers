@@ -146,16 +146,18 @@ RUBY
 
     cp -p "${cw_ROOT}/etc/config/cluster/serf"/*.json "${cw_ROOT}/etc/serf"
 
-    if [ -f "${cw_ROOT}"/etc/genders ]; then
-        . "${cw_ROOT}"/etc/config/cluster/instance.rc
-        if [ "${cw_INSTANCE_role}" == "master" ]; then
+    files_load_config instance config/cluster
+    if [ "${cw_INSTANCE_role}" == "master" ]; then
+        echo "Installing Clusterware periodic cronjob: ${cw_ROOT}/libexec/share/trigger-periodic"
+        echo "*/5 * * * * root ${cw_ROOT}/libexec/share/trigger-event periodic >/dev/null 2>&1" > /etc/cron.d/clusterware-clusterable-trigger-periodic
+
+        if [ -f "${cw_ROOT}"/etc/genders ]; then
             short_name="$(hostname -s)"
             if ! grep -q "^${short_name}" "${cw_ROOT}"/etc/genders; then
                 echo "${short_name} master,masters,cluster,all" >> "${cw_ROOT}"/etc/genders
             fi
         fi
     fi
-
     _setup_aws
 }
 
