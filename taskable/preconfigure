@@ -63,6 +63,7 @@ def write_file(name, content)
 end
 
 config = YAML.load_file('${cw_ROOT}/etc/config.yml')['instance']
+exit if config.nil?
 control_opts = config['control'] || {}
 
 task_vars = []
@@ -97,7 +98,9 @@ end
 RUBY
 
     # Create user(s)
-    source "${cw_ROOT}/etc/config/task/create-users.sh"
+    if [ -f "${cw_ROOT}/etc/config/task/create-users.sh" ]; then
+        source "${cw_ROOT}/etc/config/task/create-users.sh"
+    fi
 }
 
 setup
