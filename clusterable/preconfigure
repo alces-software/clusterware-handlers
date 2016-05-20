@@ -88,14 +88,35 @@ def write_file(name, content, *args)
   File.write("${cw_ROOT}/etc/config/cluster/#{name}",content,*args)
 end
 
+def setup_cluster_identity(config)
+  if identity = config['identity']
+    config['uuid'] ||=
+      # try and extract anything that looks like a UUID from the identity
+      if identity =~ /([0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12})/i
+        config['uuid'] = \$1
+      else
+        # otherwise assume the identity is unique and can serve as UUID input
+        config['uuid'] = \`uuid -v5 0103f694-c5a8-5779-af10-3668872f329d "#{identity}"\`.chomp
+      end
+
+    config['token'] ||=
+      # generate a token from the identity
+      \`uuid -v5 0103f694-c5a8-5779-af10-3668872f329d "#{identity}" | base64 | cut -c1-16\`.chomp
+  end
+end
+
 config = YAML.load_file('${cw_ROOT}/etc/config.yml')['cluster']
+
+setup_cluster_identity(config)
 
 if config['master']
   h = { retry_join: [config['master']] }
   write_file('serf/join.json', h.to_json)
 end
 
-h = { discover: config['uuid'] }
+uuid = config['uuid'] || \`uuid -v4\`.chomp
+
+h = { discover: uuid }
 write_file('serf/cluster.json', h.to_json)
 
 if config['interface']
@@ -113,7 +134,7 @@ if config['token']
 end
 
 cluster_vars = []
-cluster_vars << %(cw_CLUSTER_uuid="#{config['uuid']}")
+cluster_vars << %(cw_CLUSTER_uuid="#{uuid}")
 if config['master']
   cluster_vars << %(cw_CLUSTER_master="#{config['master']}")
 end
