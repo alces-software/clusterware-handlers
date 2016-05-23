@@ -105,7 +105,31 @@ def setup_cluster_identity(config)
   end
 end
 
-config = YAML.load_file('${cw_ROOT}/etc/config.yml')['cluster']
+def deep_merge(target, source)
+  target.merge(source) do |key, old, new|
+    if Hash === old && Hash === new
+      deep_merge(old, new)
+    elsif Array === old && Array === new
+      old.concat(new).uniq
+    else
+      new
+    end
+  end
+end
+
+defaults =
+  begin
+    if File.exist?('${cw_ROOT}/etc/defaults.yml')
+      YAML.load_file('${cw_ROOT}/etc/defaults.yml')
+    end
+  rescue
+    {}
+  end
+
+config = deep_merge(defaults || {}, YAML.load_file('${cw_ROOT}/etc/config.yml'))
+File.write('${cw_ROOT}/etc/config.yml', config.to_yaml)
+
+config = config['cluster']
 
 setup_cluster_identity(config)
 
