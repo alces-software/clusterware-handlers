@@ -60,10 +60,6 @@ The following handlers are experimental and should be used with caution.
 
 Provide integration with enhanced Alces Flight orchestration services.
 
-### `nvidia-driver`
-
-Orchestrate the installation of the [NVIDIA CUDA](http://docs.nvidia.com/cuda/) driver and creation of required device files.
-
 ### `taskable`
 
 Create users, groups and configure SSH keys to provide multiple users access to a cluster.  Provide infrastructure for operating "one-shot" clusters.
