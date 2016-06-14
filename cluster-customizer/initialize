@@ -36,50 +36,112 @@ setup() {
     kernel_load
 }
 
-_parse_user_data() {
-    local customizer_data o_pers o_buck
-    customizer_data=$(network_fetch_ec2_userdata 1 | grep "^#=FlightCustomizer ")
-    if [ "${customizer_data}" ]; then
-        o_pers="${cw_CLUSTER_CUSTOMIZER_personalities}"
-        o_buck="${cw_CLUSTER_CUSTOMIZER_bucket}"
-        cw_CLUSTER_CUSTOMIZER_bucket=$(echo "${customizer_data}" | cut -f2 -d' ')
-        cw_CLUSTER_CUSTOMIZER_personalities=$(echo "${customizer_data}" | cut -f3- -d' ')
-        if [[ "$cw_CLUSTER_CUSTOMIZER_bucket" != "" && "$cw_CLUSTER_CUSTOMIZER_bucket" != "s3://"* ]]; then
-            cw_CLUSTER_CUSTOMIZER_personalities="${cw_CLUSTER_CUSTOMIZER_bucket} ${cw_CLUSTER_CUSTOMIZER_personalities}"
-            cw_CLUSTER_CUSTOMIZER_bucket=""
-        fi
-        if [ "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
-            sed -i -e "s,^#\?cw_CLUSTER_CUSTOMIZER_bucket=.*,cw_CLUSTER_CUSTOMIZER_bucket=\"${cw_CLUSTER_CUSTOMIZER_bucket}\",g" \
-                "${cw_ROOT}"/etc/cluster-customizer.rc
-        else
-            cw_CLUSTER_CUSTOMIZER_bucket="${o_buck}"
-        fi
-        if [ "${cw_CLUSTER_CUSTOMIZER_personalities}" ]; then
-            sed -i -e "s,^#\?cw_CLUSTER_CUSTOMIZER_personalities=.*,cw_CLUSTER_CUSTOMIZER_personalities=\"${cw_CLUSTER_CUSTOMIZER_personalities}\",g" \
-                "${cw_ROOT}"/etc/cluster-customizer.rc
-        else
-            cw_CLUSTER_CUSTOMIZER_personalities="${o_pers}"
-        fi
+_setup_features() {
+    local o_features feature_data
+    feature_data="$1"
+
+    o_features="${cw_CLUSTER_CUSTOMIZER_features}"
+
+    cw_CLUSTER_CUSTOMIZER_features=$(echo "${feature_data}" | cut -f2- -d' ')
+    if [ "${cw_CLUSTER_CUSTOMIZER_features}" ]; then
+        sed -i -e "s,^#\?cw_CLUSTER_CUSTOMIZER_features=.*,cw_CLUSTER_CUSTOMIZER_features=\"${cw_CLUSTER_CUSTOMIZER_features}\",g" \
+            "${cw_ROOT}"/etc/cluster-customizer.rc
+    else
+        cw_CLUSTER_CUSTOMIZER_features="${o_features}"
     fi
 }
 
-main() {
-    local account hashed_account bucket args a s3cfg paths
-    if network_has_metadata_service 1; then
-        _parse_user_data
-        ${_ALCES} service install s3cmd
-        if [ -z "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
-            if network_is_ec2; then
-                bucket="s3://alces-flight-$(network_ec2_hashed_account)"
-            else
-                echo "Unable to determine bucket name for customizations"
-                exit 0
-            fi
+_setup_profiles() {
+    local o_profiles o_bucket customizer_data
+    customizer_data="$1"
+
+    o_profiles="${cw_CLUSTER_CUSTOMIZER_profiles}"
+    o_bucket="${cw_CLUSTER_CUSTOMIZER_bucket}"
+    cw_CLUSTER_CUSTOMIZER_bucket=$(echo "${customizer_data}" | cut -f2 -d' ')
+    cw_CLUSTER_CUSTOMIZER_profiles=$(echo "${customizer_data}" | cut -f3- -d' ')
+    if [[ "$cw_CLUSTER_CUSTOMIZER_bucket" != "" && "$cw_CLUSTER_CUSTOMIZER_bucket" != "s3://"* ]]; then
+        cw_CLUSTER_CUSTOMIZER_profiles="${cw_CLUSTER_CUSTOMIZER_bucket} ${cw_CLUSTER_CUSTOMIZER_profiles}"
+        cw_CLUSTER_CUSTOMIZER_bucket=""
+    fi
+    if [ "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
+        sed -i -e "s,^#\?cw_CLUSTER_CUSTOMIZER_bucket=.*,cw_CLUSTER_CUSTOMIZER_bucket=\"${cw_CLUSTER_CUSTOMIZER_bucket}\",g" \
+            "${cw_ROOT}"/etc/cluster-customizer.rc
+    else
+        cw_CLUSTER_CUSTOMIZER_bucket="${o_bucket}"
+    fi
+    if [ "${cw_CLUSTER_CUSTOMIZER_profiles}" ]; then
+        sed -i -e "s,^#\?cw_CLUSTER_CUSTOMIZER_profiles=.*,cw_CLUSTER_CUSTOMIZER_profiles=\"${cw_CLUSTER_CUSTOMIZER_profiles}\",g" \
+            "${cw_ROOT}"/etc/cluster-customizer.rc
+    else
+        cw_CLUSTER_CUSTOMIZER_profiles="${o_profiles}"
+    fi
+}
+
+_setup() {
+    local userdata feature_data profile_data
+
+    eval $(network_fetch_ec2_document | ${_JQ} -r '"_REGION=\(.region)"')
+    _MACHINE_TYPE="$(network_fetch_ec2_metadata instance-type)"
+
+    userdata=$(network_fetch_ec2_userdata 1)
+
+    feature_data=$(echo "${userdata}" | grep "^#=FlightFeatures ")
+    if [ "${feature_data}" ]; then
+        _setup_features "${feature_data}"
+    fi
+
+    profile_data=$(echo "${userdata}" | grep "^#=FlightProfiles ")
+    if [ "${profile_data}" ]; then
+        _setup_profiles "${profile_data}"
+    fi
+}
+
+_fetch_machine_type() {
+    local s3cfg bucket prefix
+    s3cfg="$1"
+    bucket="s3://alces-flight-profiles-${_REGION}"
+    prefix="machines/${_MACHINE_TYPE}"
+    echo "Retrieving machine type customizations from: ${bucket}/${prefix}"
+    mkdir -p "${cw_CLUSTER_CUSTOMIZER_path}"/machine-${_MACHINE_TYPE}
+    "${_S3CMD}" -c ${s3cfg} --force -r get "${bucket}"/"${prefix}"/ "${cw_CLUSTER_CUSTOMIZER_path}"/machine-${_MACHINE_TYPE}
+}
+
+_fetch_features() {
+    local s3cfg bucket feature
+    s3cfg="$1"
+    bucket="s3://alces-flight-profiles-${_REGION}"
+    for feature in ${cw_CLUSTER_CUSTOMIZER_features}; do
+        mkdir -p "${cw_CLUSTER_CUSTOMIZER_path}"/feature-${feature}
+        echo "Retrieving feature customizations from: ${bucket}/features/$feature"
+        "${_S3CMD}" -c ${s3cfg} --force -r get "${bucket}"/features/${feature}/ "${cw_CLUSTER_CUSTOMIZER_path}"/feature-${feature}
+    done
+}
+
+_fetch_profiles() {
+    local bucket s3cfg profile
+    s3cfg="$1"
+    if [ -z "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
+        if network_is_ec2; then
+            bucket="s3://alces-flight-$(network_ec2_hashed_account)"
         else
-            bucket="${cw_CLUSTER_CUSTOMIZER_bucket}"
+            echo "Unable to determine bucket name for customizations"
+            exit 0
         fi
-        s3cfg="$(mktemp /tmp/cluster-customizer.s3cfg.XXXXXXXX)"
-        cat <<EOF > "${s3cfg}"
+    else
+        bucket="${cw_CLUSTER_CUSTOMIZER_bucket}"
+    fi
+    for profile in ${cw_CLUSTER_CUSTOMIZER_profiles}; do
+        mkdir -p "${cw_CLUSTER_CUSTOMIZER_path}"/profile-${profile}
+        echo "Retrieving customizations from: ${bucket}/customizer/$profile"
+        "${_S3CMD}" -c ${s3cfg} --force -r get "${bucket}"/customizer/${profile}/ "${cw_CLUSTER_CUSTOMIZER_path}"/profile-${profile}
+    done
+}
+
+_fetch() {
+    local s3cfg
+    ${_ALCES} service install s3cmd
+    s3cfg="$(mktemp /tmp/cluster-customizer.s3cfg.XXXXXXXX)"
+    cat <<EOF > "${s3cfg}"
 [default]
 access_key = "${cw_CLUSTER_CUSTOMIZER_access_key_id}"
 secret_key = "${cw_CLUSTER_CUSTOMIZER_secret_access_key}"
@@ -87,17 +149,21 @@ security_token = ""
 use_https = True
 check_ssl_certificate = True
 EOF
-        mkdir -p "${cw_CLUSTER_CUSTOMIZER_path}"
-        for personality in ${cw_CLUSTER_CUSTOMIZER_personalities}; do
-            echo "Retrieving customizations from: ${bucket}/customizer/$personality"
-            "${_S3CMD}" -c ${s3cfg} --force -r get "${bucket}"/customizer/${personality} "${cw_CLUSTER_CUSTOMIZER_path}"
-        done
-        chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}"
-        rm -f "${s3cfg}"
+    mkdir -p "${cw_CLUSTER_CUSTOMIZER_path}"
+    if [ "${_MACHINE_TYPE}" ]; then
+        _fetch_machine_type "${s3cfg}"
     fi
+    _fetch_features "${s3cfg}"
+    _fetch_profiles "${s3cfg}"
+    chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}"
+    rm -f "${s3cfg}"
+}
+
+_run_initialize_hooks() {
+    local paths p args a
     paths="${cw_CLUSTER_CUSTOMIZER_custom_paths}"
-    for p in ${cw_CLUSTER_CUSTOMIZER_personalities:-default}; do
-        paths="${paths} ${cw_CLUSTER_CUSTOMIZER_path}/${p}"
+    for p in ${cw_CLUSTER_CUSTOMIZER_path}/*; do
+        paths="${paths} ${p}"
     done
     for p in ${paths}; do
         if [ -d "${p}"/initialize.d ]; then
@@ -106,7 +172,7 @@ EOF
                 args+=(once)
             fi
             for a in "${p}"/initialize.d/*; do
-                if [ -x "$a" ] && [[ "$a" != *~ ]]; then
+                if [ -x "$a" -a ! -d "$a" ] && [[ "$a" != *~ ]]; then
                     echo "Running initialize hook: ${a}"
                     "${a}" "initialize" "${args[@]}"
                 elif [[ "$a" != *~ ]]; then
@@ -119,6 +185,14 @@ EOF
     done
 }
 
+main() {
+    if network_has_metadata_service 1; then
+        _setup
+        _fetch
+    fi
+    _run_initialize_hooks
+}
+
 setup
 require handler
 require files
@@ -126,9 +200,10 @@ require network
 
 files_load_config cluster-customizer
 cw_CLUSTER_CUSTOMIZER_path="${cw_CLUSTER_CUSTOMIZER_path:-${cw_ROOT}/var/lib/customizer}"
-cw_CLUSTER_CUSTOMIZER_personalities="${cw_CLUSTER_CUSTOMIZER_personalities:-default}"
+cw_CLUSTER_CUSTOMIZER_profiles="${cw_CLUSTER_CUSTOMIZER_profiles:-default}"
 
 _S3CMD="${cw_ROOT}"/opt/s3cmd/s3cmd
 _ALCES="${cw_ROOT}"/bin/alces
+_JQ="${cw_ROOT}"/opt/jq/bin/jq
 
 handler_tee main "$@"

@@ -25,7 +25,8 @@ install:
     ##
     ################################################################################
     #cw_CLUSTER_CUSTOMIZER_bucket="s3://yourbucket"
-    #cw_CLUSTER_CUSTOMIZER_personalities="default"
+    #cw_CLUSTER_CUSTOMIZER_profiles="default"
+    #cw_CLUSTER_CUSTOMIZER_features=""
     #cw_CLUSTER_CUSTOMIZER_access_key_id=""
     #cw_CLUSTER_CUSTOMIZER_secret_access_key=""
     #cw_CLUSTER_CUSTOMIZER_path="${cw_ROOT}/var/lib/customizer"
