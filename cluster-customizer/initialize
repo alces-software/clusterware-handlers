@@ -90,7 +90,7 @@ _setup() {
         _setup_features "${feature_data}"
     fi
 
-    profile_data=$(echo "${userdata}" | grep "^#=FlightProfiles ")
+    profile_data=$(echo "${userdata}" | egrep "^#=Flight(Profiles|Customizer) ")
     if [ "${profile_data}" ]; then
         _setup_profiles "${profile_data}"
     fi
