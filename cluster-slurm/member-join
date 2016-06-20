@@ -1,0 +1,128 @@
+#!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2015-2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+main() {
+    local hook_dir tags tag tuple key value vmem_gb slots hook_dir intf master_ip scheduler_roles instanceid group
+    files_load_config instance config/cluster
+
+    set -x
+    eval "$(member_parse)"
+    slurm_log "Member data parsed: ${cw_MEMBER_name} (${cw_MEMBER_ip}) -- ${cw_MEMBER_tags}" "${cw_CLUSTER_SLURM_log}"
+    "${cw_ROOT}"/libexec/share/update-etc-hosts "${cw_MEMBER_name}" "${cw_MEMBER_ip}"
+
+    slurm_log "Checking roles for new member (${cw_MEMBER_name})" "${cw_CLUSTER_SLURM_log}"
+    IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
+    for tag in "${tags[@]}"; do
+        IFS='=' read -a tuple <<< "${tag}"
+        slurm_log "Found tuple: ${tag}, key: ${tuple[0]}, value: ${tuple[1]}"
+        key=${tuple[0]}
+        value=${tuple[1]}
+        if [ "$key" == "scheduler_roles" ]; then
+            scheduler_roles="${value}"
+            # TODO: Do we need any of below?
+        # elif [ "$key" == "ram_gb" ]; then
+        #     vmem_gb="${value}"
+        # elif [ "$key" == "slots" ]; then
+        #     slots="${value}"
+        # elif [ "$key" == "aws_instanceid" ]; then
+        #     instanceid="${value}"
+        # elif [ "$key" == "aws_group" ]; then
+        #     group="${value}"
+        fi
+    done
+
+    # Update this node's slurm.conf with new node.
+    hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+    if [[ "${scheduler_roles}" == *":master:"* ]]; then
+        slurm_log "${cw_MEMBER_name} is Slurm control node"
+        "${hook_dir}/share/slurm-set-control-node.sh" "${cw_MEMBER_name}"
+    fi
+    if [[ "${scheduler_roles}" == *":compute:"* ]]; then
+        slurm_log "${cw_MEMBER_name} is Slurm compute node"
+        ruby_exec "${hook_dir}/share/slurm-add-compute-node.rb" "${cw_MEMBER_name}"
+    fi
+
+    # From slurm.conf docs: "Changes in node configuration (e.g. adding nodes,
+    # changing their processor count, etc.) require restarting both the
+    # slurmctld daemon and the slurmd daemons" - so do this if needed based on
+    # this node's role(s).
+    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
+        distro_restart_service clusterware-slurm-slurmctld
+    fi
+    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
+        distro_restart_service clusterware-slurm-slurmd
+    fi
+
+    # TODO: Need any of below?
+    # if [[ "${scheduler_roles}" == *":compute:"* ]]; then
+    #     slurm_log "Adding node: ${cw_MEMBER_name} (${cw_MEMBER_ip}) with slots=${slots} and vmem=${vmem_gb}G" \
+        #         "${cw_CLUSTER_SGE_log}"
+    #     hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+    #     # Wait for a short while to ensure that the addition of
+    #     # the name to /etc/hosts percolates through to SGEs name
+    #     # resolution routines.
+    #     sleep 2
+    #     ${hook_dir}/share/sge-add-node "${cw_MEMBER_name}" "${cw_MEMBER_ip}" "${slots}" "${vmem_gb}" 2>&1 | log_blob "${cw_CLUSTER_SGE_log}" "sge-add-node"
+
+    #     intf="$(network_get_route_iface ${cw_MEMBER_ip})"
+    #     master_ip="$(network_get_network_address ${cw_MEMBER_ip})"
+
+    #     if ! iptables -C INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT &>/dev/null; then
+    #         slurm_log "Adding iptables rule: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT" \
+        #             "${cw_CLUSTER_SGE_log}"
+    #         iptables -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT
+    #     else
+    #         slurm_log "iptables rule already exists: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT" \
+        #             "${cw_CLUSTER_SGE_log}"
+    #     fi
+
+    #     slurm_log "Broadcasting 'sge-ready' event with: ${master_ip} $(hostname -f) ${cw_MEMBER_ip}" \
+        #         "${cw_CLUSTER_SGE_log}"
+    #     handler_broadcast sge-ready ${master_ip} $(hostname -f) ${cw_MEMBER_ip}
+    # else
+    #     slurm_log "New member does not have scheduler compute role; no further processing required" \
+        #         "${cw_CLUSTER_SGE_log}"
+    # fi
+    # fi
+}
+
+slurm_log() {
+    local message
+    message="$1"
+    log "${message}" "${cw_CLUSTER_SLURM_log}"
+}
+
+setup
+require distro
+require member
+require network
+require handler
+require log
+require files
+
+_AWS="${cw_ROOT}"/opt/aws/bin/aws
+
+if files_load_config --optional cluster-slurm; then
+    handler_tee main "$@"
+fi
+

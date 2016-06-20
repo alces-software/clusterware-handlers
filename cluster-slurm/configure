@@ -37,13 +37,17 @@ _configure_slurm() {
     chmod 400 "${MUNGE_KEY}"
     chown -R "${MUNGE_USER}":"${MUNGE_USER}" "${MUNGE_KEY_DIR}"
 
-    # Enable service components based on node's scheduler tag(s).
+    # Update slurm.conf and enable service components based on node's role(s).
+    hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+    hostname="$(hostname)"
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
         echo "Instance is Slurm control node"
+        "${hook_dir}/share/slurm-set-control-node.sh" "${hostname}"
         "${cw_ROOT}"/bin/alces service enable slurm/slurmctld
     fi
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
         echo "Instance is Slurm compute node"
+        ruby_exec "${hook_dir}/share/slurm-add-compute-node.rb" "${hostname}"
         "${cw_ROOT}"/bin/alces service enable slurm/slurmd
     fi
 }

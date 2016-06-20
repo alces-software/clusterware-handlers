@@ -17,4 +17,6 @@ install:
           ;;
     esac
 
+    cp 'etc/cluster-slurm.rc' "${cw_ROOT}/etc"
+
     alces service install slurm
