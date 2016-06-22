@@ -25,12 +25,11 @@ main() {
     local hook_dir tags tag tuple key value vmem_gb slots hook_dir intf master_ip scheduler_roles instanceid group
     files_load_config instance config/cluster
 
-    set -x
     eval "$(member_parse)"
-    slurm_log "Member data parsed: ${cw_MEMBER_name} (${cw_MEMBER_ip}) -- ${cw_MEMBER_tags}" "${cw_CLUSTER_SLURM_log}"
+    slurm_log "Member data parsed: ${cw_MEMBER_name} (${cw_MEMBER_ip}) -- ${cw_MEMBER_tags}"
     "${cw_ROOT}"/libexec/share/update-etc-hosts "${cw_MEMBER_name}" "${cw_MEMBER_ip}"
 
-    slurm_log "Checking roles for new member (${cw_MEMBER_name})" "${cw_CLUSTER_SLURM_log}"
+    slurm_log "Checking roles for new member (${cw_MEMBER_name})"
     IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
     for tag in "${tags[@]}"; do
         IFS='=' read -a tuple <<< "${tag}"

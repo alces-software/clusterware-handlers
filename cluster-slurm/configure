@@ -22,20 +22,22 @@ setup() {
 }
 
 _configure_slurm() {
+    local munge_path munge_key_dir munge_key munge_user hook_dir hostname
+
     echo "Configuring Slurm"
 
     # Create MUNGE key, required for authentication between nodes - must be the
     # same on all nodes so create by hashing the cluster secret. Note: Create
     # in this hook as need auth.rc to be created which is not done until
     # clusterable preconfigure hook.
-    MUNGE_PATH="$(echo ~munge)"
-    MUNGE_KEY_DIR="${MUNGE_PATH}/etc/munge"
-    MUNGE_KEY="${MUNGE_KEY_DIR}/munge.key"
-    MUNGE_USER='munge'
+    munge_path="$(echo ~munge)"
+    munge_key_dir="${munge_path}/etc/munge"
+    munge_key="${munge_key_dir}/munge.key"
+    munge_user='munge'
     source "${cw_ROOT}/etc/config/cluster/auth.rc"
-    echo -n "${cw_CLUSTER_auth_token}" | sha512sum | cut -d' ' -f1 > "${MUNGE_KEY}"
-    chmod 400 "${MUNGE_KEY}"
-    chown -R "${MUNGE_USER}":"${MUNGE_USER}" "${MUNGE_KEY_DIR}"
+    echo -n "${cw_CLUSTER_auth_token}" | sha512sum | cut -d' ' -f1 > "${munge_key}"
+    chmod 400 "${munge_key}"
+    chown -R "${munge_user}:${munge_user}" "${munge_key_dir}"
 
     # Update slurm.conf and enable service components based on node's role(s).
     hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
