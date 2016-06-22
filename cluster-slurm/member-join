@@ -59,7 +59,7 @@ main() {
     fi
     if [[ "${scheduler_roles}" == *":compute:"* ]]; then
         slurm_log "${cw_MEMBER_name} is Slurm compute node"
-        ruby_exec "${hook_dir}/share/slurm-add-compute-node.rb" "${cw_MEMBER_name}"
+        ruby_exec "${hook_dir}/share/slurm-modify-compute-nodes.rb" join "${cw_MEMBER_name}"
     fi
 
     # From slurm.conf docs: "Changes in node configuration (e.g. adding nodes,
@@ -106,12 +106,6 @@ main() {
     # fi
 }
 
-slurm_log() {
-    local message
-    message="$1"
-    log "${message}" "${cw_CLUSTER_SLURM_log}"
-}
-
 setup
 require distro
 require member
@@ -119,6 +113,7 @@ require network
 require handler
 require log
 require files
+require slurm
 
 _AWS="${cw_ROOT}"/opt/aws/bin/aws
 

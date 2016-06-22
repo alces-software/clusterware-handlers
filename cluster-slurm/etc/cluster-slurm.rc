@@ -5,3 +5,4 @@
 ##
 ################################################################################
 cw_CLUSTER_SLURM_log=/var/log/clusterware/cluster-slurm.log
+cw_CLUSTER_SLURM_cleanup=true

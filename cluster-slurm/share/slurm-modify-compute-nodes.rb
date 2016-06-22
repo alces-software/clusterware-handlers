@@ -1,5 +1,6 @@
 
-new_node_name = ARGV[0]
+action = ARGV[0]
+node_name = ARGV[1]
 slurm_config_file = "#{ENV['cw_ROOT']}/opt/slurm/etc/slurm.conf"
 
 slurm_config = File.readlines(slurm_config_file)
@@ -9,7 +10,14 @@ partition_name_regex = /(PartitionName=.*Nodes=)(\S*)([\s\S]*)/
 slurm_config.find { |line| line =~ node_name_regex}
 nodes = ($2 == 'PLACEHOLDER') ? [] : $2.split(',')
 
-nodes << new_node_name
+case action
+when 'join'
+  nodes << node_name
+when 'leave'
+  nodes = nodes - [node_name]
+else
+  exit 1
+end
 
 # Get new list of node names with the addition of this node, ensuring that list
 # will always look the same no matter the order nodes join or if node joins
