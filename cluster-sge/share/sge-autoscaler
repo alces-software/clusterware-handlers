@@ -82,10 +82,16 @@ _set_job_metrics() {
     log "[autoscaler:metrics] Sending metric data to cloudwatch"
     cat "${tmpfile}" | _log_blob "metrics"
 
-    "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-      cloudwatch put-metric-data \
-      --namespace "ALCES-SGE" \
-      --metric-data file://${tmpfile} 2>&1 | _log_blob "metrics:aws"
+    result=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
+                       cloudwatch put-metric-data \
+                       --namespace "ALCES-SGE" \
+                       --metric-data file://${tmpfile} 2>&1)
+    if echo "${result}" | grep -q AccessDenied; then
+        log "[autoscaler:metrics:aws] Access denied for PutMetricData; disabling."
+        echo "disabled" > "${cw_ROOT}"/var/lib/db/cluster-sge/disable-set_job_metrics
+    elsev
+        echo "${result}" | _log_blob "metrics:aws"
+    fi
 
     rm -f "${tmpfile}"
 }
@@ -188,8 +194,12 @@ main() {
     files_load_config cluster-sge
 
     log_set_default "${cw_CLUSTER_SGE_log}"
-    log "[autoscaler] Performing job metric scan"
-    _set_job_metrics
+    if [ ! -f "${cw_ROOT}"/var/lib/db/cluster-sge/disable-set_job_metrics ]; then
+        log "[autoscaler] Performing job metric scan"
+        _set_job_metrics
+    else
+        log "[autoscaler] Skipping metric scan (currently disabled)"
+    fi
 
     if [ "${cw_INSTANCE_aws_autoscaling}" == "enabled" ]; then
         log "[autoscaler] Performing scale-in check"
