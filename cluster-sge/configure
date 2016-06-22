@@ -36,12 +36,8 @@ require 'json'
 config = {"tags" => {}}
 config["tags"]["slots"] = $(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo).to_s
 ram_kb = $(grep 'MemTotal' /proc/meminfo | awk '{print $2};')
-swap_kb = $(grep 'SwapTotal' /proc/meminfo | awk '{print $2};')
-ram_approx_kb = (2 ** Math.log(ram_kb,2).ceil)
-if ram_approx_kb > (ram_kb + swap_kb)
-  ram_approx_kb = (2 ** Math.log(ram_kb + swap_kb,2).floor)
-end
-config["tags"]["ram_gb"] = (ram_approx_kb / 1_048_576).to_s
+ram_gb = (ram_kb / 1_048_576)
+config["tags"]["ram_gb"] = ram_gb.to_s
 File.write('${cw_ROOT}/etc/serf/tags-cluster-sge-resources.json', config.to_json)
 RUBY
     fi
