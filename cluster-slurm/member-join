@@ -22,7 +22,7 @@ setup() {
 }
 
 main() {
-    local hook_dir tags tag tuple key value vmem_gb slots hook_dir intf master_ip scheduler_roles instanceid group
+    local hook_dir tags tag tuple key value vmem_gb slots hook_dir intf master_ip scheduler_roles instanceid group intf
     files_load_config instance config/cluster
 
     eval "$(member_parse)"
@@ -72,37 +72,29 @@ main() {
         distro_restart_service clusterware-slurm-slurmd
     fi
 
-    # TODO: Need any of below?
-    # if [[ "${scheduler_roles}" == *":compute:"* ]]; then
-    #     slurm_log "Adding node: ${cw_MEMBER_name} (${cw_MEMBER_ip}) with slots=${slots} and vmem=${vmem_gb}G" \
-        #         "${cw_CLUSTER_SGE_log}"
-    #     hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-    #     # Wait for a short while to ensure that the addition of
-    #     # the name to /etc/hosts percolates through to SGEs name
-    #     # resolution routines.
-    #     sleep 2
-    #     ${hook_dir}/share/sge-add-node "${cw_MEMBER_name}" "${cw_MEMBER_ip}" "${slots}" "${vmem_gb}" 2>&1 | log_blob "${cw_CLUSTER_SGE_log}" "sge-add-node"
-
-    #     intf="$(network_get_route_iface ${cw_MEMBER_ip})"
-    #     master_ip="$(network_get_network_address ${cw_MEMBER_ip})"
-
-    #     if ! iptables -C INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT &>/dev/null; then
-    #         slurm_log "Adding iptables rule: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT" \
-        #             "${cw_CLUSTER_SGE_log}"
-    #         iptables -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT
-    #     else
-    #         slurm_log "iptables rule already exists: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT" \
-        #             "${cw_CLUSTER_SGE_log}"
-    #     fi
-
-    #     slurm_log "Broadcasting 'sge-ready' event with: ${master_ip} $(hostname -f) ${cw_MEMBER_ip}" \
-        #         "${cw_CLUSTER_SGE_log}"
-    #     handler_broadcast sge-ready ${master_ip} $(hostname -f) ${cw_MEMBER_ip}
-    # else
-    #     slurm_log "New member does not have scheduler compute role; no further processing required" \
-        #         "${cw_CLUSTER_SGE_log}"
-    # fi
-    # fi
+    # Slurm iptables rules.
+    intf="$(network_get_route_iface ${cw_MEMBER_ip})"
+    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
+        # Master node should accept requests on all ports for communication
+        # back from nodes' slurmstepd daemons. In future may want to specify
+        # SrunPortRange but this is fine for now.
+        if ! iptables -C INPUT -i "${intf}" -s "${cw_MEMBER_ip}" -p tcp -j ACCEPT &>/dev/null; then
+            slurm_log "Adding iptables rule: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp -j ACCEPT"
+            iptables -I INPUT -i "${intf}" -s "${cw_MEMBER_ip}" -p tcp -j ACCEPT
+        else
+            slurm_log "iptables rule already exists: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp -j ACCEPT"
+        fi
+    fi
+    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* && "${scheduler_roles}" == *":master:"* ]]; then
+        # Compute nodes should accept requests from master node to their
+        # slurmd.
+        if ! iptables -C INPUT -i "${intf}" -s "${cw_MEMBER_ip}" -p tcp --dport 6818 -j ACCEPT &>/dev/null; then
+            slurm_log "Adding iptables rule: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6818 -j ACCEPT"
+            iptables -I INPUT -i "${intf}" -s "${cw_MEMBER_ip}" -p tcp --dport 6818 -j ACCEPT
+        else
+            slurm_log "iptables rule already exists: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6818 -j ACCEPT"
+        fi
+    fi
 }
 
 setup
