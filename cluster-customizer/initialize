@@ -96,30 +96,59 @@ _setup() {
     fi
 }
 
-_fetch_machine_type() {
-    local s3cfg bucket prefix
+_fetch_profile() {
+    local s3cfg source target host manifest f
     s3cfg="$1"
-    bucket="s3://alces-flight-profiles-${_REGION}"
+    source="$2"
+    target="$3"
+    mkdir -p "${target}"
+    if [ "${s3cfg}" ]; then
+        "${_S3CMD}" -c ${s3cfg} --force -r get "s3://${source}"/ "${target}"
+    else
+        # fetch manifest file
+        if [ "${_REGION}" == "us-east-1" ]; then
+            host=s3.amazonaws.com
+        else
+            host=s3-${_REGION}.amazonaws.com
+        fi
+        manifest=$(curl -s -f https://${host}/${source}/manifest.txt)
+        if [ "${manifest}" ]; then
+            # fetch each file within manifest file
+            for f in ${manifest}; do
+                mkdir -p "${target}/$(dirname "$f")"
+                if curl -s -f -o ${target}/${f} https://${host}/${source}/${f}; then
+                    echo "Fetched: ${source}/${f}"
+                else
+                    echo "Unable to fetch: ${source}/${f}"
+                fi
+            done
+        else
+            echo "No manifest found for: ${source}"
+        fi
+    fi
+}
+
+_fetch_machine_type() {
+    local bucket prefix
+    bucket="alces-flight-profiles-${_REGION}"
     prefix="machines/${_MACHINE_TYPE}"
     echo "Retrieving machine type customizations from: ${bucket}/${prefix}"
-    mkdir -p "${cw_CLUSTER_CUSTOMIZER_path}"/machine-${_MACHINE_TYPE}
-    "${_S3CMD}" -c ${s3cfg} --force -r get "${bucket}"/"${prefix}"/ "${cw_CLUSTER_CUSTOMIZER_path}"/machine-${_MACHINE_TYPE}
+    _fetch_profile "$@" "${bucket}/${prefix}" \
+                   "${cw_CLUSTER_CUSTOMIZER_path}"/machine-${_MACHINE_TYPE}
 }
 
 _fetch_features() {
-    local s3cfg bucket feature
-    s3cfg="$1"
-    bucket="s3://alces-flight-profiles-${_REGION}"
+    local bucket feature
+    bucket="alces-flight-profiles-${_REGION}"
     for feature in ${cw_CLUSTER_CUSTOMIZER_features}; do
-        mkdir -p "${cw_CLUSTER_CUSTOMIZER_path}"/feature-${feature}
         echo "Retrieving feature customizations from: ${bucket}/features/$feature"
-        "${_S3CMD}" -c ${s3cfg} --force -r get "${bucket}"/features/${feature}/ "${cw_CLUSTER_CUSTOMIZER_path}"/feature-${feature}
+        _fetch_profile "$@" "${bucket}"/features/"${feature}" \
+                       "${cw_CLUSTER_CUSTOMIZER_path}"/feature-${feature}
     done
 }
 
 _fetch_profiles() {
-    local bucket s3cfg profile
-    s3cfg="$1"
+    local bucket profile
     if [ -z "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
         if network_is_ec2; then
             bucket="s3://alces-flight-$(network_ec2_hashed_account)"
@@ -131,10 +160,16 @@ _fetch_profiles() {
         bucket="${cw_CLUSTER_CUSTOMIZER_bucket}"
     fi
     for profile in ${cw_CLUSTER_CUSTOMIZER_profiles}; do
-        mkdir -p "${cw_CLUSTER_CUSTOMIZER_path}"/profile-${profile}
         echo "Retrieving customizations from: ${bucket}/customizer/$profile"
-        "${_S3CMD}" -c ${s3cfg} --force -r get "${bucket}"/customizer/${profile}/ "${cw_CLUSTER_CUSTOMIZER_path}"/profile-${profile}
+        _fetch_profile "$@" "${bucket}"/customizer/"${profile}" \
+                       "${cw_CLUSTER_CUSTOMIZER_path}"/profile-${profile}
     done
+}
+
+_is_s3_access_available() {
+    local s3cfg
+    s3cfg="$1"
+    "${_S3CMD}" -c ${s3cfg} ls "s3://alces-flight-profiles-${_REGION}" 2>/dev/null
 }
 
 _fetch() {
@@ -149,6 +184,11 @@ security_token = ""
 use_https = True
 check_ssl_certificate = True
 EOF
+    if ! _is_s3_access_available "${s3cfg}"; then
+        echo "S3 access is not available.  Falling back to HTTP manifests."
+        rm -f "${s3cfg}"
+        s3cfg=""
+    fi
     mkdir -p "${cw_CLUSTER_CUSTOMIZER_path}"
     if [ "${_MACHINE_TYPE}" ]; then
         _fetch_machine_type "${s3cfg}"
@@ -156,7 +196,9 @@ EOF
     _fetch_features "${s3cfg}"
     _fetch_profiles "${s3cfg}"
     chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}"
-    rm -f "${s3cfg}"
+    if [ "${s3cfg}" ]; then
+        rm -f "${s3cfg}"
+    fi
 }
 
 _run_initialize_hooks() {
