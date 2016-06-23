@@ -25,25 +25,23 @@ _member_purge() {
     type member_purge &>/dev/null && member_purge
 }
 
-_setup_aws() {
-    local autoscaling machine_type
-    autoscaling=$(
-        ruby_run <<RUBY
+_fetch_cluster_value() {
+    local key default_value
+    key="$1"
+    default_value="$2"
+    ruby_run <<RUBY
 require 'yaml'
 
 config = YAML.load_file('${cw_ROOT}/etc/config.yml')['cluster']
-
-if config['autoscaling'] == 'enabled'
-  puts 'enabled'
-elsif config['autoscaling'] == 'disabled'
-  puts 'disabled'
-else
-  puts 'autodetect'
-end
+puts config['${key}'] || '${default_value}'
 RUBY
-              )
-    echo "[setup-aws] Autoscaling configured as: ${autoscaling}"
+}
+
+_preconfigure_node() {
+    local autoscaling machine_type tags
     if network_is_ec2; then
+        autoscaling=$(_fetch_cluster_value autoscaling autodetect)
+        echo "[setup-aws] Autoscaling configured as: ${autoscaling}"
         eval $(network_fetch_ec2_document | \
                  ${_JQ} -r \
                         '"region=\(.region)"','"ctime=\(.pendingTime)"','"instanceid=\(.instanceId)"')
@@ -62,24 +60,21 @@ EOF
     fi
 }
 
-main() {
-    # Purge any known existing members in advance of rejoining the
-    # cluster service ring.
-    _member_purge
+_preconfigure_master() {
+    local short_name
+    echo "Installing Clusterware periodic cronjob: ${cw_ROOT}/libexec/share/trigger-periodic"
+    echo "*/5 * * * * root ${cw_ROOT}/libexec/share/trigger-event periodic >/dev/null 2>&1" > /etc/cron.d/clusterware-clusterable-trigger-periodic
 
-    # Bail out if we're already configured (this is a reboot)
-    if [ -d "${cw_ROOT}/etc/config/cluster" ]; then
-        exit 0
+    if [ -f "${cw_ROOT}"/etc/genders ]; then
+        short_name="$(hostname -s)"
+        if ! grep -q "^${short_name}" "${cw_ROOT}"/etc/genders; then
+            echo "${short_name} master,masters,cluster,all" >> "${cw_ROOT}"/etc/genders
+        fi
     fi
+}
 
-    # Bail out if we can't locate the config file
-    if [ ! -f "${cw_ROOT}/etc/config.yml" ]; then
-        exit 1
-    fi
-
+_parse_config() {
     # Parse YAML file into something useful
-    mkdir -p "${cw_ROOT}/etc/config/cluster/serf"
-
     ruby_run <<RUBY
 require 'yaml'
 require 'json'
@@ -185,25 +180,54 @@ instance_vars << %(cw_INSTANCE_log="#{config['log'] || '/var/log/clusterware/ins
 tags.each do |k,v|
   instance_vars << %(cw_INSTANCE_tag_#{k.upcase.tr('-','_')}="#{v}")
 end
+if config['hyperthreading']
+  instance_vars << %(cw_INSTANCE_hyperthreading="#{config['hyperthreading']}")
+end
 write_file('instance.vars.sh', instance_vars.join("\n"))
 write_file('instance.rc', instance_vars.join("\n"))
 RUBY
+}
 
+_configure_hyperthreading() {
+    case "${cw_INSTANCE_hyperthreading}" in
+        enabled)
+            ${_ALCES} configure hyperthreading enable 2>&1
+            ;;
+        disabled)
+            ${_ALCES} configure hyperthreading disable 2>&1
+            ;;
+    esac
+}
+
+_preconfigure_boot() {
+    files_load_config instance config/cluster
+    # Purge any known existing members in advance of rejoining the
+    # cluster service ring.
+    _member_purge
+    _configure_hyperthreading
+}
+
+main() {
+    # Bail out if we're already configured (this is a reboot)
+    if [ -d "${cw_ROOT}/etc/config/cluster" ]; then
+        _preconfigure_boot
+        exit 0
+    fi
+
+    # Bail out if we can't locate the config file
+    if [ ! -f "${cw_ROOT}/etc/config.yml" ]; then
+        exit 1
+    fi
+
+    mkdir -p "${cw_ROOT}/etc/config/cluster/serf"
+    _parse_config
     cp -p "${cw_ROOT}/etc/config/cluster/serf"/*.json "${cw_ROOT}/etc/serf"
 
-    files_load_config instance config/cluster
+    _preconfigure_boot
     if [ "${cw_INSTANCE_role}" == "master" ]; then
-        echo "Installing Clusterware periodic cronjob: ${cw_ROOT}/libexec/share/trigger-periodic"
-        echo "*/5 * * * * root ${cw_ROOT}/libexec/share/trigger-event periodic >/dev/null 2>&1" > /etc/cron.d/clusterware-clusterable-trigger-periodic
-
-        if [ -f "${cw_ROOT}"/etc/genders ]; then
-            short_name="$(hostname -s)"
-            if ! grep -q "^${short_name}" "${cw_ROOT}"/etc/genders; then
-                echo "${short_name} master,masters,cluster,all" >> "${cw_ROOT}"/etc/genders
-            fi
-        fi
+        _preconfigure_master
     fi
-    _setup_aws
+    _preconfigure_node
 }
 
 setup
@@ -217,5 +241,6 @@ require network
 
 _JQ="${cw_ROOT}"/opt/jq/bin/jq
 _JO="${cw_ROOT}"/opt/jo/bin/jo
+_ALCES="${cw_ROOT}"/bin/alces
 
 handler_tee main "$@"
