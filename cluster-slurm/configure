@@ -22,9 +22,15 @@ setup() {
 }
 
 _configure_slurm() {
-    local munge_path munge_key_dir munge_key munge_user hook_dir hostname
+    local slurm_system_dirs slurm_user munge_path munge_key_dir munge_key munge_user hook_dir hostname
 
     echo "Configuring Slurm"
+
+    # Create needed system dirs owned by Slurm user.
+    slurm_system_dirs=(/var/{log,run,spool}/slurm)
+    slurm_user='slurm'
+    mkdir -p "${slurm_system_dirs[@]}"
+    chown -R "${slurm_user}:${slurm_user}" "${slurm_system_dirs[@]}"
 
     # Create MUNGE key, required for authentication between nodes - must be the
     # same on all nodes so create by hashing the cluster secret. Note: Create
