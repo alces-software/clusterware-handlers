@@ -51,17 +51,19 @@ main() {
         "${cw_ROOT}"/libexec/share/flight-recorder "join" "${instance_id}" "${cw_MEMBER_role}" "${machine_type}"
     fi
 
-    files_load_config instance config/cluster
-    if [[ "${cw_INSTANCE_role}" == "master" ]]; then
-        storage_broadcast_enabled
-    fi
-
     "${cw_ROOT}"/libexec/share/update-etc-hosts "${cw_MEMBER_name}" "${cw_MEMBER_ip}"
     if [ "${cw_MEMBER_role}" == "master" ]; then
         _update_ssh_shosts "${cw_MEMBER_ip}"
     fi
 
     _update_ssh_known_hosts "${cw_MEMBER_ip}" "${cw_MEMBER_name}"
+
+    files_load_config instance config/cluster
+    if [[ "${cw_INSTANCE_role}" == "master" ]]; then
+        storage_broadcast_enabled
+        storage_sync_to_slaves "${cw_MEMBER_ip}"
+        storage_sync_to_slaves --default "${cw_MEMBER_ip}"
+    fi
 }
 
 setup
