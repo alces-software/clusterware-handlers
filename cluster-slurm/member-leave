@@ -60,15 +60,13 @@ main() {
         ruby_exec "${hook_dir}/share/slurm-modify-compute-nodes.rb" leave "${cw_MEMBER_name}"
     fi
 
-    # From slurm.conf docs: "Changes in node configuration (e.g. adding nodes,
-    # changing their processor count, etc.) require restarting both the
-    # slurmctld daemon and the slurmd daemons" - so do this if needed based on
-    # this node's role(s).
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
+        # We are the master node; we need to restart our slurmctld and then
+        # tell all compute nodes to reread their config.
+        # Note: is it possible this could cause an issue if a compute node has
+        # not yet updated their config?
         distro_restart_service clusterware-slurm-slurmctld
-    fi
-    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
-        distro_restart_service clusterware-slurm-slurmd
+        "${cw_ROOT}/opt/slurm/bin/scontrol" reconfigure
     fi
 
     # Remove Slurm iptables rules.
