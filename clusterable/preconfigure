@@ -84,6 +84,10 @@ _preconfigure_master() {
 Host *
   HostbasedAuthentication yes
 EOF
+
+    if [[ "$cw_DIST" == "el"* ]]; then
+        yum makecache
+    fi
 }
 
 _parse_config() {
