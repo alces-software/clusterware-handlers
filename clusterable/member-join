@@ -36,11 +36,18 @@ main() {
         machine_type=$(member_find_tag aws_machinetype "${cw_MEMBER_tags}")
         "${cw_ROOT}"/libexec/share/flight-recorder "join" "${instance_id}" "${cw_MEMBER_role}" "${machine_type}"
     fi
+
+    files_load_config instance config/cluster
+    if [[ "${cw_INSTANCE_role}" == "master" ]]; then
+        storage_broadcast_enabled
+    fi
 }
 
 setup
 
 require member
 require handler
+require files
+require storage
 
 handler_tee main "$@"
