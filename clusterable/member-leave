@@ -21,6 +21,26 @@ setup() {
     kernel_load
 }
 
+_prune_ssh_shosts() {
+    local ip tmpfile
+    ip="$1"
+    echo "Removing IP address from shosts: $ip"
+    tmpfile=$(mktemp /root/.shosts.clusterware.XXXXXX)
+    chmod 0600 "${tmpfile}"
+    grep -v "^${ip}$" /root/.shosts > "${tmpfile}"
+    mv "${tmpfile}" /root/.shosts
+}
+
+_prune_ssh_known_hosts() {
+    local ip tmpfile
+    ip="$1"
+    echo "Removing SSH host keys for: $ip"
+    tmpfile=$(mktemp /etc/ssh/ssh_known_hosts.clusterware.XXXXXX)
+    chmod 0644 "${tmpfile}"
+    grep -v "^${ip}," /etc/ssh/ssh_known_hosts > "${tmpfile}"
+    mv "${tmpfile}" /etc/ssh/ssh_known_hosts
+}
+
 main() {
     local count member_data
     member_data="$(cat)"
@@ -36,6 +56,13 @@ main() {
         machine_type=$(member_find_tag aws_machinetype "${cw_MEMBER_tags}")
         "${cw_ROOT}"/libexec/share/flight-recorder "leave" "${instance_id}" "${cw_MEMBER_role}" "${machine_type}"
     fi
+
+    "${cw_ROOT}"/libexec/share/prune-etc-hosts "${cw_MEMBER_name}" "${cw_MEMBER_ip}"
+    if [ "${cw_MEMBER_role}" == "master" ]]; then
+        _prune_ssh_shosts "${cw_MEMBER_ip}"
+    fi
+
+    _prune_ssh_known_hosts "${cw_MEMBER_ip}"
 }
 
 setup

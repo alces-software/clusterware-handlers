@@ -21,6 +21,20 @@ setup() {
     kernel_load
 }
 
+_update_ssh_shosts() {
+    local ip
+    ip="$1"
+    echo "Adding IP address to shosts: $ip"
+    echo "${ip}" >> /root/.shosts
+}
+
+_update_ssh_known_hosts() {
+    local ip
+    ip="$1"
+    echo "Adding SSH host keys for: $ip"
+    ssh-keyscan "$(getent hosts ${ip} | tr -s ' ' ',')" >> /etc/ssh/ssh_known_hosts
+}
+
 main() {
     local count member_data
     member_data="$(cat)"
@@ -41,6 +55,13 @@ main() {
     if [[ "${cw_INSTANCE_role}" == "master" ]]; then
         storage_broadcast_enabled
     fi
+
+    "${cw_ROOT}"/libexec/share/update-etc-hosts "${cw_MEMBER_name}" "${cw_MEMBER_ip}"
+    if [ "${cw_MEMBER_role}" == "master" ]; then
+        _update_ssh_shosts "${cw_MEMBER_ip}"
+    fi
+
+    _update_ssh_known_hosts "${cw_MEMBER_ip}" "${cw_MEMBER_name}"
 }
 
 setup

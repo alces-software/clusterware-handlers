@@ -58,6 +58,12 @@ EOF
         echo "Setting EC2 tags: ${tags[@]}"
         "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-clusterable-ec2.json
     fi
+
+    cat <<EOF > /etc/ssh/sshd_config
+HostbasedAuthentication yes
+IgnoreRhosts no
+EOF
+    distro_restart_service sshd
 }
 
 _preconfigure_master() {
@@ -71,6 +77,13 @@ _preconfigure_master() {
             echo "${short_name} master,masters,cluster,all" >> "${cw_ROOT}"/etc/genders
         fi
     fi
+
+    mkdir -p /root/.ssh
+    chmod 0700 /root/.ssh
+    cat <<EOF > /root/.ssh/config
+Host *
+  HostbasedAuthentication yes
+EOF
 }
 
 _parse_config() {
