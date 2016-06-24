@@ -39,11 +39,11 @@ if _lock; then
     set -o pipefail
     # Remove any existing record from all hostgroups
     for a in $(qconf -shgrpl); do
-	if qconf -shgrp ${a} | grep -q "${name}"; then
+        if qconf -shgrp ${a} | grep -q "${name}"; then
             qconf -shgrp ${a} | sed -e "s/^\(.*\) ${name}\(.*\)/\1\2/g" \
-				    -e "s/hostlist\s*$/hostlist NONE/g" > "${tmpfile}" && \
-		qconf -Mhgrp "${tmpfile}"
-	fi
+                                    -e "s/hostlist\s*$/hostlist NONE/g" > "${tmpfile}" && \
+                qconf -Mhgrp "${tmpfile}"
+        fi
     done
     set +o pipefail
 else
@@ -51,17 +51,5 @@ else
 fi
 
 qconf -de "${name}"
-
-if [ -f "${cw_ROOT}"/etc/genders ]; then
-    if grep -q "^${short_name} " "${cw_ROOT}"/etc/genders; then
-	if _lock; then
-	    grep -v "^${short_name} " "${cw_ROOT}"/etc/genders > "${tmpfile}"
-	    cat "${tmpfile}" > "${cw_ROOT}"/etc/genders
-	    _unlock
-	else
-	    echo "Locking failed; unable to prunte ${short_name} from genders file"
-	fi
-    fi
-fi
 
 rm -f "${tmpfile}"

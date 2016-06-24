@@ -23,23 +23,14 @@ setup() {
 
 main() {
     local tags tag tuple key value hook_dir intf scheduler_roles
-
-    . "${cw_ROOT}"/etc/clusterware.rc
-    case "${cw_VERSION:-1.0.0}" in
-      1.[012].*)
-	  return
-      ;;
-    esac
-
-    . "${cw_ROOT}"/etc/config/cluster/instance.rc
+    files_load_config instance config/cluster
 
     eval "$(member_parse)"
     log "Member data parsed: ${cw_MEMBER_name} (${cw_MEMBER_ip}) -- ${cw_MEMBER_tags}" "${cw_CLUSTER_SGE_log}"
-    "${cw_ROOT}"/libexec/share/prune-etc-hosts "${cw_MEMBER_name}" "${cw_MEMBER_ip}"
 
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
-	log "This instance is a scheduler master; checking left member for scheduler compute role" \
-	    "${cw_CLUSTER_SGE_log}"
+        log "This instance is a scheduler master; checking left member for scheduler compute role" \
+            "${cw_CLUSTER_SGE_log}"
         IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
         for tag in "${tags[@]}"; do
             IFS='=' read -a tuple <<< "${tag}"
@@ -55,7 +46,7 @@ main() {
                 "${cw_CLUSTER_SGE_log}"
             hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
             ${hook_dir}/share/sge-prune-node "${cw_MEMBER_name}" 2>&1 | \
-		log_blob "${cw_CLUSTER_SGE_log}" "sge-prune-node"
+                log_blob "${cw_CLUSTER_SGE_log}" "sge-prune-node"
 
             intf="$(network_get_route_iface ${cw_MEMBER_ip})"
 
@@ -67,9 +58,9 @@ main() {
                 log "iptables rule not present: INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT" \
                     "${cw_CLUSTER_SGE_log}"
             fi
-	else
-	    log "Left member does not have scheduler compute role; no further processing required" \
-		"${cw_CLUSTER_SGE_log}"
+        else
+            log "Left member does not have scheduler compute role; no further processing required" \
+                "${cw_CLUSTER_SGE_log}"
         fi
     fi
 }
@@ -79,10 +70,11 @@ require member
 require network
 require handler
 require log
+require files
 
 if [ -f "${cw_ROOT}/etc/cluster-sge.rc" ]; then
     . "${cw_ROOT}/etc/cluster-sge.rc"
     if [ "$cw_CLUSTER_SGE_cleanup" == "true" ]; then
-	handler_tee main "$@"
+        handler_tee main "$@"
     fi
 fi

@@ -61,28 +61,28 @@ if _lock; then
     set -o pipefail
     # Remove any existing record from all hostgroups
     for a in $(qconf -shgrpl); do
-	if qconf -shgrp ${a} | grep -q "${name}"; then
+        if qconf -shgrp ${a} | grep -q "${name}"; then
             qconf -shgrp ${a} | sed -e "s/^\(.*\) ${name}\(.*\)/\1\2/g" \
-				    -e "s/hostlist\s*$/hostlist NONE/g" > "${tmpfile}" && \
-		qconf -Mhgrp "${tmpfile}"
-	fi
+                                    -e "s/hostlist\s*$/hostlist NONE/g" > "${tmpfile}" && \
+                qconf -Mhgrp "${tmpfile}"
+        fi
     done
 
     # Add to allhosts group
     qconf -shgrp @allhosts | sed -e "s/^hostlist NONE/hostlist /g" \
-				 -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > "${tmpfile}" && \
-	qconf -Mhgrp "${tmpfile}"
+                                 -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > "${tmpfile}" && \
+        qconf -Mhgrp "${tmpfile}"
 
     if [ $slots -gt 1 ]; then
-	# Add to slot-aware hostgroup
-	qconf -shgrp @${slots}slot | sed -e "s/^hostlist NONE/hostlist /g" \
-					 -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > "${tmpfile}" && \
+        # Add to slot-aware hostgroup
+        qconf -shgrp @${slots}slot | sed -e "s/^hostlist NONE/hostlist /g" \
+                                         -e "s/^hostlist \(.*\)/hostlist ${name} \1/g" > "${tmpfile}" && \
             qconf -Mhgrp "${tmpfile}"
     fi
 
     # Workaround to make qmaster pay attention to hostgroup slots
     qconf -sq byslot.q > "${tmpfile}" && \
-	qconf -Mq "${tmpfile}"
+        qconf -Mq "${tmpfile}"
 
     _unlock
     set +o pipefail
@@ -91,14 +91,3 @@ else
 fi
 
 rm -f "${tmpfile}"
-
-if [ -f "${cw_ROOT}"/etc/genders ]; then
-    if ! grep -q "^${short_name} " "${cw_ROOT}"/etc/genders; then
-	if _lock; then
-            echo "${short_name} nodes,compute,cluster,slave,all" >> "${cw_ROOT}"/etc/genders
-	    _unlock
-	else
-	    echo "Locking failed; unable to update genders file for ${short_name}"
-	fi
-    fi
-fi

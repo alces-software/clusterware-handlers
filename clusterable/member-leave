@@ -25,7 +25,7 @@ _prune_ssh_shosts() {
     local ip tmpfile
     ip="$1"
     echo "Removing IP address from shosts: $ip"
-    tmpfile=$(mktemp /root/.shosts.clusterware.XXXXXX)
+    tmpfile=$(mktemp /root/.shosts.clusterable.XXXXXX)
     chmod 0600 "${tmpfile}"
     grep -v "^${ip}$" /root/.shosts > "${tmpfile}"
     mv "${tmpfile}" /root/.shosts
@@ -35,33 +35,63 @@ _prune_ssh_known_hosts() {
     local ip tmpfile
     ip="$1"
     echo "Removing SSH host keys for: $ip"
-    tmpfile=$(mktemp /etc/ssh/ssh_known_hosts.clusterware.XXXXXX)
+    tmpfile=$(mktemp /etc/ssh/ssh_known_hosts.clusterable.XXXXXX)
     chmod 0644 "${tmpfile}"
     grep -v "^${ip}," /etc/ssh/ssh_known_hosts > "${tmpfile}"
     mv "${tmpfile}" /etc/ssh/ssh_known_hosts
 }
 
-main() {
-    local count member_data
-    member_data="$(cat)"
-    member_unregister <<< "${member_data}"
+_prune_genders() {
+    local tmpfile
+    tmpfile="$(mktemp /tmp/genders.clusterable.XXXXXXXX)"
+    if [ -f "${cw_ROOT}"/etc/genders ]; then
+        if grep -q "^${cw_MEMBER_name} " "${cw_ROOT}"/etc/genders; then
+            if files_lock "clusterable"; then
+                grep -v "^${cw_MEMBER_name} " "${cw_ROOT}"/etc/genders > "${tmpfile}"
+                cat "${tmpfile}" > "${cw_ROOT}"/etc/genders
+                files_unlock
+            else
+                echo "Locking failed; unable to prune ${cw_MEMBER_name} from genders file"
+            fi
+        fi
+    fi
+    rm -f "${tmpfile}"
+}
+
+_check_quoracy() {
+    local count
     count="$(member_count)"
     if [ "${count}" -lt "$(member_quorum)" ]; then
         handler_run_hook cluster-inquorate "${count}"
     fi
+}
 
-    eval $(member_parse <<< "${member_data}")
+_record_leave() {
     instance_id=$(member_find_tag aws_instanceid "${cw_MEMBER_tags}")
     if [ "${instance_id}" ]; then
         machine_type=$(member_find_tag aws_machinetype "${cw_MEMBER_tags}")
         "${cw_ROOT}"/libexec/share/flight-recorder "leave" "${instance_id}" "${cw_MEMBER_role}" "${machine_type}"
     fi
+}
 
+_prune_hosts() {
     "${cw_ROOT}"/libexec/share/prune-etc-hosts "${cw_MEMBER_name}" "${cw_MEMBER_ip}"
-    if [ "${cw_MEMBER_role}" == "master" ]]; then
-        _prune_ssh_shosts "${cw_MEMBER_ip}"
-    fi
+}
 
+main() {
+    local member_data
+    member_data="$(cat)"
+    member_unregister <<< "${member_data}"
+    eval $(member_parse <<< "${member_data}")
+
+    _check_quoracy
+    _record_leave
+    _prune_hosts
+    if [ "${cw_MEMBER_role}" == "master" ]; then
+        _prune_ssh_shosts "${cw_MEMBER_ip}"
+    else
+        _prune_genders
+    fi
     _prune_ssh_known_hosts "${cw_MEMBER_ip}"
 }
 
@@ -69,5 +99,6 @@ setup
 
 require member
 require handler
+require files
 
 handler_tee main "$@"

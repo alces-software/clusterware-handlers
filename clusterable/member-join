@@ -35,35 +35,69 @@ _update_ssh_known_hosts() {
     ssh-keyscan "$(getent hosts ${ip} | tr -s ' ' ',')" >> /etc/ssh/ssh_known_hosts
 }
 
-main() {
-    local count member_data
-    member_data="$(cat)"
-    member_register <<< "${member_data}"
-    count="$(member_count)"
-    if [ "${count}" -ge "$(member_quorum)" ]; then
-        handler_run_hook cluster-quorate "${count}"
+_update_genders() {
+    local name
+    name="$(echo "${cw_MEMBER_name}" | cut -f1 -d".")"
+    if [ -f "${cw_ROOT}"/etc/genders ]; then
+        echo "Updating genders to add slave: ${cw_MEMBER_ip}"
+        if ! grep -q "^${name} " "${cw_ROOT}"/etc/genders; then
+            if files_lock "clusterable"; then
+                echo "${name} nodes,compute,cluster,slave,all" >> "${cw_ROOT}"/etc/genders
+                files_unlock
+            else
+                echo "Locking failed; unable to update genders file for ${name}"
+            fi
+        fi
     fi
+}
 
-    eval $(member_parse <<< "${member_data}")
+_sync_storage() {
+    files_load_config instance config/cluster
+    if [[ "${cw_INSTANCE_role}" == "master" ]]; then
+        echo "Synchronizing storage backends and system-wide configuration to slave: ${cw_MEMBER_ip}"
+        storage_broadcast_enabled
+        storage_sync_to_slaves "${cw_MEMBER_ip}"
+        storage_sync_to_slaves --default "${cw_MEMBER_ip}"
+    fi
+}
+
+_record_join() {
+    local instance_id machine_type
     instance_id=$(member_find_tag aws_instanceid "${cw_MEMBER_tags}")
     if [ "${instance_id}" ]; then
         machine_type=$(member_find_tag aws_machinetype "${cw_MEMBER_tags}")
         "${cw_ROOT}"/libexec/share/flight-recorder "join" "${instance_id}" "${cw_MEMBER_role}" "${machine_type}"
     fi
+}
 
+_check_quoracy() {
+    local count
+    count="$(member_count)"
+    if [ "${count}" -ge "$(member_quorum)" ]; then
+        handler_run_hook cluster-quorate "${count}"
+    fi
+}
+
+_update_hosts() {
     "${cw_ROOT}"/libexec/share/update-etc-hosts "${cw_MEMBER_name}" "${cw_MEMBER_ip}"
+}
+
+main() {
+    local member_data
+    member_data="$(cat)"
+    member_register <<< "${member_data}"
+    eval $(member_parse <<< "${member_data}")
+
+    _check_quoracy
+    _record_join
+    _update_hosts
     if [ "${cw_MEMBER_role}" == "master" ]; then
         _update_ssh_shosts "${cw_MEMBER_ip}"
+    else
+        _update_genders
     fi
-
     _update_ssh_known_hosts "${cw_MEMBER_ip}" "${cw_MEMBER_name}"
-
-    files_load_config instance config/cluster
-    if [[ "${cw_INSTANCE_role}" == "master" ]]; then
-        storage_broadcast_enabled
-        storage_sync_to_slaves "${cw_MEMBER_ip}"
-        storage_sync_to_slaves --default "${cw_MEMBER_ip}"
-    fi
+    _sync_storage
 }
 
 setup

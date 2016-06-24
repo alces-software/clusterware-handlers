@@ -27,7 +27,6 @@ main() {
 
     eval "$(member_parse)"
     log "Member data parsed: ${cw_MEMBER_name} (${cw_MEMBER_ip}) -- ${cw_MEMBER_tags}" "${cw_CLUSTER_SGE_log}"
-    "${cw_ROOT}"/libexec/share/update-etc-hosts "${cw_MEMBER_name}" "${cw_MEMBER_ip}"
 
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
         log "This instance is a scheduler master; checking new member for scheduler compute role" \
@@ -88,8 +87,6 @@ require network
 require handler
 require log
 require files
-
-_AWS="${cw_ROOT}"/opt/aws/bin/aws
 
 if files_load_config --optional cluster-sge; then
     handler_tee main "$@"
