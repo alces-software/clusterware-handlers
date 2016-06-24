@@ -22,7 +22,9 @@ setup() {
 }
 
 main() {
-    local hook_dir tags tag tuple key value vmem_gb slots hook_dir intf master_ip scheduler_roles instanceid group intf
+    local hook_dir tags tag tuple key value vmem_gb slots hook_dir \
+    scheduler_roles instanceid group control_node_iptables_rule \
+    compute_node_iptables_rule
     files_load_config instance config/cluster
 
     eval "$(member_parse)"
@@ -72,27 +74,26 @@ main() {
         distro_restart_service clusterware-slurm-slurmd
     fi
 
-    # Slurm iptables rules.
-    intf="$(network_get_route_iface ${cw_MEMBER_ip})"
+    # Add Slurm iptables rules.
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
-        # Master node should accept requests on all ports for communication
-        # back from nodes' slurmstepd daemons. In future may want to specify
-        # SrunPortRange but this is fine for now.
-        if ! iptables -C INPUT -i "${intf}" -s "${cw_MEMBER_ip}" -p tcp -j ACCEPT &>/dev/null; then
-            slurm_log "Adding iptables rule: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp -j ACCEPT"
-            iptables -I INPUT -i "${intf}" -s "${cw_MEMBER_ip}" -p tcp -j ACCEPT
+        control_node_iptables_rule="$(slurm_control_node_iptables_rule ${cw_MEMBER_ip})"
+        slurm_log "control: ${control_node_iptables_rule}"
+        if ! iptables -C ${control_node_iptables_rule} &>/dev/null; then
+            slurm_log "Adding iptables rule: ${control_node_iptables_rule}"
+            iptables -I ${control_node_iptables_rule}
         else
-            slurm_log "iptables rule already exists: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp -j ACCEPT"
+            slurm_log "iptables rule already exists: ${control_node_iptables_rule}"
         fi
     fi
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* && "${scheduler_roles}" == *":master:"* ]]; then
-        # Compute nodes should accept requests from master node to their
-        # slurmd.
-        if ! iptables -C INPUT -i "${intf}" -s "${cw_MEMBER_ip}" -p tcp --dport 6818 -j ACCEPT &>/dev/null; then
-            slurm_log "Adding iptables rule: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6818 -j ACCEPT"
-            iptables -I INPUT -i "${intf}" -s "${cw_MEMBER_ip}" -p tcp --dport 6818 -j ACCEPT
+        compute_node_iptables_rule="$(slurm_compute_node_iptables_rule ${cw_MEMBER_ip})"
+        slurm_log "compute: ${compute_node_iptables_rule}"
+        if ! iptables -C ${compute_node_iptables_rule} &>/dev/null; then
+            echo "Adding iptables rule: ${compute_node_iptables_rule}"
+            slurm_log "Adding iptables rule: ${compute_node_iptables_rule}"
+            iptables -I ${compute_node_iptables_rule}
         else
-            slurm_log "iptables rule already exists: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6818 -j ACCEPT"
+            slurm_log "iptables rule already exists: ${compute_node_iptables_rule}"
         fi
     fi
 }
@@ -100,7 +101,6 @@ main() {
 setup
 require distro
 require member
-require network
 require handler
 require log
 require files

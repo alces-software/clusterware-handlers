@@ -22,7 +22,8 @@ setup() {
 }
 
 main() {
-    local tags tag tuple key value hook_dir intf scheduler_roles
+    local tags tag tuple key value hook_dir scheduler_roles \
+    control_node_iptables_rule compute_node_iptables_rule
     files_load_config instance config/cluster
 
     # TODO: Add correct guards like this in
@@ -71,21 +72,22 @@ main() {
     fi
 
     # Remove Slurm iptables rules.
-    intf="$(network_get_route_iface ${cw_MEMBER_ip})"
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
-        if iptables -C INPUT -i "${intf}" -s "${cw_MEMBER_ip}" -p tcp -j ACCEPT &>/dev/null; then
-            slurm_log "Removing iptables rule: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp -j ACCEPT"
-            iptables -D INPUT -i "${intf}" -s "${cw_MEMBER_ip}" -p tcp -j ACCEPT
+        control_node_iptables_rule="$(slurm_control_node_iptables_rule ${cw_MEMBER_ip})"
+        if iptables -C ${control_node_iptables_rule} &>/dev/null; then
+            slurm_log "Removing iptables rule: ${control_node_iptables_rule}"
+            iptables -D ${control_node_iptables_rule}
         else
-            slurm_log "iptables rule not present: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp -j ACCEPT"
+            slurm_log "iptables rule not present: ${control_node_iptables_rule}"
         fi
     fi
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* && "${scheduler_roles}" == *":master:"* ]]; then
-        if iptables -C INPUT -i "${intf}" -s "${cw_MEMBER_ip}" -p tcp --dport 6818 -j ACCEPT &>/dev/null; then
-            slurm_log "Adding iptables rule: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6818 -j ACCEPT"
-            iptables -D INPUT -i "${intf}" -s "${cw_MEMBER_ip}" -p tcp --dport 6818 -j ACCEPT
+        compute_node_iptables_rule="$(slurm_compute_node_iptables_rule ${cw_MEMBER_ip})"
+        if iptables -C ${compute_node_iptables_rule} &>/dev/null; then
+            slurm_log "Removing iptables rule: ${compute_node_iptables_rule}"
+            iptables -D ${compute_node_iptables_rule}
         else
-            slurm_log "iptables rule not present: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6818 -j ACCEPT"
+            slurm_log "iptables rule not present: ${compute_node_iptables_rule}"
         fi
     fi
 }
@@ -93,7 +95,6 @@ main() {
 setup
 require member
 require distro
-require network
 require handler
 require log
 require slurm
