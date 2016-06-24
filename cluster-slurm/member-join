@@ -94,7 +94,6 @@ main() {
         compute_node_iptables_rule="$(slurm_compute_node_iptables_rule ${cw_MEMBER_ip})"
         slurm_log "compute: ${compute_node_iptables_rule}"
         if ! iptables -C ${compute_node_iptables_rule} &>/dev/null; then
-            echo "Adding iptables rule: ${compute_node_iptables_rule}"
             slurm_log "Adding iptables rule: ${compute_node_iptables_rule}"
             iptables -I ${compute_node_iptables_rule}
         else
