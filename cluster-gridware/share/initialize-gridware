@@ -23,7 +23,7 @@ setup() {
 
 _initialize_depots() {
     export cw_UI_disable_spinner=true
-    "${cw_ROOT}"/bin/alces gridware init
+    "${cw_ROOT}"/bin/alces gridware init --update-config
 }
 
 _relink_depots() {

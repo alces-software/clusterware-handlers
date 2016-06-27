@@ -22,6 +22,7 @@ setup() {
 }
 
 _write_configuration() {
+    files_load_config --optional instance-aws config/cluster
     ruby_run <<RUBY
 require 'yaml'
 
@@ -43,6 +44,16 @@ if config['depots']
   gridware_vars << ('cw_GRIDWARE_depots_disabled=":' << disabled_depot_names.join(':') << ':"')
 end
 gridware_vars << ('cw_GRIDWARE_trigger="' << (config['trigger'] || 'immediate') << '"')
+region = '${cw_INSTANCE_aws_region}'
+if region != ''
+  region_map = (YAML.load_file('${cw_ROOT}/etc/gridware/global/region_map.yml') rescue {})
+  region = region_map.nil? ? region : (region_map[region] || 'eu-west-1')
+  host = (region == 'us-east-1' ? 's3.amazonaws.com' : "s3-#{region}.amazonaws.com")
+  gridware_vars << ('cw_GRIDWARE_s3_host="' << host << '"')
+  gridware_vars << ('cw_GRIDWARE_s3_bucket="alces-gridware-' << region << '"')
+  gridware_vars << 'cw_GRIDWARE_s3_package_prefix="upstream"'
+  gridware_vars << 'cw_GRIDWARE_s3_binary_prefix="dist"'
+end
 write_file('gridware.rc', gridware_vars.join("\n"))
 RUBY
 }
@@ -53,18 +64,47 @@ _initialize_gridware() {
     "${hook_dir}"/share/initialize-gridware
 }
 
-main() {
-    local a
-    files_load_config gridware
+_update_repos() {
+    local a gridware_tmp_config
+    if [ ! -f "${cw_GRIDWARE_root:-/opt/gridware}"/etc/gridware.yml ]; then
+        gridware_tmp_config="${cw_ROOT}"/etc/gridware.yml
+    fi
+
     for a in ${cw_GRIDWARE_boot_update_package_repos}; do
+        if [ "$gridware_tmp_config" ]; then
+            cat <<EOF > "${gridware_tmp_config}"
+:last_update_filename: .last_update
+:log_root: ${cw_GRIDWARE_var:-/var}/log/gridware
+:repo_paths:
+ - ${cw_ROOT}/var/lib/gridware/repos/${a}
+EOF
+        fi
         echo "Updating package repo at boot: ${a}"
         "${_ALCES}" gridware update "$a"
     done
 
     for a in ${cw_GRIDWARE_boot_update_depot_repos}; do
+        if [ "$gridware_tmp_config" ]; then
+            cat <<EOF > "${gridware_tmp_config}"
+:last_update_filename: .last_update
+:log_root: ${cw_GRIDWARE_var:-/var}/log/gridware
+:depot_repo_paths:
+ - ${cw_ROOT}/var/lib/gridware/depots/${a}
+EOF
+        fi
         echo "Updating depot repo at boot: ${a}"
         "${_ALCES}" gridware depot update "$a"
     done
+
+    if [ "$gridware_tmp_config" ]; then
+        rm -f "${gridware_tmp_config}"
+    fi
+}
+
+main() {
+    files_load_config gridware
+
+    _update_repos
 
     # Bail out if we're already configured (this is a reboot)
     if [ -d "${cw_ROOT}/etc/config/gridware" ]; then
