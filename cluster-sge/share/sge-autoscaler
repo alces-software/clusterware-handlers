@@ -89,7 +89,7 @@ _set_job_metrics() {
     if echo "${result}" | grep -q AccessDenied; then
         log "[autoscaler:metrics:aws] Access denied for PutMetricData; disabling."
         echo "disabled" > "${cw_ROOT}"/var/lib/db/cluster-sge/disable-set_job_metrics
-    elsev
+    else
         echo "${result}" | _log_blob "metrics:aws"
     fi
 
