@@ -24,8 +24,9 @@ install:
     EOF
     fi
 
-    mkdir -p "${cw_ROOT}"/etc/cluster-firewall.d
-    cat <<\EOF > "${cw_ROOT}"/etc/cluster-firewall.d/base.rc
+    mkdir -p "${cw_ROOT}"/etc/cluster-firewall/static.d
+    mkdir -p "${cw_ROOT}"/etc/cluster-firewall/members.d
+    cat <<\EOF > "${cw_ROOT}"/etc/cluster-firewall/members.d/base.rc
     ################################################################################
     ##
     ## Alces Clusterware - Firewall rules

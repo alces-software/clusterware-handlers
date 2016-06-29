@@ -9,8 +9,8 @@ setup() {
     local a xdg_config
     IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
     for a in "${xdg_config[@]}"; do
-        if [ -e "${a}"/clusterware/config.vars.sh ]; then
-            source "${a}"/clusterware/config.vars.sh
+        if [ -e "${a}"/clusterware/config.rc ]; then
+            source "${a}"/clusterware/config.rc
             break
         fi
     done
@@ -25,7 +25,7 @@ main() {
     local a b rules rule_var rule_args
     eval "$(member_parse)"
     files_load_config instance config/cluster
-    for a in "${cw_ROOT}"/etc/cluster-firewall.d/*.rc; do
+    for a in "${cw_ROOT}"/etc/cluster-firewall/members.d/*.rc; do
 	if [ -f "$a" ]; then
             echo "Loading ruleset: $(basename ${a})"
 	    . "$a"

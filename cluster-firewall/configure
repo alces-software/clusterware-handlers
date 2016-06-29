@@ -23,26 +23,23 @@ setup() {
 
 main() {
     local a b rules rule_var rule_args
-    eval "$(member_parse)"
     files_load_config instance config/cluster
-    for a in "${cw_ROOT}"/etc/cluster-firewall/members.d/*.rc; do
-	if [ -f "$a" ]; then
+    for a in "${cw_ROOT}"/etc/cluster-firewall/static.d/*.rc; do
+        if [ -f "$a" ]; then
             echo "Loading ruleset: $(basename ${a})"
-	    . "$a"
-	    rules="${cw_CLUSTER_FIREWALL_leave_rules:-${cw_CLUSTER_FIREWALL_rules}}"
-	    for b in "${rules}"; do
-		echo "Removing rule: ${b}"
-		rule_var="cw_CLUSTER_FIREWALL_rule_${b}"
-		rule_args=(${!rule_var})
-		handler_iptables_delete "${rule_args[@]}"
-	    done
-	    unset cw_CLUSTER_FIREWALL_leave_rules cw_CLUSTER_FIREWALL_rules
-	fi
+            . "$a"
+            for b in "${cw_CLUSTER_FIREWALL_rules}"; do
+                echo "Adding static rule: ${b}"
+                rule_var="cw_CLUSTER_FIREWALL_rule_${b}"
+                rule_args=(${!rule_var})
+                handler_iptables_insert "${rule_args[@]}"
+            done
+            unset cw_CLUSTER_FIREWALL_rules
+        fi
     done
 }
 
 setup
-require member
 require network
 require handler
 require files
