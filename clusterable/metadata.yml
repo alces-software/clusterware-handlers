@@ -220,6 +220,6 @@ install:
     ##
     ################################################################################
     setenv cw_ROOT "$cw_ROOT"
-    /bin/bash "$cw_ROOT"/etc/profile.d/clusterable.sh force
+    /bin/bash "$cw_ROOT"/etc/profile.d/10-clusterable.sh force
     unsetenv cw_ROOT
     EOF
