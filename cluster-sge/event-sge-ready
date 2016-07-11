@@ -55,14 +55,16 @@ main() {
             log "Setting act_qmaster name to: ${master_name}" "${cw_CLUSTER_SGE_log}"
             echo "${master_name}" > ${cw_ROOT}/opt/gridscheduler/etc/conf/act_qmaster
 
-            log "Starting up clusterware-gridscheduler-execd service" "${cw_CLUSTER_SGE_log}"
-            if [ "${master_ip}" == "${target_ip}" ]; then
-                # master and target are on same host; we delay for 10
-                # seconds to ensure the qmaster has settled before we
-                # join.
-                sleep 10
+            if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
+                log "Starting up clusterware-gridscheduler-execd service" "${cw_CLUSTER_SGE_log}"
+                if [ "${master_ip}" == "${target_ip}" ]; then
+                    # master and target are on same host; we delay for 10
+                    # seconds to ensure the qmaster has settled before we
+                    # join.
+                    sleep 10
+                fi
+                distro_start_service clusterware-gridscheduler-execd
             fi
-            distro_start_service clusterware-gridscheduler-execd
         else
             log "Configuration message not intended for this node." "${cw_CLUSTER_SGE_log}"
         fi
