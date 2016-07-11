@@ -105,10 +105,11 @@ if [ "${cw_CLUSTER_SGE_hostgroup_strategy}" != "skip" ]; then
                 echo "Unrecognized hostgroup strategy: ${cw_CLUSTER_SGE_hostgroup_strategy}"
                 ;;
         esac
-    _unlock
-    set +o pipefail
-else
-    echo "Locking failed; unable to update hostgroups files for ${short_name}"
+        _unlock
+        set +o pipefail
+    else
+        echo "Locking failed; unable to update hostgroups files for ${short_name}"
+    fi
 fi
 
 rm -f "${tmpfile}"
