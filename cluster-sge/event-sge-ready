@@ -1,10 +1,16 @@
 #!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2015-2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
 setup() {
     local a xdg_config
     IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
     for a in "${xdg_config[@]}"; do
-        if [ -e "${a}"/clusterware/config.vars.sh ]; then
-            source "${a}"/clusterware/config.vars.sh
+        if [ -e "${a}"/clusterware/config.rc ]; then
+            source "${a}"/clusterware/config.rc
             break
         fi
     done
@@ -18,8 +24,8 @@ setup() {
 main() {
     local payload master_ip master_name target_ip instance_ip master_short_name
 
-    . ${cw_ROOT}/etc/config/cluster/instance.rc
-    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
+    files_load_config instance config/cluster
+    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* || "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":submit:"* ]]; then
         payload=($(cat))
         log "Received payload from master: ${payload[*]}" "${cw_CLUSTER_SGE_log}"
         master_ip="${payload[1]}"
@@ -33,42 +39,29 @@ main() {
         log "Instance IP is: ${instance_ip}" "${cw_CLUSTER_SGE_log}"
 
         if [ "${instance_ip}" == "${target_ip}" ]; then
-            log "Applying compute configuration" "${cw_CLUSTER_SGE_log}"
+            if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
+                log "Applying compute configuration" "${cw_CLUSTER_SGE_log}"
 
-            if ! iptables -C INPUT -i ${intf} -s ${master_ip} -p tcp --dport 6445 -j ACCEPT &>/dev/null; then
-                log "Adding iptables rule: -I INPUT -i ${intf} -s ${master_ip} -p tcp --dport 6445 -j ACCEPT" \
-                    "${cw_CLUSTER_SGE_log}"
-                iptables -I INPUT -i ${intf} -s ${master_ip} -p tcp --dport 6445 -j ACCEPT
-            else
-                log "iptables rule already exists: -I INPUT -i ${intf} -s ${master_ip} -p tcp --dport 6445 -j ACCEPT" \
-                    "${cw_CLUSTER_SGE_log}"
-            fi
+                handler_iptables_insert INPUT -i ${intf} -s ${master_ip} -p tcp --dport 6445 -j ACCEPT | \
+                    log_blob "${cw_CLUSTER_SGE_log}"
 
-            # A hammer required to support qrsh (could implement a
-            # more intelligent firewall wrapper, but this is
-            # sufficient for our current purposes.
-            if ! iptables -C INPUT -i ${intf} -s ${master_ip} -j ACCEPT &>/dev/null; then
-                log "Adding iptables rule: -I INPUT -i ${intf} -s ${master_ip} -j ACCEPT" \
-                    "${cw_CLUSTER_SGE_log}"
-                iptables -I INPUT -i ${intf} -s ${master_ip} -j ACCEPT
-            else
-                log "iptables rule already exists: -I INPUT -i ${intf} -s ${master_ip} -j ACCEPT" \
-                    "${cw_CLUSTER_SGE_log}"
+                # A hammer required to support qrsh (could implement a
+                # more intelligent firewall wrapper, but this is
+                # sufficient for our current purposes.
+                handler_iptables_insert INPUT -i ${intf} -s ${master_ip} -j ACCEPT | \
+                    log_blob "${cw_CLUSTER_SGE_log}"
             fi
 
             log "Setting act_qmaster name to: ${master_name}" "${cw_CLUSTER_SGE_log}"
             echo "${master_name}" > ${cw_ROOT}/opt/gridscheduler/etc/conf/act_qmaster
 
-	    "${cw_ROOT}"/libexec/share/update-etc-hosts --includes-fqdn "${master_name}" "${master_ip}" | \
-		log_blob "${cw_CLUSTER_SGE_log}"
-
             log "Starting up clusterware-gridscheduler-execd service" "${cw_CLUSTER_SGE_log}"
-	    if [ "${master_ip}" == "${target_ip}" ]; then
-		# master and target are on same host; we delay for 10
-		# seconds to ensure the qmaster has settled before we
-		# join.
-		sleep 10
-	    fi
+            if [ "${master_ip}" == "${target_ip}" ]; then
+                # master and target are on same host; we delay for 10
+                # seconds to ensure the qmaster has settled before we
+                # join.
+                sleep 10
+            fi
             distro_start_service clusterware-gridscheduler-execd
         else
             log "Configuration message not intended for this node." "${cw_CLUSTER_SGE_log}"
@@ -81,8 +74,8 @@ require network
 require distro
 require log
 require handler
+require files
 
-if [ -f "${cw_ROOT}/etc/cluster-sge.rc" ]; then
-    . "${cw_ROOT}/etc/cluster-sge.rc"
+if files_load_config cluster-sge; then
     handler_tee main "$@"
 fi
