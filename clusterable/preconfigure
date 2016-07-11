@@ -59,7 +59,7 @@ EOF
         "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-clusterable-ec2.json
     fi
 
-    cat <<EOF > /etc/ssh/sshd_config
+    cat <<EOF >> /etc/ssh/sshd_config
 HostbasedAuthentication yes
 IgnoreRhosts no
 EOF
