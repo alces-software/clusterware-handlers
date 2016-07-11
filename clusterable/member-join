@@ -24,28 +24,39 @@ setup() {
 _update_ssh_shosts() {
     local ip
     ip="$1"
-    echo "Adding IP address to shosts: $ip"
-    echo "${ip}" >> /root/.shosts
+    if [ "${cw_CLUSTERABLE_manage_root_shosts}" == "true" ]; then
+        if ! grep -q "^${ip}$" /root/.shosts; then
+            echo "Adding IP address to shosts: $ip"
+            echo "${ip}" >> /root/.shosts
+        fi
+    fi
 }
 
 _update_ssh_known_hosts() {
-    local ip
+    local ip ssh_host_names
     ip="$1"
-    echo "Adding SSH host keys for: $ip"
-    ssh-keyscan "$(getent hosts ${ip} | tr -s ' ' ',')" >> /etc/ssh/ssh_known_hosts
+    if [ "${cw_CLUSTERABLE_manage_ssh_host_keys}" == "true" ]; then
+        ssh_host_names="$(getent hosts ${ip} | tr -s ' ' ',')"
+        if ! grep -q "^${ssh_host_names} " /etc/ssh/ssh_known_hosts; then
+            echo "Adding SSH host keys for: $ip"
+            ssh-keyscan "${ssh_host_names}" >> /etc/ssh/ssh_known_hosts
+        fi
+    fi
 }
 
 _update_genders() {
     local name
     name="$(echo "${cw_MEMBER_name}" | cut -f1 -d".")"
-    if [ -f "${cw_ROOT}"/etc/genders ]; then
-        echo "Updating genders to add slave: ${cw_MEMBER_ip}"
-        if ! grep -q "^${name} " "${cw_ROOT}"/etc/genders; then
-            if files_lock "clusterable"; then
-                echo "${name} nodes,compute,cluster,slave,all" >> "${cw_ROOT}"/etc/genders
-                files_unlock
-            else
-                echo "Locking failed; unable to update genders file for ${name}"
+    if [ "${cw_CLUSTERABLE_manage_genders}" == "true" ]; then
+        if [ -f "${cw_ROOT}"/etc/genders ]; then
+            echo "Updating genders to add slave: ${cw_MEMBER_ip}"
+            if ! grep -q "^${name} " "${cw_ROOT}"/etc/genders; then
+                if files_lock "clusterable"; then
+                    echo "${name} nodes,compute,cluster,slave,all" >> "${cw_ROOT}"/etc/genders
+                    files_unlock
+                else
+                    echo "Locking failed; unable to update genders file for ${name}"
+                fi
             fi
         fi
     fi
@@ -79,7 +90,9 @@ _check_quoracy() {
 }
 
 _update_hosts() {
-    "${cw_ROOT}"/libexec/share/update-etc-hosts "${cw_MEMBER_name}" "${cw_MEMBER_ip}"
+    if [ "${cw_CLUSTERABLE_manage_etc_hosts}" == "true" ]; then
+        "${cw_ROOT}"/libexec/share/update-etc-hosts "${cw_MEMBER_name}" "${cw_MEMBER_ip}"
+    fi
 }
 
 main() {
@@ -106,5 +119,11 @@ require member
 require handler
 require files
 require storage
+
+files_load_config --optional clusterable
+cw_CLUSTERABLE_manage_etc_hosts=${cw_CLUSTERABLE_manage_etc_hosts:-true}
+cw_CLUSTERABLE_manage_genders=${cw_CLUSTERABLE_manage_genders:-true}
+cw_CLUSTERABLE_manage_ssh_host_keys=${cw_CLUSTERABLE_manage_ssh_host_keys:-true}
+cw_CLUSTERABLE_manage_root_shosts=${cw_CLUSTERABLE_manage_root_shosts:-true}
 
 handler_tee main "$@"
