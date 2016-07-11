@@ -49,33 +49,35 @@ main() {
                 group="${value}"
             fi
         done
-        if [[ "${scheduler_roles}" == *":compute:"* ]]; then
-            log "Adding node: ${cw_MEMBER_name} (${cw_MEMBER_ip}) with slots=${slots} and vmem=${vmem_gb}G" \
-                "${cw_CLUSTER_SGE_log}"
+        if [[ "${scheduler_roles}" == *":compute:"* || "${scheduler_roles}" == *":submit:"* ]]; then
             hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
             # Wait for a short while to ensure that the addition of
             # the name to /etc/hosts percolates through to SGEs name
             # resolution routines.
             sleep 2
-            ${hook_dir}/share/sge-add-node "${cw_MEMBER_name}" "${cw_MEMBER_ip}" "${slots}" "${vmem_gb}" 2>&1 | log_blob "${cw_CLUSTER_SGE_log}" "sge-add-node"
+
+            if [[ "${scheduler_roles}" == *":compute:"* ]]; then
+                log "Adding node: ${cw_MEMBER_name} (${cw_MEMBER_ip}) with slots=${slots} and vmem=${vmem_gb}G" \
+                    "${cw_CLUSTER_SGE_log}"
+                ${hook_dir}/share/sge-add-node "${cw_MEMBER_name}" "${cw_MEMBER_ip}" "${slots}" "${vmem_gb}" 2>&1 | log_blob "${cw_CLUSTER_SGE_log}" "sge-add-node"
+            else
+                log "Adding node: ${cw_MEMBER_name} (${cw_MEMBER_ip}) as submit host" \
+                    "${cw_CLUSTER_SGE_log}"
+                ${hook_dir}/share/sge-add-submit-host "${cw_MEMBER_name}" 2>&1 | \
+                    log_blob "${cw_CLUSTER_SGE_log}" "sge-add-node"
+            fi
 
             intf="$(network_get_route_iface ${cw_MEMBER_ip})"
             master_ip="$(network_get_network_address ${cw_MEMBER_ip})"
 
-            if ! iptables -C INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT &>/dev/null; then
-                log "Adding iptables rule: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT" \
-                    "${cw_CLUSTER_SGE_log}"
-                iptables -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT
-            else
-                log "iptables rule already exists: -I INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT" \
-                    "${cw_CLUSTER_SGE_log}"
-            fi
+            handler_iptables_insert INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT | \
+                log_blob "${cw_CLUSTER_SGE_log}"
 
             log "Broadcasting 'sge-ready' event with: ${master_ip} $(hostname -f) ${cw_MEMBER_ip}" \
                 "${cw_CLUSTER_SGE_log}"
             handler_broadcast sge-ready ${master_ip} $(hostname -f) ${cw_MEMBER_ip}
         else
-            log "New member does not have scheduler compute role; no further processing required" \
+            log "New member does not have scheduler roles; no further processing required" \
                 "${cw_CLUSTER_SGE_log}"
         fi
     fi

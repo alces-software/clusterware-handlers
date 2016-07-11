@@ -1,5 +1,10 @@
 #!/bin/bash
-
+################################################################################
+##
+## Alces Clusterware - Handler support script
+## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
 . /etc/profile.d/alces-clusterware.sh
 . /etc/xdg/clusterware/config.vars.sh
 module purge
