@@ -74,7 +74,7 @@ require files
 
 if [ -f "${cw_ROOT}/etc/cluster-sge.rc" ]; then
     . "${cw_ROOT}/etc/cluster-sge.rc"
-    if [ "$cw_CLUSTER_SGE_cleanup" == "true" ]; then
+    if [ "$cw_CLUSTER_SGE_cleanup_on_leave" == "true" ]; then
         handler_tee main "$@"
     fi
 fi

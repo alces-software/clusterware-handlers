@@ -21,13 +21,18 @@ install:
     ################################################################################
     ##
     ## Alces Clusterware - Shell configuration
-    ## Copyright (c) 2015 Alces Software Ltd
+    ## Copyright (c) 2015-2016 Alces Software Ltd
     ##
     ################################################################################
     cw_CLUSTER_SGE_log=/var/log/clusterware/cluster-sge.log
     cw_CLUSTER_SGE_max_rt_seconds=259200
     cw_CLUSTER_SGE_min_vmem_gb=4
-    cw_CLUSTER_SGE_cleanup=true
+    # Set to "true" or "false"
+    cw_CLUSTER_SGE_cleanup_on_leave=true
+    # Set to "true" or "false"
+    cw_CLUSTER_SGE_reconfigure_on_join=true
+    # Set to "full", "allhosts" or "skip"
+    cw_CLUSTER_SGE_hostgroup_strategy=full
     EOF
     alces service install gridscheduler
 
