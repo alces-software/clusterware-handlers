@@ -59,11 +59,14 @@ EOF
         "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-clusterable-ec2.json
     fi
 
-    cat <<EOF >> /etc/ssh/sshd_config
+    if [ "${cw_CLUSTERABLE_manage_ssh_config}" == "true" ]; then
+        cat <<EOF >> /etc/ssh/sshd_config
+
 HostbasedAuthentication yes
 IgnoreRhosts no
 EOF
-    distro_restart_service sshd
+        distro_restart_service sshd
+    fi
 }
 
 _preconfigure_master() {
@@ -71,19 +74,23 @@ _preconfigure_master() {
     echo "Installing Clusterware periodic cronjob: ${cw_ROOT}/libexec/share/trigger-periodic"
     echo "*/5 * * * * root ${cw_ROOT}/libexec/share/trigger-event periodic >/dev/null 2>&1" > /etc/cron.d/clusterware-clusterable-trigger-periodic
 
-    if [ -f "${cw_ROOT}"/etc/genders ]; then
-        short_name="$(hostname -s)"
-        if ! grep -q "^${short_name}" "${cw_ROOT}"/etc/genders; then
-            echo "${short_name} master,masters,cluster,all" >> "${cw_ROOT}"/etc/genders
+    if [ "${cw_CLUSTERABLE_manage_genders}" == "true" ]; then
+        if [ -f "${cw_ROOT}"/etc/genders ]; then
+            short_name="$(hostname -s)"
+            if ! grep -q "^${short_name}" "${cw_ROOT}"/etc/genders; then
+                echo "${short_name} master,masters,cluster,all" >> "${cw_ROOT}"/etc/genders
+            fi
         fi
     fi
 
-    mkdir -p /root/.ssh
-    chmod 0700 /root/.ssh
-    cat <<EOF > /root/.ssh/config
+    if [ "${cw_CLUSTERABLE_manage_ssh_config}" == "true" ]; then
+        mkdir -p /root/.ssh
+        chmod 0700 /root/.ssh
+        cat <<EOF > /root/.ssh/config
 Host *
   HostbasedAuthentication yes
 EOF
+    fi
 
     if [[ "$cw_DIST" == "el"* ]]; then
         yum makecache
@@ -239,6 +246,10 @@ main() {
     mkdir -p "${cw_ROOT}/etc/config/cluster/serf"
     _parse_config
     cp -p "${cw_ROOT}/etc/config/cluster/serf"/*.json "${cw_ROOT}/etc/serf"
+
+    files_load_config --optional clusterable
+    cw_CLUSTERABLE_manage_ssh_config=${cw_CLUSTERABLE_manage_ssh_config:-true}
+    cw_CLUSTERABLE_manage_genders=${cw_CLUSTERABLE_manage_genders:-true}
 
     _preconfigure_boot
     if [ "${cw_INSTANCE_role}" == "master" ]; then

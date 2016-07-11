@@ -24,7 +24,7 @@ setup() {
 _update_ssh_shosts() {
     local ip
     ip="$1"
-    if [ "${cw_CLUSTERABLE_manage_root_shosts}" == "true" ]; then
+    if [ "${cw_CLUSTERABLE_manage_ssh_config}" == "true" ]; then
         if ! grep -q "^${ip}$" /root/.shosts; then
             echo "Adding IP address to shosts: $ip"
             echo "${ip}" >> /root/.shosts
@@ -124,6 +124,6 @@ files_load_config --optional clusterable
 cw_CLUSTERABLE_manage_etc_hosts=${cw_CLUSTERABLE_manage_etc_hosts:-true}
 cw_CLUSTERABLE_manage_genders=${cw_CLUSTERABLE_manage_genders:-true}
 cw_CLUSTERABLE_manage_ssh_host_keys=${cw_CLUSTERABLE_manage_ssh_host_keys:-true}
-cw_CLUSTERABLE_manage_root_shosts=${cw_CLUSTERABLE_manage_root_shosts:-true}
+cw_CLUSTERABLE_manage_ssh_config=${cw_CLUSTERABLE_manage_ssh_config:-true}
 
 handler_tee main "$@"

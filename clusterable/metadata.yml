@@ -237,6 +237,6 @@ install:
     cw_CLUSTERABLE_manage_etc_hosts=true
     cw_CLUSTERABLE_manage_genders=true
     cw_CLUSTERABLE_manage_ssh_host_keys=true
-    cw_CLUSTERABLE_manage_root_shosts=true
+    cw_CLUSTERABLE_manage_ssh_config=true
     cw_CLUSTERABLE_cleanup_on_leave=true
     EOF
