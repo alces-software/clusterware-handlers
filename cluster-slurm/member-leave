@@ -51,13 +51,12 @@ main() {
     done
 
     # Update this node's slurm.conf with left node.
-    hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
     if [[ "${scheduler_roles}" == *":master:"* ]]; then
         slurm_log "${cw_MEMBER_name} is Slurm control node"
     fi
     if [[ "${scheduler_roles}" == *":compute:"* ]]; then
         slurm_log "${cw_MEMBER_name} is Slurm compute node"
-        ruby_exec "${hook_dir}/share/slurm-modify-compute-nodes.rb" leave "${cw_MEMBER_name}"
+        slurm_remove_compute_node "${cw_MEMBER_name}"
     fi
 
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then

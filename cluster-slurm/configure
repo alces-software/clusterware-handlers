@@ -55,7 +55,7 @@ _configure_slurm() {
     fi
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
         echo "Instance is Slurm compute node"
-        ruby_exec "${hook_dir}/share/slurm-modify-compute-nodes.rb" join "${hostname}"
+        slurm_add_compute_node "${hostname}"
         "${cw_ROOT}"/bin/alces service enable slurm/slurmd
     fi
 }

@@ -60,7 +60,7 @@ main() {
     fi
     if [[ "${scheduler_roles}" == *":compute:"* ]]; then
         slurm_log "${cw_MEMBER_name} is Slurm compute node"
-        ruby_exec "${hook_dir}/share/slurm-modify-compute-nodes.rb" join "${cw_MEMBER_name}"
+        slurm_add_compute_node "${cw_MEMBER_name}"
     fi
 
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
