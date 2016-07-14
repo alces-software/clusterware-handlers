@@ -68,12 +68,12 @@ _detect_autoscaling() {
 _configure_aws_autoscaling() {
     local group tags hook_dir
 
-    # determine if we're running on EC2
+    # Determine if we're running on EC2.
     if files_load_config --optional instance-aws config/cluster; then
         echo "Instance is running on EC2; configuring for autoscaling"
         files_load_config config config/cluster
 
-        # we are; ensure aws serviceware is installed
+        # We are; ensure aws serviceware is installed.
         "${_ALCES}" service install aws
 
         if [ "${cw_INSTANCE_aws_autoscaling}" == "autodetect" ]; then
@@ -88,34 +88,36 @@ _configure_aws_autoscaling() {
             fi
         fi
 
-        # install autoscale management cron job if we're a master
+        # Install autoscale management cron job if we're a master.
         if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
             hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-            echo "Installing autoscaler cronjob: ${hook_dir}/share/sge-autoscaler"
-            echo "*/5 * * * * root ${hook_dir}/share/sge-autoscaler" > /etc/cron.d/clusterware-cluster-sge-autoscaler
+            echo "Installing autoscaler cronjob: ${hook_dir}/share/slurm-autoscaler"
+            echo "*/5 * * * * root ${hook_dir}/share/slurm-autoscaler" > /etc/cron.d/clusterware-cluster-slurm-autoscaler
         fi
 
-        # set serf tags containing:
+        # Set serf tags containing:
         #  - instance creation time
         #  - autoscaling group name (if available)
         tags=(tags[aws_ctime]=${cw_INSTANCE_aws_ctime})
 
         group=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
                           autoscaling describe-auto-scaling-groups | \
-                       grep AutoScalingGroupName | grep "\"${cw_CLUSTER_name}-" | \
-                       awk '{print $2}' | tr -d '",')
+                       grep AutoScalingGroupName | \
+                       grep "\"${cw_CLUSTER_name}-" | \
+                       awk '{print $2}' | \
+                       tr -d '",')
         if [ "$group" ]; then
             tags+=(tags[aws_group]=${group})
         fi
         echo "Setting autoscaler tags: ${tags[@]}"
-        "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-cluster-sge-aws.json
+        "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-cluster-aws.json
     fi
 }
 
 main() {
     local handler_config_dir="${cw_ROOT}/etc/config/cluster-slurm"
 
-    # Bail out if we're already configured (this is a reboot)
+    # Bail out if we're already configured (this is a reboot).
     if [ -d "${handler_config_dir}" ]; then
         exit 0
     fi
@@ -125,11 +127,11 @@ main() {
     files_load_config instance config/cluster
 
     _configure_slurm
-    # _configure_aws_autoscaling # TODO: Adapt autoscaling for Slurm.
+    _configure_aws_autoscaling
 }
 
 setup
-require ruby
+require slurm
 require handler
 require files
 
