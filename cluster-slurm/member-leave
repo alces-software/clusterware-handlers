@@ -1,0 +1,103 @@
+#!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.vars.sh ]; then
+            source "${a}"/clusterware/config.vars.sh
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+main() {
+    local tags tag tuple key value hook_dir scheduler_roles \
+    control_node_iptables_rule compute_node_iptables_rule
+    files_load_config instance config/cluster
+
+    # TODO: Add correct guards like this in
+    # . "${cw_ROOT}"/etc/clusterware.rc
+    # case "${cw_VERSION:-1.0.0}" in
+    #   1.[012].*)
+	  # return
+    #   ;;
+    # esac
+
+    eval "$(member_parse)"
+    slurm_log "Member data parsed: ${cw_MEMBER_name} (${cw_MEMBER_ip}) -- ${cw_MEMBER_tags}"
+    "${cw_ROOT}"/libexec/share/prune-etc-hosts "${cw_MEMBER_name}" "${cw_MEMBER_ip}"
+
+    slurm_log "Checking roles for left member (${cw_MEMBER_name})"
+    IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
+    for tag in "${tags[@]}"; do
+        IFS='=' read -a tuple <<< "${tag}"
+        slurm_log "Found tuple: ${tag}, key: ${tuple[0]}, value: ${tuple[1]}"
+        key=${tuple[0]}
+        value=${tuple[1]}
+        if [ "$key" == "scheduler_roles" ]; then
+            scheduler_roles="${value}"
+        fi
+    done
+
+    # Update this node's slurm.conf with left node.
+    if [[ "${scheduler_roles}" == *":master:"* ]]; then
+        slurm_log "${cw_MEMBER_name} is Slurm control node"
+    fi
+    if [[ "${scheduler_roles}" == *":compute:"* ]]; then
+        slurm_log "${cw_MEMBER_name} is Slurm compute node"
+        slurm_remove_compute_node "${cw_MEMBER_name}"
+    fi
+
+    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
+        # We are the master node; we need to restart our slurmctld and then
+        # tell all compute nodes to reread their config.
+        # Note: is it possible this could cause an issue if a compute node has
+        # not yet updated their config?
+        distro_restart_service clusterware-slurm-slurmctld
+        "${cw_ROOT}/opt/slurm/bin/scontrol" reconfigure
+    fi
+
+    # Remove Slurm iptables rules.
+    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
+        control_node_iptables_rule="$(slurm_control_node_iptables_rule ${cw_MEMBER_ip})"
+        if iptables -C ${control_node_iptables_rule} &>/dev/null; then
+            slurm_log "Removing iptables rule: ${control_node_iptables_rule}"
+            iptables -D ${control_node_iptables_rule}
+        else
+            slurm_log "iptables rule not present: ${control_node_iptables_rule}"
+        fi
+    fi
+    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* && "${scheduler_roles}" == *":master:"* ]]; then
+        compute_node_iptables_rule="$(slurm_compute_node_iptables_rule ${cw_MEMBER_ip})"
+        if iptables -C ${compute_node_iptables_rule} &>/dev/null; then
+            slurm_log "Removing iptables rule: ${compute_node_iptables_rule}"
+            iptables -D ${compute_node_iptables_rule}
+        else
+            slurm_log "iptables rule not present: ${compute_node_iptables_rule}"
+        fi
+    fi
+}
+
+setup
+require member
+require distro
+require handler
+require log
+require slurm
+
+if files_load_config --optional cluster-slurm; then
+    if [ "$cw_CLUSTER_SLURM_cleanup" == "true" ]; then
+	handler_tee main "$@"
+    fi
+fi

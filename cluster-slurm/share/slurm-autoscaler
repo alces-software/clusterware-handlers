@@ -21,6 +21,7 @@ setup() {
     kernel_load
 }
 
+# TODO: Can move to external module.
 _collate_group_dimensions() {
     local dims groups g
 
@@ -46,14 +47,16 @@ _set_job_metrics() {
     local dims tmpfile
 
     dims="$(_collate_group_dimensions)"
-    tmpfile="$(mktemp /tmp/sge-autoscaler.XXXXXXXX)"
+    tmpfile="$(mktemp /tmp/slurm-autoscaler.XXXXXXXX)"
 
-    qstat -u '*' | awk 'NR > 2{print $5}' | sort | uniq -c | (
+    # TODO generalize passing state obtaining func?
+    squeue -O state | tail -n+2 | sort | uniq -c | (
         t=0
         metrics=()
         seen_states=()
-        if [ -f "${cw_ROOT}"/var/lib/db/cluster-sge/statetab ]; then
-            known_states=($(cat "${cw_ROOT}"/var/lib/db/cluster-sge/statetab))
+        # TODO generalize naming
+        if [ -f "${cw_ROOT}"/var/lib/db/cluster-slurm/statetab ]; then
+            known_states=($(cat "${cw_ROOT}"/var/lib/db/cluster-slurm/statetab))
         fi
         while read c s; do
             log "[autoscaler:metrics] Found ${c} jobs in state '${s}'"
@@ -71,8 +74,9 @@ _set_job_metrics() {
 
         known_states+=(${seen_states[@]})
         log "[autoscaler:metrics] Update known states table"
-        mkdir -p "${cw_ROOT}"/var/lib/db/cluster-sge
-        printf "%s\n" "${known_states[@]}" | sort -u > "${cw_ROOT}"/var/lib/db/cluster-sge/statetab
+        # TODO: generalize naming
+        mkdir -p "${cw_ROOT}"/var/lib/db/cluster-slurm
+        printf "%s\n" "${known_states[@]}" | sort -u > "${cw_ROOT}"/var/lib/db/cluster-slurm/statetab
 
         log "[autoscaler:metrics] Found ${t} jobs total"
         metrics+=($("${_JO}" MetricName=JobTotal Value=$t Unit=Count "Dimensions=${dims}"))
@@ -82,9 +86,14 @@ _set_job_metrics() {
     log "[autoscaler:metrics] Sending metric data to cloudwatch"
     cat "${tmpfile}" | _log_blob "metrics"
 
+    # TODO: Change ALCES-SGE based on decision - we need to either have
+    # different templates for SGE and Slurm, with different autoscaling
+    # namespace and MetricName to watch for, or maybe could have one template
+    # with different auto scaling groups for different schedulers and scheduler
+    # chosen as parameter.
     result=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
                        cloudwatch put-metric-data \
-                       --namespace "ALCES-SGE" \
+                       --namespace "ALCES-SLURM" \
                        --metric-data file://${tmpfile} 2>&1)
     if echo "${result}" | grep -q AccessDenied; then
         log "[autoscaler:metrics:aws] Access denied for PutMetricData; disabling."
@@ -97,20 +106,10 @@ _set_job_metrics() {
 }
 
 _empty_nodes() {
-    ruby_run <<RUBY
-require 'rexml/document'
-doc = REXML::Document.new(IO.popen('qstat -f -xml -q bynode.q@*'))
-doc.each_element('//Queue-List') do |el|
-  used = el.text('slots_used')
-  name = el.text('name')
-  state = el.text('state')
-  if state != 'S' && used == "0"
-    puts name.split('@').last
-  end
-end
-RUBY
+  sinfo --states=idle --Format=nodehost | tail -n+2
 }
 
+# TODO: Can move to external module.
 _unexhausted_nodes() {
     local node nodelist ctime
     nodelist="$*"
@@ -132,9 +131,10 @@ RUBY
 _log_blob() {
     local prefix
     prefix="$1"
-    log_blob "${cw_CLUSTER_SGE_log}" "autoscaler:${prefix}"
+    log_blob "${cw_CLUSTER_SLURM_log}" "autoscaler:${prefix}"
 }
 
+# TODO: Can move to external module?
 _shoot_node() {
     local aws_exit_code node instanceid group
     node="$1"
@@ -170,7 +170,7 @@ _scale_in() {
             log "[autoscaler:scale-in] Disabling queues on ${node} (in group: ${group})"
             # for each empty node, disable the queues while we're deciding
             # whether we're going to shoot them or not.
-            qmod -d "*@${node}" > /dev/null
+            scontrol update NodeName=${node} State=DRAIN Reason=autoscaling
         fi
     done
 
@@ -181,12 +181,12 @@ _scale_in() {
             if [[ "$unexhausted_nodes" == *" $node "* ]]; then
                 # this node is not exhausted, reenable the queue
                 log "[autoscaler:scale-in] Enabling queues on ${node} (not exhausted)"
-                qmod -e "*@${node}" > /dev/null
+                scontrol update NodeName=${node} State=RESUME
             else
                 log "[autoscaler:scale-in] Attempting to shoot node: ${node}"
                 if ! _shoot_node "${node}" "${group}"; then
                     log "[autoscaler:scale-in] Unable to shoot node, re-enabling queues"
-                    qmod -e "*@${node}" > /dev/null
+                    scontrol update NodeName=${node} State=RESUME
                 fi
             fi
         fi
@@ -195,10 +195,10 @@ _scale_in() {
 
 main() {
     files_load_config instance-aws config/cluster
-    files_load_config cluster-sge
+    files_load_config cluster-slurm
 
-    log_set_default "${cw_CLUSTER_SGE_log}"
-    if [ ! -f "${cw_ROOT}"/var/lib/db/cluster-sge/disable-set_job_metrics ]; then
+    log_set_default "${cw_CLUSTER_SLURM_log}"
+    if [ ! -f "${cw_ROOT}"/var/lib/db/cluster-slurm/disable-set_job_metrics ]; then
         log "[autoscaler] Performing job metric scan"
         _set_job_metrics
     else
@@ -218,7 +218,7 @@ setup
 
 module purge
 module use "${cw_ROOT}"/etc/modules
-module load services/gridscheduler
+module load services/slurm
 
 require member
 require files

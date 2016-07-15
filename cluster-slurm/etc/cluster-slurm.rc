@@ -1,0 +1,8 @@
+################################################################################
+##
+## Alces Clusterware - Shell configuration
+## Copyright (c) 2016 Alces Software Ltd
+##
+################################################################################
+cw_CLUSTER_SLURM_log=/var/log/clusterware/cluster-slurm.log
+cw_CLUSTER_SLURM_cleanup=true
