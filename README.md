@@ -40,6 +40,10 @@ Use Clusterware configuration data for managing NFS shares across the cluster.
 
 Configure [Open Grid Scheduler](http://gridscheduler.sourceforge.net/) for the cluster.
 
+### `cluster-slurm`
+
+Configure the [Slurm](http://slurm.schedmd.com/) scheduler for the cluster.
+
 ### `cluster-vpn`
 
 Configure [OpenVPN](https://openvpn.net/) to provide secure access to the cluster.
