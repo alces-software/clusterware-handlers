@@ -26,6 +26,21 @@ _configure_slurm() {
 
     echo "Configuring Slurm"
 
+    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
+        echo "Instance is GridScheduler exec host"
+        "${cw_ROOT}"/bin/alces service enable gridscheduler/execd
+        ruby_run <<RUBY
+require 'json'
+
+config = {"tags" => {}}
+config["tags"]["slots"] = $(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo).to_s
+ram_kb = $(grep 'MemTotal' /proc/meminfo | awk '{print $2};')
+ram_gb = (ram_kb / 1_048_576)
+config["tags"]["ram_gb"] = ram_gb.to_s
+File.write('${cw_ROOT}/etc/serf/tags-cluster-sge-resources.json', config.to_json)
+RUBY
+    fi
+
     # Create needed system dirs owned by Slurm user.
     slurm_system_dirs=(/var/{log,run,spool}/slurm)
     slurm_user='slurm'
@@ -45,17 +60,13 @@ _configure_slurm() {
     chmod 400 "${munge_key}"
     chown -R "${munge_user}:${munge_user}" "${munge_key_dir}"
 
-    # Update slurm.conf and enable service components based on node's role(s).
-    hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-    hostname="$(hostname)"
+    # Enable service components based on node's role(s).
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
         echo "Instance is Slurm control node"
-        "${hook_dir}/share/slurm-set-control-node.sh" "${hostname}"
         "${cw_ROOT}"/bin/alces service enable slurm/slurmctld
     fi
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
         echo "Instance is Slurm compute node"
-        slurm_add_compute_node "${hostname}"
         "${cw_ROOT}"/bin/alces service enable slurm/slurmd
     fi
 }
@@ -131,9 +142,11 @@ main() {
 }
 
 setup
-require slurm
 require handler
 require files
+
+handler_add_libdir share
+require slurm
 
 _AWS="${cw_ROOT}"/opt/aws/bin/aws
 _JO="${cw_ROOT}"/opt/jo/bin/jo

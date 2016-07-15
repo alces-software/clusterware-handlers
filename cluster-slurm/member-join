@@ -2,15 +2,15 @@
 ################################################################################
 ##
 ## Alces Clusterware - Handler hook
-## Copyright (C) 2015-2016 Stephen F. Norledge and Alces Software Ltd.
+## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
 ##
 ################################################################################
 setup() {
     local a xdg_config
     IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
     for a in "${xdg_config[@]}"; do
-        if [ -e "${a}"/clusterware/config.vars.sh ]; then
-            source "${a}"/clusterware/config.vars.sh
+        if [ -e "${a}"/clusterware/config.rc ]; then
+            source "${a}"/clusterware/config.rc
             break
         fi
     done
@@ -22,45 +22,27 @@ setup() {
 }
 
 main() {
-    local hook_dir tags tag tuple key value vmem_gb slots hook_dir \
-    scheduler_roles instanceid group control_node_iptables_rule \
-    compute_node_iptables_rule
+    local scheduler_roles slots
     files_load_config instance config/cluster
 
     eval "$(member_parse)"
     slurm_log "Member data parsed: ${cw_MEMBER_name} (${cw_MEMBER_ip}) -- ${cw_MEMBER_tags}"
-    "${cw_ROOT}"/libexec/share/update-etc-hosts "${cw_MEMBER_name}" "${cw_MEMBER_ip}"
 
     slurm_log "Checking roles for new member (${cw_MEMBER_name})"
-    IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
-    for tag in "${tags[@]}"; do
-        IFS='=' read -a tuple <<< "${tag}"
-        slurm_log "Found tuple: ${tag}, key: ${tuple[0]}, value: ${tuple[1]}"
-        key=${tuple[0]}
-        value=${tuple[1]}
-        if [ "$key" == "scheduler_roles" ]; then
-            scheduler_roles="${value}"
-            # TODO: Do we need any of below?
-        # elif [ "$key" == "ram_gb" ]; then
-        #     vmem_gb="${value}"
-        # elif [ "$key" == "slots" ]; then
-        #     slots="${value}"
-        # elif [ "$key" == "aws_instanceid" ]; then
-        #     instanceid="${value}"
-        # elif [ "$key" == "aws_group" ]; then
-        #     group="${value}"
-        fi
-    done
+    scheduler_roles=$(member_find_tag "scheduler_roles" "${cw_MEMBER_tags}")
+    slots=$(member_find_tag "slots" "${cw_MEMBER_tags}")
 
     # Update this node's slurm.conf with new node.
-    hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
     if [[ "${scheduler_roles}" == *":master:"* ]]; then
         slurm_log "${cw_MEMBER_name} is Slurm control node"
-        "${hook_dir}/share/slurm-set-control-node.sh" "${cw_MEMBER_name}"
+        sed -i "s/^ControlMachine=.*$/ControlMachine=${cw_MEMBER_name}/" "${cw_CLUSTER_SLURM_config}"
+        if [[ "${scheduler_roles}" != *":compute:"* ]]; then
+            handler_run_helper share/add-node "${cw_MEMBER_name}" "1" "FUTURE"
+        fi
     fi
     if [[ "${scheduler_roles}" == *":compute:"* ]]; then
         slurm_log "${cw_MEMBER_name} is Slurm compute node"
-        slurm_add_compute_node "${cw_MEMBER_name}"
+        handler_run_helper share/add-node "${cw_MEMBER_name}" "${slots}"
     fi
 
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
@@ -81,24 +63,10 @@ main() {
 
     # Add Slurm iptables rules.
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
-        control_node_iptables_rule="$(slurm_control_node_iptables_rule ${cw_MEMBER_ip})"
-        slurm_log "control: ${control_node_iptables_rule}"
-        if ! iptables -C ${control_node_iptables_rule} &>/dev/null; then
-            slurm_log "Adding iptables rule: ${control_node_iptables_rule}"
-            iptables -I ${control_node_iptables_rule}
-        else
-            slurm_log "iptables rule already exists: ${control_node_iptables_rule}"
-        fi
+        handler_iptables_insert $(slurm_control_node_iptables_rule ${cw_MEMBER_ip}) 2>&1 | slurm_log_blob
     fi
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* && "${scheduler_roles}" == *":master:"* ]]; then
-        compute_node_iptables_rule="$(slurm_compute_node_iptables_rule ${cw_MEMBER_ip})"
-        slurm_log "compute: ${compute_node_iptables_rule}"
-        if ! iptables -C ${compute_node_iptables_rule} &>/dev/null; then
-            slurm_log "Adding iptables rule: ${compute_node_iptables_rule}"
-            iptables -I ${compute_node_iptables_rule}
-        else
-            slurm_log "iptables rule already exists: ${compute_node_iptables_rule}"
-        fi
+        handler_iptables_insert $(slurm_compute_node_iptables_rule ${cw_MEMBER_ip}) 2>&1 | slurm_log_blob
     fi
 }
 
@@ -106,13 +74,12 @@ setup
 require distro
 require member
 require handler
-require log
 require files
+
+handler_add_libdir share
 require slurm
 
-_AWS="${cw_ROOT}"/opt/aws/bin/aws
-
 if files_load_config --optional cluster-slurm; then
+    export cw_CLUSTER_SLURM_config
     handler_tee main "$@"
 fi
-
