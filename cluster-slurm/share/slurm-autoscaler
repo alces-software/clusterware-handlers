@@ -136,17 +136,21 @@ _log_blob() {
 
 # TODO: Can move to external module?
 _shoot_node() {
-    local node instanceid group
+    local aws_exit_code node instanceid group
     node="$1"
     group="$2"
     instanceid=$(member_get_member_tag "${node}" "aws_instanceid")
 
     # scale in the capacity
     log "[autoscaler:shoot] Shooting node ${instanceid} in group ${group}"
+    set -o pipefail
     "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
       autoscaling terminate-instance-in-auto-scaling-group \
       --instance-id ${instanceid} \
       --should-decrement-desired-capacity 2>&1 | _log_blob "autoscaling:aws"
+    aws_exit_code=$?
+    set +o pipefail
+    return $aws_exit_code
 }
 
 _scale_in() {
