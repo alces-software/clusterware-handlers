@@ -43,6 +43,9 @@ main() {
     if [[ "${scheduler_roles}" == *":compute:"* ]]; then
         slurm_log "${cw_MEMBER_name} is Slurm compute node"
         handler_run_helper share/add-node "${cw_MEMBER_name}" "${slots}"
+    elif [[ "${scheduler_roles}" == *":submit:"* ]]; then
+        slurm_log "${cw_MEMBER_name} is a submit-only host"
+        handler_run_helper share/add-node "${cw_MEMBER_name}" "1" "FUTURE"
     fi
 
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
@@ -53,12 +56,18 @@ main() {
         distro_restart_service clusterware-slurm-slurmctld
         "${cw_ROOT}/opt/slurm/bin/scontrol" reconfigure
     fi
-    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* && \
-        "${scheduler_roles}" == *":master:"* ]]; then
-        # We are a compute node and the master node is now up, so start our
-        # slurmd. Note: we need to know the master node first so our slurm.conf
-        # and /etc/hosts can be updated with it, otherwise slurmd won't start.
-        distro_start_service clusterware-slurm-slurmd
+    if [[ "${scheduler_roles}" == *":master:"* ]]; then
+        if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
+            # We are a compute node and the master node is now up, so start our
+            # slurmd. Note: we need to know the master node first so our slurm.conf
+            # and /etc/hosts can be updated with it, otherwise slurmd won't start.
+            distro_start_service clusterware-slurm-slurmd
+        elif [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":submit:"* ]]; then
+            # We are a submit-only host and the master node is now up,
+            # so start munged so we can communicate with it
+            # appropriately.
+            distro_start_service clusterware-slurm-munged
+        fi
     fi
 
     # Add Slurm iptables rules.
