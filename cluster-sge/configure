@@ -43,58 +43,6 @@ RUBY
     fi
 }
 
-_detect_autoscaling() {
-    "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-              autoscaling describe-auto-scaling-groups &>/dev/null
-}
-
-_configure_aws_autoscaling() {
-    local group tags hook_dir
-
-    # determine if we're running on EC2
-    if files_load_config --optional instance-aws config/cluster; then
-        echo "Instance is running on EC2; configuring for autoscaling"
-        files_load_config config config/cluster
-
-        # we are; ensure aws serviceware is installed
-        "${_ALCES}" service install aws
-
-        if [ "${cw_INSTANCE_aws_autoscaling}" == "autodetect" ]; then
-            if _detect_autoscaling; then
-                echo "Autoscaling detected as enabled"
-                sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=enabled/' \
-                    "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
-            else
-                echo "Autoscaling detected as disabled"
-                sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=disabled/' \
-                    "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
-            fi
-        fi
-
-        # install autoscale management cron job if we're a master
-        if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
-            hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-            echo "Installing autoscaler cronjob: ${hook_dir}/share/sge-autoscaler"
-            echo "*/5 * * * * root ${hook_dir}/share/sge-autoscaler" > /etc/cron.d/clusterware-cluster-sge-autoscaler
-        fi
-
-        # set serf tags containing:
-        #  - instance creation time
-        #  - autoscaling group name (if available)
-        tags=(tags[aws_ctime]=${cw_INSTANCE_aws_ctime})
-
-        group=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-                          autoscaling describe-auto-scaling-groups | \
-                       grep AutoScalingGroupName | grep "\"${cw_CLUSTER_name}-" | \
-                       awk '{print $2}' | tr -d '",')
-        if [ "$group" ]; then
-            tags+=(tags[aws_group]=${group})
-        fi
-        echo "Setting autoscaler tags: ${tags[@]}"
-        "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-cluster-sge-aws.json
-    fi
-}
-
 main() {
     # Bail out if we're already configured (this is a reboot)
     if [ -d "${cw_ROOT}/etc/config/cluster-sge" ]; then
@@ -106,16 +54,11 @@ main() {
     files_load_config instance config/cluster
 
     _configure_gridscheduler
-    _configure_aws_autoscaling
 }
 
 setup
 require ruby
 require handler
 require files
-
-_AWS="${cw_ROOT}"/opt/aws/bin/aws
-_JO="${cw_ROOT}"/opt/jo/bin/jo
-_ALCES="${cw_ROOT}"/bin/alces
 
 handler_tee main "$@"

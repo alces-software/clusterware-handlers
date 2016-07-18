@@ -20,3 +20,6 @@ install:
     cp 'etc/cluster-slurm.rc' "${cw_ROOT}/etc"
 
     alces service install slurm
+
+    mkdir -p "${cw_ROOT}"/etc/scheduler
+    cp "etc/scheduler-slurm" "${cw_ROOT}"/etc/scheduler/slurm

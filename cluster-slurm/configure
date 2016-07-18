@@ -2,15 +2,15 @@
 ################################################################################
 ##
 ## Alces Clusterware - Handler hook
-## Copyright (C) 2015-2016 Stephen F. Norledge and Alces Software Ltd.
+## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
 ##
 ################################################################################
 setup() {
     local a xdg_config
     IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
     for a in "${xdg_config[@]}"; do
-        if [ -e "${a}"/clusterware/config.vars.sh ]; then
-            source "${a}"/clusterware/config.vars.sh
+        if [ -e "${a}"/clusterware/config.rc ]; then
+            source "${a}"/clusterware/config.rc
             break
         fi
     done
@@ -25,21 +25,6 @@ _configure_slurm() {
     local slurm_system_dirs slurm_user munge_path munge_key_dir munge_key munge_user hook_dir hostname
 
     echo "Configuring Slurm"
-
-    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
-        echo "Instance is GridScheduler exec host"
-        "${cw_ROOT}"/bin/alces service enable gridscheduler/execd
-        ruby_run <<RUBY
-require 'json'
-
-config = {"tags" => {}}
-config["tags"]["slots"] = $(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo).to_s
-ram_kb = $(grep 'MemTotal' /proc/meminfo | awk '{print $2};')
-ram_gb = (ram_kb / 1_048_576)
-config["tags"]["ram_gb"] = ram_gb.to_s
-File.write('${cw_ROOT}/etc/serf/tags-cluster-sge-resources.json', config.to_json)
-RUBY
-    fi
 
     # Create needed system dirs owned by Slurm user.
     slurm_system_dirs=(/var/{log,run,spool}/slurm)
@@ -63,65 +48,21 @@ RUBY
     # Enable service components based on node's role(s).
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
         echo "Instance is Slurm control node"
-        "${cw_ROOT}"/bin/alces service enable slurm/slurmctld
+        "${_ALCES}" service enable slurm/slurmctld
     fi
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
         echo "Instance is Slurm compute node"
-        "${cw_ROOT}"/bin/alces service enable slurm/slurmd
-    fi
-}
+        "${_ALCES}" service enable slurm/slurmd
+        ruby_run <<RUBY
+require 'json'
 
-_detect_autoscaling() {
-    "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-              autoscaling describe-auto-scaling-groups &>/dev/null
-}
-
-_configure_aws_autoscaling() {
-    local group tags hook_dir
-
-    # Determine if we're running on EC2.
-    if files_load_config --optional instance-aws config/cluster; then
-        echo "Instance is running on EC2; configuring for autoscaling"
-        files_load_config config config/cluster
-
-        # We are; ensure aws serviceware is installed.
-        "${_ALCES}" service install aws
-
-        if [ "${cw_INSTANCE_aws_autoscaling}" == "autodetect" ]; then
-            if _detect_autoscaling; then
-                echo "Autoscaling detected as enabled"
-                sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=enabled/' \
-                    "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
-            else
-                echo "Autoscaling detected as disabled"
-                sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=disabled/' \
-                    "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
-            fi
-        fi
-
-        # Install autoscale management cron job if we're a master.
-        if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
-            hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-            echo "Installing autoscaler cronjob: ${hook_dir}/share/slurm-autoscaler"
-            echo "*/5 * * * * root ${hook_dir}/share/slurm-autoscaler" > /etc/cron.d/clusterware-cluster-slurm-autoscaler
-        fi
-
-        # Set serf tags containing:
-        #  - instance creation time
-        #  - autoscaling group name (if available)
-        tags=(tags[aws_ctime]=${cw_INSTANCE_aws_ctime})
-
-        group=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-                          autoscaling describe-auto-scaling-groups | \
-                       grep AutoScalingGroupName | \
-                       grep "\"${cw_CLUSTER_name}-" | \
-                       awk '{print $2}' | \
-                       tr -d '",')
-        if [ "$group" ]; then
-            tags+=(tags[aws_group]=${group})
-        fi
-        echo "Setting autoscaler tags: ${tags[@]}"
-        "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-cluster-aws.json
+config = {"tags" => {}}
+config["tags"]["slots"] = $(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo).to_s
+ram_kb = $(grep 'MemTotal' /proc/meminfo | awk '{print $2};')
+ram_gb = (ram_kb / 1_048_576)
+config["tags"]["ram_gb"] = ram_gb.to_s
+File.write('${cw_ROOT}/etc/serf/tags-cluster-node-resources.json', config.to_json)
+RUBY
     fi
 }
 
@@ -138,18 +79,24 @@ main() {
     files_load_config instance config/cluster
 
     _configure_slurm
-    _configure_aws_autoscaling
+
+    # XXX - if we're autoscaling, then we need to add some dummy nodes
+    # to represent the scaling group, and manage the addition/removal
+    # of them as nodes scale-in/scale-out.
+
+    # something like:
+    # for a in {1..$group_size}; do
+    #  add-node autoscaling-slot-$a $slots_in_machine_type FUTURE
+    # done
+
+    # might be better to do this on first member-join so we know what
+    # kind of machine type we've got for compute?
 }
 
 setup
 require handler
 require files
 
-handler_add_libdir share
-require slurm
-
-_AWS="${cw_ROOT}"/opt/aws/bin/aws
-_JO="${cw_ROOT}"/opt/jo/bin/jo
 _ALCES="${cw_ROOT}"/bin/alces
 
 handler_tee main "$@"
