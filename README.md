@@ -8,6 +8,10 @@ You should use these handlers in conjunction with Alces Clusterware.  Installati
 
 ## Core handlers
 
+### `autoscaling`
+
+Enable autoscaling capabilities for AWS-based clusters for supported schedulers.
+
 ### `clusterable`
 
 Perform key configuration tasks for Alces Clusterware.
