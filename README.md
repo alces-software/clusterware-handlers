@@ -8,6 +8,10 @@ You should use these handlers in conjunction with Alces Clusterware.  Installati
 
 ## Core handlers
 
+### `autoscaling`
+
+Enable autoscaling capabilities for AWS-based clusters for supported schedulers.
+
 ### `clusterable`
 
 Perform key configuration tasks for Alces Clusterware.
@@ -39,6 +43,10 @@ Use Clusterware configuration data for managing NFS shares across the cluster.
 ### `cluster-sge`
 
 Configure [Open Grid Scheduler](http://gridscheduler.sourceforge.net/) for the cluster.
+
+### `cluster-slurm`
+
+Configure the [Slurm](http://slurm.schedmd.com/) scheduler for the cluster.
 
 ### `cluster-vpn`
 
