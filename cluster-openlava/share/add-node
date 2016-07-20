@@ -21,6 +21,8 @@ fi
 
 name="$(echo "${name}" | cut -f1 -d.)"
 
+mkdir -p "${cw_ROOT}"/var/lock
+exec 9> "${cw_ROOT}"/var/lock/cluster-openlava.lock && flock -w30 9
 # Add entry to lsf.cluster.openlava
 if grep -q "^${name} " "${cw_ROOT}"/opt/openlava/etc/lsf.cluster.openlava; then
     echo "${name} is already registered to cluster"
@@ -51,3 +53,4 @@ else
     sed -e "/^HOST_NAME/a ${name} ${slots} () () () () () ()" \
         -i "${cw_ROOT}"/opt/openlava/etc/lsb.hosts
 fi
+exec 9>&-

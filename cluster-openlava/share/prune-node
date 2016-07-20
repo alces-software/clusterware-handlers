@@ -10,6 +10,8 @@ tmpfile="$(mktemp /tmp/cluster-openlava.prune-node.XXXXXXXX)"
 
 name="$(echo "${name}" | cut -f1 -d.)"
 
+mkdir -p "${cw_ROOT}"/var/lock
+exec 9> "${cw_ROOT}"/var/lock/cluster-openlava.lock && flock -w30 9
 # Remove entry from lsf.cluster.openlava
 if grep -q "^${name} " "${cw_ROOT}"/opt/openlava/etc/lsf.cluster.openlava; then
     echo "Removing ${name} from cluster"
@@ -27,5 +29,6 @@ if grep -q "^${name} " "${cw_ROOT}"/opt/openlava/etc/lsb.hosts; then
 else
     echo "${name} does not have a host definition"
 fi
+exec 9>&-
 
 rm -f "${tmpfile}"
