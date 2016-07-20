@@ -50,7 +50,6 @@ main() {
 
 setup
 require member
-require distro
 require handler
 require log
 require network
