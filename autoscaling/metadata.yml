@@ -17,7 +17,7 @@ install:
           ;;
     esac
 
-    cat <<\EOF > "${cw_ROOT}"/etc/motd.d/60-autoscaling-50-autoscaling.sh
+    cat <<\EOF > "${cw_ROOT}"/etc/motd.d/60-autoscaling.sh
     ################################################################################
     ##
     ## Alces Clusterware - Clusterware MOTD banner

@@ -35,6 +35,3 @@ install:
     cw_CLUSTER_SGE_hostgroup_strategy=full
     EOF
     alces service install gridscheduler
-
-    mkdir -p "${cw_ROOT}"/etc/scheduler
-    cp "etc/scheduler-gridscheduler" "${cw_ROOT}"/etc/scheduler/gridscheduler

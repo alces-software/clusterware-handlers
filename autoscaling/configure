@@ -27,7 +27,7 @@ _detect_autoscaling() {
 }
 
 _configure_aws_autoscaling() {
-    local group tags hook_dir
+    local group tags
 
     # Determine if we're running on EC2.
     if files_load_config --optional instance-aws config/cluster; then
