@@ -64,8 +64,8 @@ _configure_aws_autoscaling() {
             tags+=(tags[aws_group]=${group})
             tags+=(tags[aws_group_cores]=\"$(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo)\")
         fi
-        echo "Setting autoscaler tags: ${tags[@]}"
-        "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-cluster-aws.json
+        echo "Setting autoscaling tags: ${tags[@]}"
+        "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-autoscaling.json
     fi
 }
 

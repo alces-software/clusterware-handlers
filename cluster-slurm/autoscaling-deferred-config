@@ -1,0 +1,49 @@
+#!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.rc ]; then
+            source "${a}"/clusterware/config.rc
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+main() {
+    local group group_maxsize cores_per_node
+    group="$1"
+    group_maxsize="$2"
+    cores_per_node="$3"
+
+    slurm_log "Performing deferred configuration for scaling group: ${group} (size: ${group_maxsize}, cores: ${cores_per_node})"
+    # We're autoscaling so we need to add some dummy nodes to
+    # represent the scaling group otherwise we're unable to scale-out.
+    for a in $(seq 1 ${group_maxsize}); do
+        slurm_log "Adding node: autoscaling-slot-${group}-$a ${cores_per_node} FUTURE"
+        handler_run_helper share/add-node autoscaling-slot-${group}-$a ${cores_per_node} FUTURE
+    done
+}
+
+setup
+require handler
+require files
+
+handler_add_libdir share
+require slurm-handler
+
+if files_load_config --optional cluster-slurm; then
+    export cw_CLUSTER_SLURM_config
+    handler_tee main "$@"
+fi

@@ -72,18 +72,6 @@ main() {
     files_load_config instance config/cluster
 
     _configure_slurm
-
-    # XXX - if we're autoscaling, then we need to add some dummy nodes
-    # to represent the scaling group, and manage the addition/removal
-    # of them as nodes scale-in/scale-out.
-
-    # something like:
-    # for a in {1..$group_size}; do
-    #  add-node autoscaling-slot-$a $slots_in_machine_type FUTURE
-    # done
-
-    # might be better to do this on first member-join so we know what
-    # kind of machine type we've got for compute?
 }
 
 setup
