@@ -40,16 +40,20 @@ _configure_slurm() {
     munge_key_dir="${munge_path}/etc/munge"
     munge_key="${munge_key_dir}/munge.key"
     munge_user='munge'
-    source "${cw_ROOT}/etc/config/cluster/auth.rc"
+
+    files_load_config auth config/cluster
     echo -n "${cw_CLUSTER_auth_token}" | sha512sum | cut -d' ' -f1 > "${munge_key}"
     chmod 400 "${munge_key}"
     chown -R "${munge_user}:${munge_user}" "${munge_key_dir}"
+
+    files_load_config instance config/cluster
 
     # Enable service components based on node's role(s).
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
         echo "Instance is Slurm control node"
         "${_ALCES}" service enable slurm/slurmctld
     fi
+
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
         echo "Instance is Slurm compute node"
         "${_ALCES}" service enable slurm/slurmd
@@ -68,8 +72,6 @@ main() {
     fi
 
     mkdir -p "${handler_config_dir}"
-
-    files_load_config instance config/cluster
 
     _configure_slurm
 }
