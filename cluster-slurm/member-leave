@@ -64,7 +64,7 @@ require distro
 require handler
 
 handler_add_libdir share
-require slurm
+require slurm-handler
 
 if files_load_config --optional cluster-slurm; then
     if [ "$cw_CLUSTER_SLURM_cleanup_on_leave" == "true" ]; then

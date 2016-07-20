@@ -11,8 +11,6 @@ require log
 
 files_load_config --optional cluster-slurm || true
 
-export cw_SLURM_CONFIG="$cw_ROOT/opt/slurm/etc/slurm.conf"
-
 slurm_log() {
     local message
     message="$1"

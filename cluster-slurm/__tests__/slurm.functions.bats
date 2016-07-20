@@ -45,7 +45,7 @@ clusterware_setup
 require handler
 
 handler_add_libdir "${BATS_CWD}/../share"
-require slurm
+require slurm-handler
 
 setup() {
   # Create temporary slurm.conf file for each test.

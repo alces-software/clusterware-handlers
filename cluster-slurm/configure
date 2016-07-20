@@ -53,16 +53,9 @@ _configure_slurm() {
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
         echo "Instance is Slurm compute node"
         "${_ALCES}" service enable slurm/slurmd
-        ruby_run <<RUBY
-require 'json'
-
-config = {"tags" => {}}
-config["tags"]["slots"] = $(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo).to_s
-ram_kb = $(grep 'MemTotal' /proc/meminfo | awk '{print $2};')
-ram_gb = (ram_kb / 1_048_576)
-config["tags"]["ram_gb"] = ram_gb.to_s
-File.write('${cw_ROOT}/etc/serf/tags-cluster-node-resources.json', config.to_json)
-RUBY
+        handler_add_libdir "${cw_ROOT}"/var/lib/scheduler
+        require slurm
+        slurm_write_node_resources "${cw_ROOT}/etc/serf/tags-node-resources.json"
     fi
 }
 
