@@ -43,7 +43,7 @@ main() {
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
         if [[ "${scheduler_roles}" == *":compute:"* ]]; then
             log "Adding compute node"
-            "${cw_ROOT}"/opt/openlava/bin/lsaddhost "$(echo "${cw_MEMBER_name}" | cut -f1 -d'.')" | log_blob 2>&1
+            "${cw_ROOT}"/opt/openlava/bin/lsaddhost -M ${slots:-1} "$(echo "${cw_MEMBER_name}" | cut -f1 -d'.')" | log_blob 2>&1
         fi
     fi
 
