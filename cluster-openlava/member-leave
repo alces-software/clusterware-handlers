@@ -36,14 +36,14 @@ main() {
     log "Checking roles for left member (${cw_MEMBER_name})"
     scheduler_roles=$(member_find_tag "scheduler_roles" "${cw_MEMBER_tags}")
 
-    handler_run_helper share/prune-node "${cw_MEMBER_name}" | log_blob
-
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
         if [[ "${scheduler_roles}" == *":compute:"* ]]; then
             log "Removing compute node"
             "${cw_ROOT}"/opt/openlava/bin/lsrmhost "$(echo "${cw_MEMBER_name}" | cut -f1 -d.)" | log_blob 2>&1
         fi
     fi
+
+    handler_run_helper share/prune-node "${cw_MEMBER_name}" | log_blob
 
     intf="$(network_get_route_iface ${cw_MEMBER_ip})"
     for port in 16322 16323 16324 16325; do
