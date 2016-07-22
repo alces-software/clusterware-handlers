@@ -89,6 +89,7 @@ _prune_hosts() {
 main() {
     local member_data
     member_data="$(cat)"
+    "${cw_ROOT}"/libexec/share/trigger-event --local pre-member-leave <<< "${member_data}"
     member_unregister <<< "${member_data}"
     eval $(member_parse <<< "${member_data}")
 
