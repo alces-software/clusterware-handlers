@@ -70,7 +70,6 @@ require files
 require log
 require network
 
-if files_load_config --optional cluster-torque; then
-    log_set_default "${cw_CLUSTER_TORQUE_log}"
-    handler_tee main "$@"
-fi
+files_load_config --optional cluster-torque
+log_set_default "${cw_CLUSTER_TORQUE_log:-/var/log/clusterware/cluster-torque.log}"
+handler_tee main "$@"

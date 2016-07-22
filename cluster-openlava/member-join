@@ -62,7 +62,6 @@ require files
 require network
 require distro
 
-if files_load_config --optional cluster-openlava; then
-    log_set_default "${cw_CLUSTER_OPENLAVA_log}"
-    handler_tee main "$@"
-fi
+files_load_config --optional cluster-openlava
+log_set_default "${cw_CLUSTER_OPENLAVA_log:-/var/log/clusterware/cluster-openlava.log}"
+handler_tee main "$@"

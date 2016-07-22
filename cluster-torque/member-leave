@@ -23,6 +23,11 @@ setup() {
 
 main() {
     local scheduler_roles intf
+
+    if [ "$cw_CLUSTER_TORQUE_cleanup_on_leave" != "true" ]; then
+        return 0
+    fi
+
     files_load_config instance config/cluster
 
     eval "$(member_parse)"
@@ -54,9 +59,6 @@ require files
 require log
 require network
 
-if files_load_config --optional cluster-torque; then
-    log_set_default "${cw_CLUSTER_TORQUE_log}"
-    if [ "$cw_CLUSTER_TORQUE_cleanup_on_leave" == "true" ]; then
-        handler_tee main "$@"
-    fi
-fi
+files_load_config --optional cluster-torque
+log_set_default "${cw_CLUSTER_TORQUE_log:-/var/log/clusterware/cluster-torque.log}"
+handler_tee main "$@"

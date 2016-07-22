@@ -88,7 +88,6 @@ require files
 handler_add_libdir share
 require slurm-handler
 
-if files_load_config --optional cluster-slurm; then
-    export cw_CLUSTER_SLURM_config
-    handler_tee main "$@"
-fi
+files_load_config --optional cluster-slurm
+export cw_CLUSTER_SLURM_config
+handler_tee main "$@"

@@ -24,6 +24,10 @@ setup() {
 main() {
     local scheduler_roles intf port
 
+    if [ "$cw_CLUSTER_OPENLAVA_cleanup_on_leave" != "true" ]; then
+        return 0
+    fi
+
     files_load_config instance config/cluster
 
     eval "$(member_parse)"
@@ -43,7 +47,7 @@ main() {
 
     intf="$(network_get_route_iface ${cw_MEMBER_ip})"
     for port in 16322 16323 16324 16325; do
-        handler_iptables_delete INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport $port
+        handler_iptables_delete INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport $port -j ACCEPT
     done
     handler_iptables_delete INPUT -i ${intf} -s ${cw_MEMBER_ip} -p udp --dport 16322 -j ACCEPT
 }
@@ -53,10 +57,8 @@ require member
 require handler
 require log
 require network
+require files
 
-if files_load_config --optional cluster-slurm; then
-    log_set_default "${cw_CLUSTER_OPENLAVA_log}"
-    if [ "$cw_CLUSTER_OPENLAVA_cleanup_on_leave" == "true" ]; then
-        handler_tee main "$@"
-    fi
-fi
+files_load_config --optional cluster-openlava
+log_set_default "${cw_CLUSTER_OPENLAVA_log:-/var/log/clusterware/cluster-openlava.log}"
+handler_tee main "$@"

@@ -9,8 +9,8 @@ setup() {
     local a xdg_config
     IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
     for a in "${xdg_config[@]}"; do
-        if [ -e "${a}"/clusterware/config.vars.sh ]; then
-            source "${a}"/clusterware/config.vars.sh
+        if [ -e "${a}"/clusterware/config.rc ]; then
+            source "${a}"/clusterware/config.rc
             break
         fi
     done
@@ -22,45 +22,31 @@ setup() {
 }
 
 main() {
-    local tags tag tuple key value hook_dir intf scheduler_roles
+    local intf scheduler_roles
+
+    if [ "$cw_CLUSTER_SGE_cleanup_on_leave" != "true" ]; then
+        return 0
+    fi
+
     files_load_config instance config/cluster
 
     eval "$(member_parse)"
-    log "Member data parsed: ${cw_MEMBER_name} (${cw_MEMBER_ip}) -- ${cw_MEMBER_tags}" "${cw_CLUSTER_SGE_log}"
+    log "Member data parsed: ${cw_MEMBER_name} (${cw_MEMBER_ip}) -- ${cw_MEMBER_tags}"
 
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
-        log "This instance is a scheduler master; checking left member for scheduler compute role" \
-            "${cw_CLUSTER_SGE_log}"
-        IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
-        for tag in "${tags[@]}"; do
-            IFS='=' read -a tuple <<< "${tag}"
-            log "Found tuple: ${tag}, key: ${tuple[0]}, value: ${tuple[1]}" "${cw_CLUSTER_SGE_log}"
-            key=${tuple[0]}
-            value=${tuple[1]}
-            if [ "$key" == "scheduler_roles" ]; then
-                scheduler_roles="${value}"
-            fi
-        done
+        log "This instance is a scheduler master; checking left member for scheduler compute role"
+        scheduler_roles=$(member_find_tag "scheduler_roles" "${cw_MEMBER_tags}")
         if [[ "${scheduler_roles}" == *":compute:"* ]]; then
-            log "Removing node: ${cw_MEMBER_name} (${cw_MEMBER_ip})" \
-                "${cw_CLUSTER_SGE_log}"
-            hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-            ${hook_dir}/share/sge-prune-node "${cw_MEMBER_name}" 2>&1 | \
-                log_blob "${cw_CLUSTER_SGE_log}" "sge-prune-node"
+            log "Removing node: ${cw_MEMBER_name} (${cw_MEMBER_ip})"
+            handler_run_helper share/prune-node "${cw_MEMBER_name}" 2>&1 | \
+                log_blob "${cw_CLUSTER_SGE_log}" "prune-node"
 
             intf="$(network_get_route_iface ${cw_MEMBER_ip})"
 
-            if iptables -C INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT &>/dev/null; then
-                log "Removing iptables rule: INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT" \
-                    "${cw_CLUSTER_SGE_log}"
-                iptables -D INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT
-            else
-                log "iptables rule not present: INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT" \
-                    "${cw_CLUSTER_SGE_log}"
-            fi
+            handler_iptables_delete INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT | \
+                log_blob "${cw_CLUSTER_SGE_log}"
         else
-            log "Left member does not have scheduler compute role; no further processing required" \
-                "${cw_CLUSTER_SGE_log}"
+            log "Left member does not have scheduler compute role; no further processing required"
         fi
     fi
 }
@@ -72,9 +58,6 @@ require handler
 require log
 require files
 
-if [ -f "${cw_ROOT}/etc/cluster-sge.rc" ]; then
-    . "${cw_ROOT}/etc/cluster-sge.rc"
-    if [ "$cw_CLUSTER_SGE_cleanup_on_leave" == "true" ]; then
-        handler_tee main "$@"
-    fi
-fi
+files_load_config --optional cluster-sge
+log_set_default "${cw_CLUSTER_SGE_log:-/var/log/clusterware/cluster-sge.log}"
+handler_tee main "$@"

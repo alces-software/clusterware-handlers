@@ -9,8 +9,8 @@ setup() {
     local a xdg_config
     IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
     for a in "${xdg_config[@]}"; do
-        if [ -e "${a}"/clusterware/config.vars.sh ]; then
-            source "${a}"/clusterware/config.vars.sh
+        if [ -e "${a}"/clusterware/config.rc ]; then
+            source "${a}"/clusterware/config.rc
             break
         fi
     done
@@ -22,49 +22,34 @@ setup() {
 }
 
 main() {
-    local tags tag tuple key value vmem_gb slots hook_dir intf master_ip scheduler_roles instanceid group
+    local vmem_gb slots intf master_ip scheduler_roles
     files_load_config instance config/cluster
 
     eval "$(member_parse)"
-    log "Member data parsed: ${cw_MEMBER_name} (${cw_MEMBER_ip}) -- ${cw_MEMBER_tags}" "${cw_CLUSTER_SGE_log}"
+    log "Member data parsed: ${cw_MEMBER_name} (${cw_MEMBER_ip}) -- ${cw_MEMBER_tags}"
 
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
-        log "This instance is a scheduler master; checking new member for scheduler compute role" \
-            "${cw_CLUSTER_SGE_log}"
-        IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
-        for tag in "${tags[@]}"; do
-            IFS='=' read -a tuple <<< "${tag}"
-            log "Found tuple: ${tag}, key: ${tuple[0]}, value: ${tuple[1]}" "${cw_CLUSTER_SGE_log}"
-            key=${tuple[0]}
-            value=${tuple[1]}
-            if [ "$key" == "scheduler_roles" ]; then
-                scheduler_roles="${value}"
-            elif [ "$key" == "ram_gb" ]; then
-                vmem_gb="${value}"
-            elif [ "$key" == "slots" ]; then
-                slots="${value}"
-            elif [ "$key" == "aws_instanceid" ]; then
-                instanceid="${value}"
-            elif [ "$key" == "aws_group" ]; then
-                group="${value}"
-            fi
-        done
+        log "This instance is a scheduler master; checking new member for scheduler compute role"
+        scheduler_roles=$(member_find_tag "scheduler_roles" "${cw_MEMBER_tags}")
+        slots=$(member_find_tag "slots" "${cw_MEMBER_tags}")
+        vmem_gb=$(member_find_tag "ram_gb" "${cw_MEMBER_tags}")
+
         if [[ "${scheduler_roles}" == *":compute:"* || "${scheduler_roles}" == *":submit:"* ]]; then
-            hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
             # Wait for a short while to ensure that the addition of
             # the name to /etc/hosts percolates through to SGEs name
             # resolution routines.
             sleep 2
 
             if [[ "${scheduler_roles}" == *":compute:"* ]]; then
-                log "Adding node: ${cw_MEMBER_name} (${cw_MEMBER_ip}) with slots=${slots} and vmem=${vmem_gb}G" \
-                    "${cw_CLUSTER_SGE_log}"
-                ${hook_dir}/share/sge-add-node "${cw_MEMBER_name}" "${cw_MEMBER_ip}" "${slots}" "${vmem_gb}" 2>&1 | log_blob "${cw_CLUSTER_SGE_log}" "sge-add-node"
+                log "Adding node: ${cw_MEMBER_name} (${cw_MEMBER_ip}) with slots=${slots} and vmem=${vmem_gb}G"
+                handler_run_helper share/add-node "${cw_MEMBER_name}" "${cw_MEMBER_ip}" \
+                                   "${slots}" "${vmem_gb}" 2>&1 \
+                    | log_blob "${cw_CLUSTER_SGE_log}" "add-node"
             else
                 log "Adding node: ${cw_MEMBER_name} (${cw_MEMBER_ip}) as submit host" \
                     "${cw_CLUSTER_SGE_log}"
-                ${hook_dir}/share/sge-add-submit-host "${cw_MEMBER_name}" 2>&1 | \
-                    log_blob "${cw_CLUSTER_SGE_log}" "sge-add-node"
+                handler_run_helper share/add-submit-host "${cw_MEMBER_name}" 2>&1 | \
+                    log_blob "${cw_CLUSTER_SGE_log}" "add-submit-host"
             fi
 
             intf="$(network_get_route_iface ${cw_MEMBER_ip})"
@@ -73,12 +58,10 @@ main() {
             handler_iptables_insert INPUT -i ${intf} -s ${cw_MEMBER_ip} -p tcp --dport 6444 -j ACCEPT | \
                 log_blob "${cw_CLUSTER_SGE_log}"
 
-            log "Broadcasting 'sge-ready' event with: ${master_ip} $(hostname -f) ${cw_MEMBER_ip}" \
-                "${cw_CLUSTER_SGE_log}"
+            log "Broadcasting 'sge-ready' event with: ${master_ip} $(hostname -f) ${cw_MEMBER_ip}"
             handler_broadcast sge-ready ${master_ip} $(hostname -f) ${cw_MEMBER_ip}
         else
-            log "New member does not have scheduler roles; no further processing required" \
-                "${cw_CLUSTER_SGE_log}"
+            log "New member does not have scheduler roles; no further processing required"
         fi
     fi
 }
@@ -90,6 +73,6 @@ require handler
 require log
 require files
 
-if files_load_config --optional cluster-sge; then
-    handler_tee main "$@"
-fi
+files_load_config --optional cluster-sge
+log_set_default "${cw_CLUSTER_SGE_log:-/var/log/clusterware/cluster-sge.log}"
+handler_tee main "$@"
