@@ -36,6 +36,32 @@ setup() {
     kernel_load
 }
 
+_run_initialize_hooks() {
+    local paths p args a
+    paths="${cw_CLUSTER_CUSTOMIZER_custom_paths}"
+    for p in ${cw_CLUSTER_CUSTOMIZER_path}/*; do
+        paths="${paths} ${p}"
+    done
+    for p in ${paths}; do
+        if [ -d "${p}"/initialize.d ]; then
+            args=()
+            if [ ! -d "${cw_ROOT}"/etc/config ]; then
+                args+=(once)
+            fi
+            for a in "${p}"/initialize.d/*; do
+                if [ -x "$a" -a ! -d "$a" ] && [[ "$a" != *~ ]]; then
+                    echo "Running initialize hook: ${a}"
+                    "${a}" "initialize" "${args[@]}"
+                elif [[ "$a" != *~ ]]; then
+                    echo "Skipping non-executable initialize hook: ${a}"
+                fi
+            done
+        else
+            echo "No initialize hooks found in ${p}"
+        fi
+    done
+}
+
 _setup_features() {
     local o_features feature_data
     feature_data="$1"
@@ -80,9 +106,6 @@ _setup_profiles() {
 _setup() {
     local userdata feature_data profile_data
 
-    eval $(network_fetch_ec2_document | ${_JQ} -r '"_REGION=\(.region)"')
-    _MACHINE_TYPE="$(network_fetch_ec2_metadata instance-type)"
-
     userdata=$(network_fetch_ec2_userdata 1)
 
     feature_data=$(echo "${userdata}" | grep "^#=FlightFeatures ")
@@ -96,141 +119,11 @@ _setup() {
     fi
 }
 
-_fetch_profile() {
-    local s3cfg source target host manifest f
-    s3cfg="$1"
-    source="$2"
-    target="$3"
-    mkdir -p "${target}"
-    if [ "${s3cfg}" ]; then
-        "${_S3CMD}" -c ${s3cfg} --force -r get "s3://${source}"/ "${target}"
-    else
-        # fetch manifest file
-        if [ "${_REGION}" == "us-east-1" ]; then
-            host=s3.amazonaws.com
-        else
-            host=s3-${_REGION}.amazonaws.com
-        fi
-        manifest=$(curl -s -f https://${host}/${source}/manifest.txt)
-        if [ "${manifest}" ]; then
-            # fetch each file within manifest file
-            for f in ${manifest}; do
-                mkdir -p "${target}/$(dirname "$f")"
-                if curl -s -f -o ${target}/${f} https://${host}/${source}/${f}; then
-                    echo "Fetched: ${source}/${f}"
-                else
-                    echo "Unable to fetch: ${source}/${f}"
-                fi
-            done
-        else
-            echo "No manifest found for: ${source}"
-        fi
-    fi
-}
-
-_fetch_machine_type() {
-    local bucket prefix
-    bucket="alces-flight-profiles-${_REGION}"
-    prefix="machines/${_MACHINE_TYPE}"
-    echo "Retrieving machine type customizations from: ${bucket}/${prefix}"
-    _fetch_profile "$@" "${bucket}/${prefix}" \
-                   "${cw_CLUSTER_CUSTOMIZER_path}"/machine-${_MACHINE_TYPE}
-}
-
-_fetch_features() {
-    local bucket feature
-    bucket="alces-flight-profiles-${_REGION}"
-    for feature in ${cw_CLUSTER_CUSTOMIZER_features}; do
-        echo "Retrieving feature customizations from: ${bucket}/features/$feature"
-        _fetch_profile "$@" "${bucket}"/features/"${feature}" \
-                       "${cw_CLUSTER_CUSTOMIZER_path}"/feature-${feature}
-    done
-}
-
-_fetch_profiles() {
-    local bucket profile
-    if [ -z "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
-        if network_is_ec2; then
-            bucket="alces-flight-$(network_ec2_hashed_account)"
-        else
-            echo "Unable to determine bucket name for customizations"
-            exit 0
-        fi
-    else
-        bucket="${cw_CLUSTER_CUSTOMIZER_bucket#s3://}"
-    fi
-    for profile in ${cw_CLUSTER_CUSTOMIZER_profiles}; do
-        echo "Retrieving customizations from: ${bucket}/customizer/$profile"
-        _fetch_profile "$@" "${bucket}"/customizer/"${profile}" \
-                       "${cw_CLUSTER_CUSTOMIZER_path}"/profile-${profile}
-    done
-}
-
-_is_s3_access_available() {
-    local s3cfg
-    s3cfg="$1"
-    "${_S3CMD}" -c ${s3cfg} ls "s3://alces-flight-profiles-${_REGION}" 2>/dev/null
-}
-
-_fetch() {
-    local s3cfg
-    ${_ALCES} service install s3cmd
-    s3cfg="$(mktemp /tmp/cluster-customizer.s3cfg.XXXXXXXX)"
-    cat <<EOF > "${s3cfg}"
-[default]
-access_key = "${cw_CLUSTER_CUSTOMIZER_access_key_id}"
-secret_key = "${cw_CLUSTER_CUSTOMIZER_secret_access_key}"
-security_token = ""
-use_https = True
-check_ssl_certificate = True
-EOF
-    if ! _is_s3_access_available "${s3cfg}"; then
-        echo "S3 access is not available.  Falling back to HTTP manifests."
-        rm -f "${s3cfg}"
-        s3cfg=""
-    fi
-    mkdir -p "${cw_CLUSTER_CUSTOMIZER_path}"
-    if [ "${_MACHINE_TYPE}" ]; then
-        _fetch_machine_type "${s3cfg}"
-    fi
-    _fetch_features "${s3cfg}"
-    _fetch_profiles "${s3cfg}"
-    chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}"
-    if [ "${s3cfg}" ]; then
-        rm -f "${s3cfg}"
-    fi
-}
-
-_run_initialize_hooks() {
-    local paths p args a
-    paths="${cw_CLUSTER_CUSTOMIZER_custom_paths}"
-    for p in ${cw_CLUSTER_CUSTOMIZER_path}/*; do
-        paths="${paths} ${p}"
-    done
-    for p in ${paths}; do
-        if [ -d "${p}"/initialize.d ]; then
-            args=()
-            if [ ! -d "${cw_ROOT}"/etc/config ]; then
-                args+=(once)
-            fi
-            for a in "${p}"/initialize.d/*; do
-                if [ -x "$a" -a ! -d "$a" ] && [[ "$a" != *~ ]]; then
-                    echo "Running initialize hook: ${a}"
-                    "${a}" "initialize" "${args[@]}"
-                elif [[ "$a" != *~ ]]; then
-                    echo "Skipping non-executable initialize hook: ${a}"
-                fi
-            done
-        else
-            echo "No initialize hooks found in ${p}"
-        fi
-    done
-}
-
 main() {
     if network_has_metadata_service 1; then
         _setup
-        _fetch
+        ${_ALCES} service install s3cmd
+        customize_fetch
     fi
     _run_initialize_hooks
 }
@@ -239,13 +132,13 @@ setup
 require handler
 require files
 require network
+handler_add_libdir share
+require customize
 
 files_load_config cluster-customizer
 cw_CLUSTER_CUSTOMIZER_path="${cw_CLUSTER_CUSTOMIZER_path:-${cw_ROOT}/var/lib/customizer}"
 cw_CLUSTER_CUSTOMIZER_profiles="${cw_CLUSTER_CUSTOMIZER_profiles:-default}"
 
-_S3CMD="${cw_ROOT}"/opt/s3cmd/s3cmd
 _ALCES="${cw_ROOT}"/bin/alces
-_JQ="${cw_ROOT}"/opt/jq/bin/jq
 
 handler_tee main "$@"

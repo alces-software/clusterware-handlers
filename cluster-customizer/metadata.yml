@@ -38,3 +38,6 @@ install:
     cw_META_customizer_s3path="${cw_CLUSTER_CUSTOMIZER_bucket:-s3://alces-flight-$(network_ec2_hashed_account)}/customizer"
     cw_META_customizer_s3path_desc="Customizer bucket prefix"
     EOF
+
+    cp -p libexec/actions/customize "${cw_ROOT}"/libexec/actions
+    cp -pR libexec/customize "${cw_ROOT}"/libexec

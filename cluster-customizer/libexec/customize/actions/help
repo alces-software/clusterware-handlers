@@ -1,0 +1,135 @@
+#!/bin/bash
+#==============================================================================
+# Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+#
+# This file/package is part of Alces Clusterware.
+#
+# Alces Clusterware is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Affero General Public License
+# as published by the Free Software Foundation, either version 3 of
+# the License, or (at your option) any later version.
+#
+# Alces Clusterware is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this package.  If not, see <http://www.gnu.org/licenses/>.
+#
+# For more information on the Alces Clusterware, please visit:
+# https://github.com/alces-software/clusterware
+#==============================================================================
+require action
+
+main() {
+    action=$1
+    shift
+
+    case $action in
+        help|list|trigger|pull)
+            help_for_${action}
+            ;;
+        ?*)
+            echo "${cw_BINNAME}: no such topic: ${action}"
+            echo ""
+            general_help
+            ;;
+        *)
+            general_help
+            ;;
+    esac
+}
+
+help_for_help() {
+    cat <<EOF
+  SYNOPSIS:
+
+    alces customize help [<command>]
+
+  DESCRIPTION:
+
+    Get help with customize commands.  If no <command> is specified,
+    show some general help.
+
+EOF
+}
+
+help_for_list() {
+    cat <<EOF
+  SYNOPSIS:
+
+    alces handler list [OPTIONS]
+
+  DESCRIPTION:
+
+    Display currently installed customization profiles.
+
+  OPTIONS:
+
+    --with-events
+      Also show which events each profile supports.
+
+EOF
+}
+
+help_for_list() {
+    cat <<EOF
+  SYNOPSIS:
+
+    alces customize pull
+
+  DESCRIPTION:
+
+    Pull customization profiles from upstream bucket(s).
+
+EOF
+}
+
+help_for_trigger() {
+    cat <<EOF
+  SYNOPSIS:
+
+    alces customize trigger [OPTIONS] <event> [<profile>]
+
+  DESCRIPTION:
+
+    Trigger the specified customization <event>.  Optionally specify a
+    specific <profile> for which you want to trigger the <event>.
+
+  OPTIONS:
+
+    -m <member list>
+      For the 'member-join' <event> you may specify a comma-separated
+      list of member names for which the event should be triggered.
+
+EOF
+}
+
+general_help() {
+    local binname
+    binname="${cw_BINNAME% *}"
+    cat <<EOF
+  NAME:
+
+    ${binname}
+
+  DESCRIPTION:
+
+    Customize your compute environment
+
+  COMMANDS:
+
+EOF
+printf "    %-28s  %s\n" "$cw_BINNAME help" "More help about this command."
+printf "    %-28s  %s\n" "$cw_BINNAME list" "List installed customization profiles."
+printf "    %-28s  %s\n" "$cw_BINNAME pull" "Pull updated customization actions from upstream."
+printf "    %-28s  %s\n" "$cw_BINNAME trigger" "Manually trigger customization actions."
+cat <<EOF
+
+Please report bugs to support@alces-software.com
+Alces Software home page: <http://alces-software.com>
+EOF
+}
+
+main "$@"

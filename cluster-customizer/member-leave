@@ -37,17 +37,15 @@ setup() {
 }
 
 main() {
-    local hook_dir
-    hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-    . ${hook_dir}/share/functions.sh
     eval "$(member_parse)"
-    _run_custom_hooks member-leave "${cw_MEMBER_DIR}"/"${cw_MEMBER_name}" \
-                      "${cw_MEMBER_name}" \
-                      "${cw_MEMBER_ip}"
+    customize_run_hooks member-leave "${cw_MEMBER_DIR}"/"${cw_MEMBER_name}" \
+                        "${cw_MEMBER_name}" \
+                        "${cw_MEMBER_ip}"
 }
 
 setup
 require handler
-require member
+handler_add_libdir share
+require customize
 
 handler_tee main "$@"
