@@ -62,6 +62,8 @@ EOF
     if [ "${cw_CLUSTERABLE_manage_ssh_config}" == "true" ]; then
         cat <<EOF >> /etc/ssh/sshd_config
 
+AuthorizedKeysCommand ${cw_ROOT}/libexec/share/clusterware-key-manager
+AuthorizedKeysCommandUser root
 HostbasedAuthentication yes
 IgnoreRhosts no
 EOF

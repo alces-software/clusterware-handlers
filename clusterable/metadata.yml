@@ -240,3 +240,6 @@ install:
     cw_CLUSTERABLE_manage_ssh_config=true
     cw_CLUSTERABLE_cleanup_on_leave=true
     EOF
+
+    cp libexec/clusterware-key-manager "${cw_ROOT}"/libexec/share
+    chmod 0700 "${cw_ROOT}"/libexec/share/clusterware-key-manager
