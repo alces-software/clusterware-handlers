@@ -69,6 +69,20 @@ IgnoreRhosts no
 EOF
         distro_restart_service sshd
     fi
+
+    cat <<'EOF' >> "${cw_ROOT}"/etc/meta.rc
+shopt -s nullglob
+for metafile in "${cw_ROOT}"/etc/meta.d/*; do
+  . "$metafile"
+done
+shopt -u nullglob
+cw_META_aws_account_hash_desc="Account hash"
+cw_META_aws_account_hash="${cw_META_aws_account_hash}"
+cw_META_network_public_ip_address_desc="Public IP address"
+cw_META_network_public_ip_address="${cw_META_network_public_ip_address}"
+cw_META_network_platform_host_name_desc="Platform host name"
+cw_META_network_platform_host_name="${cw_META_network_platform_host_name}"
+EOF
 }
 
 _preconfigure_master() {
@@ -225,12 +239,32 @@ _configure_hyperthreading() {
     esac
 }
 
+_write_metadata() {
+    mkdir -p "${cw_ROOT}"/etc/meta.d
+    if network_has_metadata_service 1; then
+        cat <<EOF > "${cw_ROOT}"/etc/meta.d/network.rc
+cw_META_network_platform_host_name="$(network_get_public_hostname)"
+cw_META_network_public_ip_address="$(network_get_public_address)"
+EOF
+        if network_is_ec2; then
+            echo "cw_META_aws_account_hash=\"$(network_ec2_hashed_account)\"" > "${cw_ROOT}"/etc/meta.d/aws.rc
+        fi
+    else
+        hn="$(network_get_public_hostname 0)"
+        if [ "${hn}" ]; then
+            echo "cw_META_network_platform_host_name=\"${hn}\"" > "${cw_ROOT}"/etc/meta.d/network.rc
+        fi
+        echo "cw_META_network_public_ip_address=\"$(network_get_public_address)\"" >> "${cw_ROOT}"/etc/meta.d/network.rc
+    fi
+}
+
 _preconfigure_boot() {
     files_load_config instance config/cluster
     # Purge any known existing members in advance of rejoining the
     # cluster service ring.
     _member_purge
     _configure_hyperthreading
+    _write_metadata
 }
 
 main() {
