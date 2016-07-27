@@ -31,7 +31,7 @@ main() {
     # We're autoscaling so we need to add some dummy nodes to
     # represent the scaling group otherwise we're unable to scale-out.
     # Block traffic between 169.254.64.0 -> 169.254.67.255
-    iptables -I OUTPUT 1 -d 169.254.64.0/22 -j DROP
+    handler_iptables_insert OUTPUT -d 169.254.64.0/22 -j DROP
     LD_LIBRARY_PATH="${cw_ROOT}"/opt/torque/lib:$LD_LIBRARY_PATH
     for a in $(seq 1 ${group_maxsize}); do
         dummy_name=autoscaling-slot-${group}-$a
