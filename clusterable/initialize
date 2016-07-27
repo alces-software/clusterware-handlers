@@ -23,10 +23,18 @@ setup() {
 
 main() {
     "${cw_ROOT}"/libexec/share/nologin-control enable
+    if network_has_metadata_service; then
+        handler_iptables_insert OUTPUT -d 169.254.169.254 \
+                                -m owner \
+                                ! --uid-owner root \
+                                ! --gid-owner wheel \
+                                -j DROP
+    fi
 }
 
 setup
 
 require handler
+require network
 
 handler_tee main "$@"
