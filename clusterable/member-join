@@ -25,7 +25,7 @@ _update_ssh_shosts() {
     local ip
     ip="$1"
     if [ "${cw_CLUSTERABLE_manage_ssh_config}" == "true" ]; then
-        if ! grep -q "^${ip}$" /root/.shosts; then
+        if ! grep -q "^${ip}$" /root/.shosts 2>/dev/null; then
             echo "Adding IP address to shosts: $ip"
             echo "${ip}" >> /root/.shosts
         fi
@@ -37,7 +37,7 @@ _update_ssh_known_hosts() {
     ip="$1"
     if [ "${cw_CLUSTERABLE_manage_ssh_host_keys}" == "true" ]; then
         ssh_host_names="$(getent hosts ${ip} | tr -s ' ' ',')"
-        if ! grep -q "^${ssh_host_names} " /etc/ssh/ssh_known_hosts; then
+        if ! grep -q "^${ssh_host_names} " /etc/ssh/ssh_known_hosts 2>/dev/null; then
             echo "Adding SSH host keys for: $ip"
             ssh-keyscan "${ssh_host_names}" >> /etc/ssh/ssh_known_hosts
         fi
