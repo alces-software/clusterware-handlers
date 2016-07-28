@@ -83,7 +83,11 @@ customize_run_hooks() {
 
 customize_set_region() {
     if [ -z "${_REGION}" ]; then
-        eval $(network_fetch_ec2_document | "${cw_ROOT}"/opt/jq/bin/jq -r '"_REGION=\(.region)"')
+        if network_is_ec2; then
+            eval $(network_fetch_ec2_document | "${cw_ROOT}"/opt/jq/bin/jq -r '"_REGION=\(.region)"')
+        else
+            _REGION="${cw_CLUSTER_CUSTOMIZER_region:-eu-west-1}"
+        fi
     fi
 }
 
@@ -103,10 +107,10 @@ customize_fetch_profile() {
         "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --force -r get "s3://${source}"/ "${target}"
     else
         # fetch manifest file
-        if [ "${_REGION}" == "us-east-1" ]; then
+        if [ "${cw_CLUSTER_CUSTOMIZER_region:-eu-west-1}" == "us-east-1" ]; then
             host=s3.amazonaws.com
         else
-            host=s3-${_REGION}.amazonaws.com
+            host=s3-${cw_CLUSTER_CUSTOMIZER_region:-eu-west-1}.amazonaws.com
         fi
         manifest=$(curl -s -f https://${host}/${source}/manifest.txt)
         if [ "${manifest}" ] && ! echo "${manifest[*]}" | grep -q '<Error>'; then
@@ -127,19 +131,29 @@ customize_fetch_profile() {
 
 customize_fetch_machine_type() {
     local bucket prefix
+    s3cfg=$1
     bucket="alces-flight-profiles-${_REGION}"
+    if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
+        echo "S3 access to '${bucket}' is not available.  Falling back to HTTP manifests."
+        s3cfg=""
+    fi
     prefix="machines/${_MACHINE_TYPE}"
     echo "Retrieving machine type customizations from: ${bucket}/${prefix}"
-    customize_fetch_profile "$@" "${bucket}/${prefix}" \
+    customize_fetch_profile "${s3cfg}" "${bucket}/${prefix}" \
                             "${cw_CLUSTER_CUSTOMIZER_path}"/machine-${_MACHINE_TYPE}
 }
 
 customize_fetch_features() {
-    local bucket feature
+    local bucket feature s3cfg
+    s3cfg=$1
     bucket="alces-flight-profiles-${_REGION}"
+    if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
+        echo "S3 access to '${bucket}' is not available.  Falling back to HTTP manifests."
+        s3cfg=""
+    fi
     for feature in ${cw_CLUSTER_CUSTOMIZER_features}; do
         echo "Retrieving feature customizations from: ${bucket}/features/$feature"
-        customize_fetch_profile "$@" "${bucket}"/features/"${feature}" \
+        customize_fetch_profile "${s3cfg}" "${bucket}"/features/"${feature}" \
                                 "${cw_CLUSTER_CUSTOMIZER_path}"/feature-${feature}
     done
 }
@@ -156,17 +170,22 @@ customize_fetch_profiles() {
     else
         bucket="${cw_CLUSTER_CUSTOMIZER_bucket#s3://}"
     fi
+    if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
+        echo "S3 access to '${bucket}' is not available.  Falling back to HTTP manifests."
+        s3cfg=""
+    fi
     for profile in ${cw_CLUSTER_CUSTOMIZER_profiles}; do
         echo "Retrieving customizations from: ${bucket}/customizer/$profile"
-        customize_fetch_profile "$@" "${bucket}"/customizer/"${profile}" \
+        customize_fetch_profile "${s3cfg}" "${bucket}"/customizer/"${profile}" \
                                 "${cw_CLUSTER_CUSTOMIZER_path}"/profile-${profile}
     done
 }
 
 customize_is_s3_access_available() {
-    local s3cfg
+    local s3cfg bucket
     s3cfg="$1"
-    "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} ls "s3://alces-flight-profiles-${_REGION}" 2>/dev/null
+    bucket="$2"
+    "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} ls "s3://${bucket}" 2>/dev/null
 }
 
 customize_fetch() {
@@ -181,11 +200,6 @@ security_token = ""
 use_https = True
 check_ssl_certificate = True
 EOF
-    if ! customize_is_s3_access_available "${s3cfg}"; then
-        echo "S3 access is not available.  Falling back to HTTP manifests."
-        rm -f "${s3cfg}"
-        s3cfg=""
-    fi
     mkdir -p "${cw_CLUSTER_CUSTOMIZER_path}"
     customize_set_machine_type
     if [ "${_MACHINE_TYPE}" ]; then
@@ -194,7 +208,5 @@ EOF
     customize_fetch_features "${s3cfg}"
     customize_fetch_profiles "${s3cfg}"
     chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}"
-    if [ "${s3cfg}" ]; then
-        rm -f "${s3cfg}"
-    fi
+    rm -f "${s3cfg}"
 }
