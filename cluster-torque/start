@@ -35,7 +35,7 @@ main() {
         sleep 2
         log "Starting TORQUE scheduler"
         distro_start_service clusterware-torque-sched
-        files_unlock cluster-torque
+        files_unlock
     fi
 }
 

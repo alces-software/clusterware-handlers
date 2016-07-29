@@ -45,7 +45,7 @@ main() {
                 break
             fi
         done
-        files_unlock cluster-pbspro
+        files_unlock
     fi
 }
 
