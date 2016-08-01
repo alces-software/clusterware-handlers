@@ -23,6 +23,7 @@ setup() {
 
 _setup_certs() {
     local hook_dir
+    export HOME="${HOME:-/root}"
     openssl dhparam -out "${cw_ROOT}"/etc/openvpn/clusterware/dh1024.pem -2 1024
     hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
     ruby_exec "${hook_dir}"/share/generate-certs "${cw_CLUSTER_name:-mycluster}" \
