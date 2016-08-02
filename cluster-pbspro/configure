@@ -30,6 +30,9 @@ PBS_HOME=/var/spool/pbs
 PBS_CORE_LIMIT=unlimited
 PBS_SCP=/bin/scp
 EOF
+    if distro_is ubuntu1604; then
+        echo 'PATH=/usr/lib/postgresql/9.5/bin:$PATH' >> "${cw_ROOT}"/opt/pbspro/etc/pbs.conf
+    fi
     export PBS_CONF_FILE="${cw_ROOT}"/opt/pbspro/etc/pbs.conf
     export PBS_START_SERVER=1
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
@@ -89,6 +92,7 @@ require handler
 require files
 require log
 require network
+require distro
 
 _ALCES="${cw_ROOT}"/bin/alces
 

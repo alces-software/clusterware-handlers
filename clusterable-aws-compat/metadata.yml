@@ -12,5 +12,7 @@ install:
     yum install -y -e0 bind-utils
   el7: |
     yum install -y -e0 bind-utils
+  ubuntu1604: |
+    apt-get install -y dnsutils
   _: |
     alces service install aws

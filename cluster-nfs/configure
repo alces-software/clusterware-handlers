@@ -27,12 +27,12 @@ main() {
     if [ "${cw_INSTANCE_role}" == "master" ]; then
         distro_enable_service rpcbind
         distro_start_service rpcbind
-        if distro_is el7; then
-            distro_enable_service nfs-server
-            distro_start_service nfs-server
-        else
+        if distro_is el6; then
             distro_enable_service nfs
             distro_start_service nfs
+        else
+            distro_enable_service nfs-server
+            distro_start_service nfs-server
         fi
     elif [ "${cw_INSTANCE_role}" == "slave" ]; then
         distro_enable_service rpcbind

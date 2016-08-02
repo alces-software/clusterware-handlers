@@ -24,7 +24,7 @@ setup() {
 _openvpn_service_name() {
     local name
     name='clusterware-openvpn'
-    if distro_is el7; then
+    if distro_is el7 || distro_is ubuntu1604; then
 	name=${name}@clusterware
     fi
     echo "${name}"

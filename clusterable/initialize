@@ -22,12 +22,18 @@ setup() {
 }
 
 main() {
+    local admin_group
+    if distro_is "ubuntu1604"; then
+        admin_group=sudo
+    else
+        admin_group=wheel
+    fi
     "${cw_ROOT}"/libexec/share/nologin-control enable
     if network_has_metadata_service; then
         handler_iptables_insert OUTPUT -d 169.254.169.254 \
                                 -m owner \
                                 ! --uid-owner root \
-                                ! --gid-owner wheel \
+                                ! --gid-owner ${admin_group} \
                                 -j DROP
     fi
 }
@@ -36,5 +42,6 @@ setup
 
 require handler
 require network
+require distro
 
 handler_tee main "$@"

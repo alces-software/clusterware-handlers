@@ -4,6 +4,8 @@ install:
     yum install -y -e0 nfs-utils
   el7: |
     yum install -y -e0 nfs-utils
+  ubuntu1604: |
+    apt-get install -y nfs-kernel-server nfs-common
   _: |
     require files
     files_load_config clusterware

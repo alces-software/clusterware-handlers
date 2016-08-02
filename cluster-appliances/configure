@@ -55,13 +55,13 @@ _fulfil_appliance_role() {
             echo "Unable to start Flight appliance service: ${role}"
         fi
 
-        if [ "${role}" == "access" ]; then
-            if distro_start_service clusterware-alces-websocket-proxy; then
-                echo "Alces Websocket Proxy service started"
-            else
-                echo "Unable to start Alces Websocket Proxy"
-            fi
-        fi
+        # if [ "${role}" == "access" ]; then
+        #     if distro_start_service clusterware-alces-websocket-proxy; then
+        #         echo "Alces Websocket Proxy service started"
+        #     else
+        #         echo "Unable to start Alces Websocket Proxy"
+        #     fi
+        # fi
    fi
 }
 

@@ -25,6 +25,13 @@ install:
     EOF
     )"
     distro_postamble="unset -f _cw_distro"
+  ubuntu1604: |
+    distro_preamble="$(cat <<'EOF'
+    _cw_distro() {
+      grep ^DISTRIB_DESCRIPTION /etc/lsb-release | cut -f2 -d'"'
+    }
+    EOF
+    )"
   _: |
     cat <<EOF > ${cw_ROOT}/etc/profile.d/10-clusterable.sh
     ################################################################################
