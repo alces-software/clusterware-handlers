@@ -1,5 +1,11 @@
 ---
 install:
+  el7:
+    yum install -y zip
+  el6:
+    yum install -y zip
+  ubuntu1604:
+    apt-get install -y zip
   _: |
     require files
     files_load_config clusterware

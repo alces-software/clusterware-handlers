@@ -1,0 +1,9 @@
+location ~ ^/vpn/downloads/ {
+  auth_basic "Clusterware VPN access token";
+  auth_basic_user_file _ROOT_/etc/alces-flight-www/auth/cluster-vpn.auth;
+  autoindex on;
+}
+
+location ~ ^/vpn/ {
+  disable_symlinks off;
+}

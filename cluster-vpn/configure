@@ -25,12 +25,13 @@ _setup_certs() {
     local hook_dir
     export HOME="${HOME:-/root}"
     openssl dhparam -out "${cw_ROOT}"/etc/openvpn/clusterware/dh1024.pem -2 1024
-    hook_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-    ruby_exec "${hook_dir}"/share/generate-certs "${cw_CLUSTER_name:-mycluster}" \
+    ruby_exec "$(handler_dir)"/share/generate-certs "${cw_CLUSTER_name:-mycluster}" \
       "${cw_ROOT}/etc/openvpn/clusterware"
 }
 
 main() {
+    local dir tblk_name password
+
     # Bail out if we're already configured (this is a reboot)
     if [ -d "${cw_ROOT}/etc/config/cluster-vpn" ]; then
         exit 0
@@ -41,11 +42,41 @@ main() {
     files_load_config instance config/cluster
 
     if [[ "${cw_INSTANCE_role}" == "master" ]]; then
-	"${cw_ROOT}"/bin/alces service enable openvpn
-	files_load_config config config/cluster
-	_setup_certs
-	cp "${cw_ROOT}"/etc/openvpn/clusterware/ca.crt.pem "${cw_ROOT}"/etc/openvpn/client/clusterware
-	mv "${cw_ROOT}"/etc/openvpn/clusterware/client.*.pem "${cw_ROOT}"/etc/openvpn/client/clusterware
+        "${cw_ROOT}"/bin/alces service enable openvpn
+        files_load_config config config/cluster
+        _setup_certs
+        cp "${cw_ROOT}"/etc/openvpn/clusterware/ca.crt.pem "${cw_ROOT}"/etc/openvpn/client/clusterware
+        mv "${cw_ROOT}"/etc/openvpn/clusterware/client.*.pem "${cw_ROOT}"/etc/openvpn/client/clusterware
+        cd "${cw_ROOT}"/etc/openvpn/client
+        tar czf clusterware-openvpn.tar.gz clusterware
+        zip -r clusterware-openvpn.zip clusterware
+
+        tblk_name="Alces Clusterware - ${cw_CLUSTER_name}".tblk
+        mkdir /tmp/"${tblk_name}"
+        cp -R clusterware/* /tmp/"${tblk_name}"
+        cd /tmp
+        zip -r "${cw_ROOT}"/etc/openvpn/client/clusterware-tunnelblick.zip "${tblk_name}"
+        rm -rf "${tblk_name}"
+
+        dir="$(handler_dir)"
+        cp "${dir}"/etc/meta.vpn.rc "${cw_ROOT}"/etc/meta.d/vpn.rc
+
+        # If alces-flight-www service is enabled we add in config so requests to
+        # `/vpn/` will provide access to the VPN configuration files.
+        if serviceware_is_installed alces-flight-www; then
+            files_load_config alces-flight-www
+            sed -e "s,_ROOT_,${cw_ROOT},g" \
+                "${dir}"/etc/alces-flight-www/cluster-vpn.conf.template > \
+                "${cw_ROOT}"/etc/alces-flight-www/server-https.d/cluster-vpn.conf
+            mkdir -p "${cw_ROOT}"/etc/alces-flight-www/auth
+            password=$(dd if=/dev/urandom bs=20 count=1 2>/dev/null | base64 | tr '/+' '_' | cut -c1-10)
+            echo "vpn:$(echo "${password}" | openssl passwd -stdin)" > \
+                 "${cw_ROOT}"/etc/alces-flight-www/auth/cluster-vpn.auth
+            echo "cw_CLUSTER_VPN_access_password=\"${password}\"" >> "${cw_ROOT}"/etc/cluster-vpn.rc
+
+            cp -R "${dir}"/var/alces-flight-www/vpn "${cw_ROOT}/var/lib/alces-flight-www/default/vpn"
+            ln -s "${cw_ROOT}"/etc/openvpn/client "${cw_ROOT}/var/lib/alces-flight-www/default/vpn/downloads"
+        fi
     fi
 }
 
@@ -53,6 +84,7 @@ setup
 require handler
 require ruby
 require files
+require serviceware
 
 files_load_config clusterware
 case "${cw_VERSION:-1.0.0}" in
