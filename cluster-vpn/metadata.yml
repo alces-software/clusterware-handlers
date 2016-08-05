@@ -33,6 +33,9 @@ install:
     # set cw_CLUSTER_VPN_auth to 'cert' for certificate-based
     # authentication, or 'pam' for password authentication.
     cw_CLUSTER_VPN_auth=cert
+    # Set cw_CLUSTER_VPN_setup_www to non-true to disable installation
+    # and configuration of the alces-flight-www service. Enabled by
+    # default.
     EOF
 
     mkdir -p "${cw_ROOT}"/etc/openvpn/clusterware \

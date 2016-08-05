@@ -1,0 +1,12 @@
+---
+title: Clusterware VPN
+short_title: VPN
+paras:
+  - >
+    Your cluster has been configured with a VPN endpoint, which allows
+    you to securely access and share resources such as interactive
+    sessions.
+  - >
+    You can find information and downloads to configure VPN access on
+    your platform by visting the <a href="vpn/">VPN configuration
+    page</a>.
