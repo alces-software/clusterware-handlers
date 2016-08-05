@@ -63,7 +63,12 @@ main() {
 setup
 
 require network
+require distro
 
-_ADMIN_GROUP=wheel
+if distro_is el7 || distro_is el6; then
+    _ADMIN_GROUP=wheel
+else
+    _ADMIN_GROUP=sudo
+fi
 
 main "$@"
