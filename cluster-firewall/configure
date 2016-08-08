@@ -28,7 +28,7 @@ main() {
         if [ -f "$a" ]; then
             echo "Loading ruleset: $(basename ${a})"
             . "$a"
-            for b in "${cw_CLUSTER_FIREWALL_rules}"; do
+            for b in ${cw_CLUSTER_FIREWALL_rules}; do
                 echo "Adding static rule: ${b}"
                 rule_var="cw_CLUSTER_FIREWALL_rule_${b}"
                 rule_args=(${!rule_var})
