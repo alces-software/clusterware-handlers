@@ -48,8 +48,8 @@ main() {
             mkdir -p "${clusterware_key_dir}"
             touch "${access_key}"
             chmod 0600 "${access_key}"
-            chown ${username} "${access_key}"
             network_fetch_ec2_metadata public-keys/0/openssh-key > "${access_key}"
+            chown -R ${username} "${clusterware_key_dir}"
         fi
     fi
 
