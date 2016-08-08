@@ -75,7 +75,7 @@ EOF
 _update_network_conf() {
     local cluster_network
     if network_is_ec2; then
-        cluster_network=$(network_get_ec2_vpc_cdr_block)
+        cluster_network=$(network_get_ec2_vpc_cidr_block)
     else
         cluster_network="$(network_get_iface_network ${cw_CLUSTER_VPN_cluster_intf})"
     fi

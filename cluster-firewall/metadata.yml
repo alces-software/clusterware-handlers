@@ -35,7 +35,7 @@ install:
     if [ "$cw_INSTANCE_role" == "master" ]; then
       require network
       if network_is_ec2; then
-        cluster_network=$(network_get_ec2_vpc_cdr_block)
+        cluster_network=$(network_get_ec2_vpc_cidr_block)
       else
         require files
         files_load_config config config/cluster
