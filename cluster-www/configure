@@ -33,7 +33,7 @@ _handle_port() {
             # update alces-flight-www config
             sed -i "s/^#?cw_ALCES_FLIGHT_WWW_${scheme}_port=.*/cw_ALCES_FLIGHT_WWW_${scheme}_port=${port}/g"
         fi
-        handler_iptables_insert INPUT -p tcp --dport $port -j ACCEPT
+        handler_iptables_insert INPUT -p tcp --dport $port -j ACCEPT 1>&2
     else
         port=""
     fi
