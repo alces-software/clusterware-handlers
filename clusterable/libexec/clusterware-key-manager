@@ -49,7 +49,7 @@ main() {
             touch "${access_key}"
             chmod 0600 "${access_key}"
             network_fetch_ec2_metadata public-keys/0/openssh-key > "${access_key}"
-            chown -R ${username} "${clusterware_key_dir}"
+            chown -R ${username} "${userhome}"/.config
         fi
     fi
 
