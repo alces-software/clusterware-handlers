@@ -37,6 +37,26 @@ puts config['${key}'] || '${default_value}'
 RUBY
 }
 
+_write_iam_role_credentials() {
+    local role_doc key_id secret_key security_token expiry_time
+    if [ "${cw_INSTANCE_role}" == "master" ]; then
+        role_doc="$(network_fetch_ec2_metadata iam/security-credentials/MasterIAM)"
+    else
+        role_doc="$(network_fetch_ec2_metadata iam/security-credentials/ComputeIAM)"
+    fi
+    if [ "${role_doc}" ]; then
+        eval $(echo "${role_doc}" | \
+                      ${_JQ} -r \
+                             '"key_id=\(.AccessKeyId)"','"secret_key=\(.SecretAccessKey)"','"security_token=\(.Token)"','"expiry_time=\(.Expiration)"')
+        cat <<EOF > "${cw_ROOT}"/etc/config/cluster/instance-aws-iam.rc
+cw_INSTANCE_aws_iam_role_access_key_id="${key_id}"
+cw_INSTANCE_aws_iam_role_secret_access_key="${secret_key}"
+cw_INSTANCE_aws_iam_role_security_token="${security_token}"
+cw_INSTANCE_aws_iam_role_expiry_time="${expiry_time}"
+EOF
+    fi
+}
+
 _preconfigure_node() {
     local autoscaling machine_type tags
     if network_is_ec2; then
@@ -54,6 +74,8 @@ cw_INSTANCE_aws_autoscaling="${autoscaling}"
 cw_INSTANCE_aws_machinetype="${machine_type}"
 cw_INSTANCE_aws_account_hash="$(network_ec2_hashed_account)"
 EOF
+        _write_iam_role_credentials
+
         cp "$(handler_dir)"/etc/meta.aws.rc "${cw_ROOT}"/etc/meta.d/aws.rc
         tags=(tags[aws_instanceid]=${instanceid})
         tags+=(tags[aws_machinetype]=${machine_type})
