@@ -119,11 +119,29 @@ _setup() {
     fi
 }
 
+_wait_for_internet() {
+    local c
+    c=0
+    while ! ping -c1 -w1 8.8.8.8 &>/dev/null; do
+        c=$(($c+1))
+        if [ "$c" -gt 49 ]; then
+            echo "Giving up after 50 attempts."
+            return 1
+        fi
+        echo "No access to Internet available; will retry in 5s (attempt ${c}/50)"
+        sleep 5
+    done
+}
+
 main() {
     if network_has_metadata_service 1; then
         _setup
-        ${_ALCES} service install s3cmd
-        customize_fetch
+        if _wait_for_internet; then
+            ${_ALCES} service install s3cmd
+            customize_fetch
+        else
+            echo "WARNING! No access to download customizations, no customization will occur."
+        fi
     fi
     _run_initialize_hooks
 }
