@@ -23,15 +23,24 @@ setup() {
 
 _configure_gridscheduler() {
     echo "Configuring GridScheduler"
+    handler_add_libdir "${cw_ROOT}"/var/lib/scheduler
+    require gridscheduler
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
         echo "Instance is GridScheduler qmaster"
         "${cw_ROOT}"/bin/alces service enable gridscheduler/qmaster
+        files_load_config --optional scheduler config/cluster
+        if [ "${cw_SCHEDULER_allocation}" ]; then
+            echo "Setting initial allocation strategy to: ${cw_SCHEDULER_allocation}"
+            gridscheduler_set_allocation_strategy "${cw_SCHEDULER_allocation}"
+        fi
+        if [ "${cw_SCHEDULER_submission}" ]; then
+            echo "Setting initial submission strategy to: ${cw_SCHEDULER_submission}"
+            gridscheduler_set_submission_strategy "${cw_SCHEDULER_submission}"
+        fi
     fi
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
         echo "Instance is GridScheduler exec host"
         "${cw_ROOT}"/bin/alces service enable gridscheduler/execd
-        handler_add_libdir "${cw_ROOT}"/var/lib/scheduler
-        require gridscheduler
         gridscheduler_write_node_resources "${cw_ROOT}/etc/serf/tags-node-resources.json"
     fi
 }

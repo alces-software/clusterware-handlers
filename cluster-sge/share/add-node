@@ -66,6 +66,8 @@ if ! qconf -Ae "${tmpfile}"; then
     if [ "${cw_CLUSTER_SGE_reconfigure_on_join}" == "true" ]; then
         qconf -Me "${tmpfile}"
     fi
+elif [ "${cw_CLUSTER_SGE_submission}" == "all" ]; then
+    qconf -as "${name}"
 fi
 
 if [ "${cw_CLUSTER_SGE_hostgroup_strategy}" != "skip" ]; then
