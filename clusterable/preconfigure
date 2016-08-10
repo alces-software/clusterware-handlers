@@ -232,6 +232,11 @@ if config['hyperthreading']
 end
 write_file('instance.vars.sh', instance_vars.join("\n"))
 write_file('instance.rc', instance_vars.join("\n"))
+
+scheduler_vars = (config['scheduler'] || {}).map do |k,v|
+  %(cw_SCHEDULER_#{k.to_s}="#{v}")
+end
+write_file('scheduler.rc', scheduler_vars.join("\n"))
 RUBY
 }
 
