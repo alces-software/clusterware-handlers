@@ -22,13 +22,9 @@ setup() {
 }
 
 _refresh_iam_role_credentials() {
-    local role_doc key_id secret_key security_token expiry_time
-    files_load_config instance config/cluster
-    if [ "${cw_INSTANCE_role}" == "master" ]; then
-        role_doc="$(network_fetch_ec2_metadata iam/security-credentials/MasterIAM)"
-    else
-        role_doc="$(network_fetch_ec2_metadata iam/security-credentials/ComputeIAM)"
-    fi
+    local role_names role_doc key_id secret_key security_token expiry_time
+    role_names=($(network_fetch_ec2_metadata iam/security-credentials/))
+    role_doc="$(network_fetch_ec2_metadata iam/security-credentials/${role_names[0]})"
     eval $(echo "${role_doc}" | \
                   ${_JQ} -r \
                          '"key_id=\(.AccessKeyId)"','"secret_key=\(.SecretAccessKey)"','"security_token=\(.Token)"','"expiry_time=\(.Expiration)"')

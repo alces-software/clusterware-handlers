@@ -38,12 +38,9 @@ RUBY
 }
 
 _write_iam_role_credentials() {
-    local role_doc key_id secret_key security_token expiry_time
-    if [ "${cw_INSTANCE_role}" == "master" ]; then
-        role_doc="$(network_fetch_ec2_metadata iam/security-credentials/MasterIAM)"
-    else
-        role_doc="$(network_fetch_ec2_metadata iam/security-credentials/ComputeIAM)"
-    fi
+    local role_names role_doc key_id secret_key security_token expiry_time
+    role_names=($(network_fetch_ec2_metadata iam/security-credentials/))
+    role_doc="$(network_fetch_ec2_metadata iam/security-credentials/${role_names[0]})"
     if [ "${role_doc}" ]; then
         eval $(echo "${role_doc}" | \
                       ${_JQ} -r \
@@ -93,6 +90,10 @@ IgnoreRhosts no
 EOF
         distro_restart_service sshd
     fi
+
+    if [[ "$cw_DIST" == "el"* ]]; then
+        yum makecache
+    fi
 }
 
 _preconfigure_master() {
@@ -116,10 +117,6 @@ _preconfigure_master() {
 Host *
   HostbasedAuthentication yes
 EOF
-    fi
-
-    if [[ "$cw_DIST" == "el"* ]]; then
-        yum makecache
     fi
 }
 
