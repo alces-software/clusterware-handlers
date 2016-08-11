@@ -212,6 +212,21 @@ if config['interface']
 end
 cluster_vars << %(cw_CLUSTER_quorum="#{config['quorum'] || 1}")
 cluster_vars << %(cw_CLUSTER_service_url="#{config['service_url']}")
+
+# add rest of unknown vars in as cluster vars
+known_keys =
+  ['master','uuid','interface','tags','token',
+   'name','quorum','service_url','hyperthreading',
+   'scheduler','log','identity']
+config.each do |k,v|
+  unless known_keys.include?(k) || Hash === v
+    if Array === v
+      cluster_vars << %(cw_CLUSTER_#{k}=(#{v.map{|o|%("#{o}")}.join(" ")}))
+    else
+      cluster_vars << %(cw_CLUSTER_#{k}="#{v}")
+    end
+  end
+end
 write_file('cluster.vars.sh', cluster_vars.join("\n"))
 write_file('config.rc', cluster_vars.join("\n"))
 

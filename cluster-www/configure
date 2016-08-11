@@ -41,6 +41,9 @@ _handle_port() {
 }
 
 _update_dynamic_values() {
+    local host
+    files_load_config --optional access
+    host="${cw_ACCESS_fqdn:-$(network_get_public_hostname)}"
     # dynamic values (per-boot)
     sed -i -e "s,<!-- _HOSTNAME_ -->.*<!-- /_HOSTNAME_ -->,<!-- _HOSTNAME_ -->$(network_get_public_hostname)<!-- /_HOSTNAME_ -->,g" \
         -e "s,<!-- _IP_ -->.*<!-- /_IP_ -->,<!-- _IP_ -->$(network_get_public_address)<!-- /_IP_ -->,g" \
@@ -65,7 +68,13 @@ main() {
         return 0
     fi
 
+    files_load_config config config/cluster
     files_load_config alces-flight-www
+    if [ -z "${cw_ALCES_FLIGHT_WWW_ssl_strategy}" -a "${cw_CLUSTER_host_naming}" == "allocate" ]; then
+        sed -i -e 's/^#cw_ALCES_FLIGHT_WWW_ssl_strategy=.*/cw_ALCES_FLIGHT_WWW_ssl_strategy=allocate/g' \
+            "${cw_ROOT}"/etc/alces-flight-www.rc
+    fi
+
     # if there's already a server listening on the port(s) that
     # alces-flight-www is configured for, try a couple of different
     # ports.
@@ -85,6 +94,14 @@ main() {
         https_port=""
     fi
 
+    # Enable the component
+    ${_ALCES} service enable alces-flight-www
+    # We manually deal with this service via the handler, so disable
+    # it from automatic startup.
+    distro_disable_service clusterware-alces-flight-www
+
+    files_load_config --optional access
+
     # Add access info to www metadata file
     cat <<EOF > "${cw_ROOT}"/etc/meta.d/www.rc
 : '
@@ -98,7 +115,7 @@ main() {
 ##
 ################################################################################
 EOF
-    host="$(network_get_public_hostname)"
+    host="${cw_ACCESS_fqdn:-$(network_get_public_hostname)}"
     if [ "${cw_ALCES_FLIGHT_WWW_https_enabled:-true}" == "true" ]; then
         echo "cw_META_www_https_desc=\"HTTPS access point\"" >> "${cw_ROOT}"/etc/meta.d/www.rc
         echo "cw_META_www_https=\"https://${host}${https_port}/\"" >> "${cw_ROOT}"/etc/meta.d/www.rc
@@ -107,12 +124,6 @@ EOF
         echo "cw_META_www_http_desc=\"HTTP access point\"" >> "${cw_ROOT}"/etc/meta.d/www.rc
         echo "cw_META_www_http=\"http://${host}${http_port}/\"" >> "${cw_ROOT}"/etc/meta.d/www.rc
     fi
-
-    # Enable the component
-    ${_ALCES} service enable alces-flight-www
-    # We manually deal with this service via the handler, so disable
-    # it from automatic startup.
-    distro_disable_service clusterware-alces-flight-www
 
     # override the default document root to point to flight website
     if [ -f "${cw_ROOT}"/etc/alces-flight-www/server-http.d/document-root.conf ]; then
@@ -125,7 +136,6 @@ EOF
     fi
 
     # Update the site with configuration values
-    files_load_config config config/cluster
     files_load_config clusterware
 
     sed -i -e "s,_CLUSTERNAME_,${cw_CLUSTER_name},g" \
