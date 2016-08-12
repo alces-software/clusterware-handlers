@@ -52,6 +52,7 @@ setup
 
 require handler
 require files
+require network
 
 _JQ="${cw_ROOT}"/opt/jq/bin/jq
 
