@@ -45,7 +45,7 @@ _update_dynamic_values() {
     files_load_config --optional access
     host="${cw_ACCESS_fqdn:-$(network_get_public_hostname)}"
     # dynamic values (per-boot)
-    sed -i -e "s,<!-- _HOSTNAME_ -->.*<!-- /_HOSTNAME_ -->,<!-- _HOSTNAME_ -->$(network_get_public_hostname)<!-- /_HOSTNAME_ -->,g" \
+    sed -i -e "s,<!-- _HOSTNAME_ -->.*<!-- /_HOSTNAME_ -->,<!-- _HOSTNAME_ -->${host}<!-- /_HOSTNAME_ -->,g" \
         -e "s,<!-- _IP_ -->.*<!-- /_IP_ -->,<!-- _IP_ -->$(network_get_public_address)<!-- /_IP_ -->,g" \
         "${cw_ROOT}"/var/lib/alces-flight-www/flight/index.html
 
