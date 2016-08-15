@@ -72,7 +72,7 @@ install:
                 eval $(egrep '^cw_INSTANCE_tag_CLUSTER_ROLES=' "${cw_ROOT}"/etc/config/cluster/instance.rc)
                 cw_CLUSTER_name="${cw_CLUSTER_name:-${cw_CLUSTER_uuid}}"
                 if [ "$cw_INSTANCE_role" == "master" ] || [[ "${cw_INSTANCE_tag_CLUSTER_ROLES}" == *":login:"* ]]; then
-                  PS1="[\u@\h\[\e[1;34m\](${cw_CLUSTER_name})\[\e[0m\] \W]\\$ "
+                  PS1="[\u@\h\[\e[38;5;68m\](${cw_CLUSTER_name})\[\e[0m\] \W]\\$ "
                 else
                   PS1="[\u@\h\[\e[48;5;17;38;5;33m\](${cw_CLUSTER_name})\[\e[0m\] \W]\\$ "
                 fi
