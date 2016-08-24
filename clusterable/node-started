@@ -29,9 +29,11 @@ _signal_ready() {
         args+=(Reason="Configuration complete")
         args+=(UniqueId="$(uuid)")
         args+=(Data="Configuration complete at $(date +%Y-%m-%dT%H:%M:%S%z)")
-        curl -X PUT -H 'Content-Type:' \
+        if ! curl -sS -X PUT -H 'Content-Type:' \
              --data-binary "$(${_JO} "${args[@]}")" \
              "${cw_CLUSTER_aws_signal_url}"
+           echo "ERROR: unable to send notification ($?)"
+        fi
     fi
 }
 
