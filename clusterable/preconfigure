@@ -92,7 +92,8 @@ EOF
     fi
 
     if [[ "$cw_DIST" == "el"* ]]; then
-        yum makecache
+        echo "Prewarming yum cache in background; refer to /var/log/clusterware/clusterable-preconfigure-yum.log"
+        yum makecache | log_blob /var/log/clusterware/clusterable-preconfigure-yum.log &
     fi
 }
 
@@ -325,6 +326,7 @@ require handler
 require member
 require files
 require network
+require log
 
 _JQ="${cw_ROOT}"/opt/jq/bin/jq
 _JO="${cw_ROOT}"/opt/jo/bin/jo
