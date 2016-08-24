@@ -30,6 +30,26 @@ _configure_gridscheduler() {
         "${cw_ROOT}"/bin/alces service enable gridscheduler/qmaster
         files_load_config --optional scheduler config/cluster
         if [ "${cw_SCHEDULER_allocation}" ]; then
+            if [ "${cw_SCHEDULER_allocation}" == "autodetect" ]; then
+                echo "Detecting initial allocation strategy"
+                # Autodetction works by determining if we're autoscaling
+                # or static.  If we're static, we'll default to spanning,
+                # and if we're autoscaling we'll default to packing.
+                # If we don't know we'll default to packing.
+                cw_SCHEDULER_allocation=packing
+                if files_load_config --optional instance-aws config/cluster; then
+                    case "${cw_INSTANCE_aws_autoscaling}" in
+                        disabled)
+                            echo "Detected cluster configured without autoscaling; using 'spanning'"
+                            cw_SCHEDULER_allocation=spanning
+                            ;;
+                        enabled)
+                            echo "Detected cluster configured for autoscaling; using 'packing'"
+                            cw_SCHEDULER_allocation=packing
+                            ;;
+                    esac
+                fi
+            fi
             echo "Setting initial allocation strategy to: ${cw_SCHEDULER_allocation}"
             gridscheduler_set_allocation_strategy "${cw_SCHEDULER_allocation}"
         fi
