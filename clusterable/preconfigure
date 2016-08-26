@@ -144,7 +144,7 @@ def setup_cluster_identity(config)
 
     config['token'] ||=
       # generate a token from the identity
-      \`uuid -v5 0103f694-c5a8-5779-af10-3668872f329d "#{identity}" | base64 | cut -c1-16\`.chomp
+      \`uuid -v5 0103f694-c5a8-5779-af10-3668872f329d "#{identity}" | base64 | cut -c1-20\`.chomp
   end
 end
 
