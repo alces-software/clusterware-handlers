@@ -78,6 +78,6 @@ require log
 require handler
 require files
 
-if files_load_config cluster-sge; then
-    handler_tee main "$@"
-fi
+files_load_config --optional cluster-sge
+cw_CLUSTER_SGE_log="${cw_CLUSTER_SGE_log:-/var/log/clusterware/cluster-sge.log}"
+handler_tee main "$@"
