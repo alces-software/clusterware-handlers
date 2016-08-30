@@ -27,6 +27,8 @@ main() {
     group_maxsize="$2"
     cores_per_node="$3"
 
+    files_load_config instance config/cluster
+
     log "Performing deferred configuration for scaling group: ${group} (size: ${group_maxsize}, cores: ${cores_per_node})"
     # We're autoscaling so we need to add some dummy nodes to
     # represent the scaling group otherwise we're unable to scale-out.
@@ -39,7 +41,9 @@ main() {
         c=$((64 + $a / 256))
         d=$(($a % 256))
         "${cw_ROOT}"/libexec/share/update-etc-hosts "${dummy_name}" "169.254.${c}.${d}"
-        handler_run_helper share/add-node --offline ${dummy_name} ${cores_per_node} | log_blob
+        if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
+            handler_run_helper share/add-node --offline ${dummy_name} ${cores_per_node} | log_blob
+        fi
     done
 }
 
@@ -48,7 +52,6 @@ require handler
 require files
 require log
 
-if files_load_config --optional cluster-torque; then
-    log_set_default "${cw_CLUSTER_TORQUE_log}"
-    handler_tee main "$@"
-fi
+files_load_config --optional cluster-torque
+log_set_default "${cw_CLUSTER_TORQUE_log:-/var/log/clusterware/cluster-torque.log}"
+handler_tee main "$@"
