@@ -268,18 +268,27 @@ _configure_hyperthreading() {
 }
 
 _write_network_config() {
+    local domain
+    >"${cw_ROOT}"/etc/network.rc
     if network_has_metadata_service 1; then
-        cat <<EOF > "${cw_ROOT}"/etc/network.rc
+        cat <<EOF >> "${cw_ROOT}"/etc/network.rc
 cw_NETWORK_public_hostname="$(network_get_public_hostname)"
 cw_NETWORK_public_ip="$(network_get_public_address)"
 EOF
     else
         hn="$(network_get_public_hostname 0)"
         if [ "${hn}" ]; then
-            echo "cw_NETWORK_public_hostname=\"${hn}\"" > "${cw_ROOT}"/etc/network.rc
+            echo "cw_NETWORK_public_hostname=\"${hn}\"" >> "${cw_ROOT}"/etc/network.rc
         fi
         echo "cw_NETWORK_public_ip=\"$(network_get_public_address)\"" >> "${cw_ROOT}"/etc/network.rc
     fi
+    domain="$(hostname -d)"
+    cat <<EOF >> "${cw_ROOT}"/etc/network.rc
+cw_NETWORK_domain="${domain:-cluster}"
+cw_NETWORK_fqdn="$(hostname -f)"
+cw_NETWORK_hostname="$(hostname -s)"
+cw_NETWORK_internal_ip="$(hostname -i)"
+EOF
 }
 
 _preconfigure_boot() {
