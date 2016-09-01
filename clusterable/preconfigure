@@ -267,8 +267,19 @@ _configure_hyperthreading() {
     esac
 }
 
+_allocate_hostname() {
+  printf "node-x%02x" $(network_get_iface_address "${cw_CLUSTER_iface:-$(network_get_first_iface)}" | cut -f4 -d'.')
+}
+
 _write_network_config() {
     local domain
+    if [ "${cw_CLUSTERABLE_manage_etc_hosts:-true}" == "true" ]; then
+        files_load_config --optional naming
+        cw_NAMING_domain="${cw_NAMING_domain:-cloud.alces.network}"
+        "${cw_ROOT}"/libexec/share/update-etc-hosts --includes-fqdn \
+                    "${cw_CLUSTER_hostname:-$(_allocate_hostname)}.${cw_CLUSTER_name}.${cw_NAMING_domain}" \
+                    "$(network_get_iface_address "${cw_CLUSTER_iface:-$(network_get_first_iface)}")"
+    fi
     >"${cw_ROOT}"/etc/network.rc
     if network_has_metadata_service 1; then
         cat <<EOF >> "${cw_ROOT}"/etc/network.rc
@@ -293,6 +304,7 @@ EOF
 
 _preconfigure_boot() {
     files_load_config instance config/cluster
+    files_load_config config config/cluster
     # Purge any known existing members in advance of rejoining the
     # cluster service ring.
     _member_purge
