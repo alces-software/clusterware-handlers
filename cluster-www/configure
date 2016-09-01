@@ -28,7 +28,7 @@ _handle_port() {
     port="$3"
     alt_port_base="$4"
     if [ "${enabled}" == "true" ]; then
-        if ss -tln | grep -q ":${port}\b" then
+        if ss -tln | grep -q ":${port}\b"; then
             port=$(network_get_free_port ${alt_port_base})
             # update alces-flight-www config
             sed -i "s/^#?cw_ALCES_FLIGHT_WWW_${scheme}_port=.*/cw_ALCES_FLIGHT_WWW_${scheme}_port=${port}/g" \
