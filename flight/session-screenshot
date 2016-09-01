@@ -26,7 +26,7 @@ main() {
     if sessiondir=$(vnc_find_sessiondir "${sessionid}"); then
         sessionid=$(basename "$sessiondir")
         . "${cw_ROOT}"/etc/config/cluster/config.rc
-        cat <<JSON | webapi_post "${cw_CLUSTER_service_url}"/sessions/${sessionid}/screens
+        cat <<JSON | webapi_post "${cw_CLUSTER_service_url}"/api/v1/sessions/${sessionid}/screenshot
 {
     "data": {
         "type": "screens",
