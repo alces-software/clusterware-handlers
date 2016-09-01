@@ -107,7 +107,7 @@ install:
         fi
         unset cw_STATUS
     fi
-    if [[ "$0" == '-'* || "$1" == "force" ]]; then
+    if [[ "$0" == '-'* || "$1" == "force" ]] || shopt -q login_shell; then
         # this is a login shell, so we show a login message
         if [ ! -f "${XDG_CONFIG_HOME:-$HOME/.config}/clusterware/settings.rc.ex" ]; then
           mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/clusterware"
