@@ -274,11 +274,10 @@ _allocate_hostname() {
 _write_network_config() {
     local domain hostname
     if [ "${cw_CLUSTERABLE_manage_etc_hosts:-true}" == "true" ]; then
-        files_load_config --optional naming
-        cw_NAMING_domain="${cw_NAMING_domain:-cloud.alces.network}"
         hostname="${cw_CLUSTER_hostname:-$(_allocate_hostname)}"
+        domain="${cw_CLUSTER_domain:-prv.alces.network}"
         "${cw_ROOT}"/libexec/share/update-etc-hosts --includes-fqdn \
-                    "${hostname}.${cw_CLUSTER_name}.${cw_NAMING_domain}" \
+                    "${hostname}.${cw_CLUSTER_name}.${domain}" \
                     "$(network_get_iface_address "${cw_CLUSTER_iface:-$(network_get_first_iface)}")"
         hostnamectl set-hostname ${hostname}
     fi
@@ -297,7 +296,7 @@ EOF
     fi
     domain="$(hostname -d)"
     cat <<EOF >> "${cw_ROOT}"/etc/network.rc
-cw_NETWORK_domain="${domain:-cluster}"
+cw_NETWORK_domain="${domain:-prv.alces.network}"
 cw_NETWORK_fqdn="$(hostname -f)"
 cw_NETWORK_hostname="$(hostname -s)"
 cw_NETWORK_internal_ip="$(hostname -i)"
