@@ -1,4 +1,11 @@
+################################################################################
+##
+## Alces Clusterware - Handler metadata
+## Copyright (C) 2015-2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
 ---
+order: "10"
 install:
   el6: |
     yum install -y -e0 nfs-utils
