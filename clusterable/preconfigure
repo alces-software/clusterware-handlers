@@ -273,7 +273,7 @@ _allocate_hostname() {
 
 _write_network_config() {
     local domain hostname
-    if [ "${cw_CLUSTERABLE_manage_etc_hosts:-true}" == "true" ]; then
+    if [ "${cw_CLUSTERABLE_manage_hostname:-true}" == "true" ]; then
         hostname="${cw_CLUSTER_hostname:-$(_allocate_hostname)}"
         domain="${cw_CLUSTER_domain:-prv.alces.network}"
         "${cw_ROOT}"/libexec/share/update-etc-hosts --includes-fqdn \

@@ -242,6 +242,7 @@ install:
     ##
     ################################################################################
     cw_CLUSTERABLE_manage_etc_hosts=true
+    cw_CLUSTERABLE_manage_hostname=true
     cw_CLUSTERABLE_manage_genders=true
     cw_CLUSTERABLE_manage_ssh_host_keys=true
     cw_CLUSTERABLE_manage_ssh_config=true
