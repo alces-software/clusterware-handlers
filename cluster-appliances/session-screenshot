@@ -25,8 +25,10 @@ main() {
     sessionid="$1"
     if sessiondir=$(vnc_find_sessiondir "${sessionid}"); then
         sessionid=$(basename "$sessiondir")
-        . "${cw_ROOT}"/etc/config/cluster/config.rc
-        cat <<JSON | webapi_post "${cw_CLUSTER_service_url}"/api/v1/sessions/${sessionid}/screenshot
+
+        files_load_config --optional cluster-appliances config/cluster-appliances
+        if [ "${cw_APPLIANCES_access_ADDRESS}" ]; then
+            cat <<JSON | webapi_post "${cw_APPLIANCES_access_ADDRESS}/api/v1/sessions/${sessionid}/screenshot"
 {
     "data": {
         "type": "screens",
@@ -41,6 +43,7 @@ main() {
     }
 }
 JSON
+        fi
     fi
 }
 
@@ -48,5 +51,6 @@ setup
 require vnc
 require webapi
 require handler
+require files
 
 handler_tee main "$@"
