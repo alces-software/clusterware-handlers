@@ -22,7 +22,7 @@ setup() {
 }
 
 _notify_appliance() {
-    local port address
+    local port address appliance_type
     port="$1"
     address="$2"
     appliance_type="$3"
