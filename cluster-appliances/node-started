@@ -22,11 +22,12 @@ setup() {
 }
 
 _notify_appliance() {
-    local port address
+    local port address appliance_type
     port="$1"
     address="$2"
+    appliance_type="$3"
     files_load_config config config/cluster
-    cat <<JSON | webapi_post "${address}"/clusters/register
+    cat <<JSON | webapi_post "${address}"/"${appliance_type}"/register
 {
   "cluster": {
     "name": "${cw_CLUSTER_name}",
@@ -43,12 +44,12 @@ main() {
     files_load_config --optional cluster-appliances config/cluster-appliances
     if [[ "${cw_INSTANCE_tag_STORAGE_ROLES}" == *":master:"* ]]; then
 	if [ "${cw_APPLIANCES_storage_ADDRESS}" ]; then
-	    _notify_appliance "${cw_INSTANCE_tag_ACCESS_DAEMON_PORT:-25268}" "${cw_APPLIANCES_storage_ADDRESS}"
+	    _notify_appliance "${cw_INSTANCE_tag_ACCESS_DAEMON_PORT:-25268}" "${cw_APPLIANCES_storage_ADDRESS}" "storage"
 	fi
     fi
     if [[ "${cw_INSTANCE_tag_ACCESS_ROLES}" == *":master:"* ]]; then
 	if [ "${cw_APPLIANCES_access_ADDRESS}" ]; then
-	    _notify_appliance "${cw_INSTANCE_tag_ACCESS_DAEMON_PORT:-25269}" "${cw_APPLIANCES_access_ADDRESS}"
+	    _notify_appliance "${cw_INSTANCE_tag_ACCESS_DAEMON_PORT:-25269}" "${cw_APPLIANCES_access_ADDRESS}" "clusters"
 	fi
     fi
 }

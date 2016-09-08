@@ -21,6 +21,24 @@ setup() {
     kernel_load
 }
 
+_notify_appliance() {
+    local port address appliance_type
+    port="$1"
+    address="$2"
+    appliance_type="$3"
+    files_load_config config config/cluster
+    cat <<JSON | webapi_post "${address}"/${appliance_type}/register
+{
+  "cluster": {
+    "name": "${cw_CLUSTER_name}",
+    "ip": "${address}",
+    "auth_port": ${port},
+    "ssl": true,
+  }
+}
+JSON
+}
+
 _add_storage_master_node() {
     local addr port
     addr="$1"
@@ -36,23 +54,7 @@ _add_storage_master_node() {
 :endpoints:
 - "${addr}:${port}"
 EOF
-	cat <<EOF > "${cw_APPLIANCES_storage_MANAGER_ROOT}"/webapp/config/storagemanager.yml
----
-:auth:
-  :address: "${addr}:${port}"
-  :ssl: true
-:ssl:
-  :root: /opt/alces-storage-manager/etc/ssl/client
-  :certificate: cert.pem
-  :key: key.pem
-  :verify: false
-  :ca: alces-ca_crt.pem
-EOF
-	if distro_restart_service alces-storage-manager; then
-            echo "Alces Storage Manager service restarted"
-	else
-            echo "Unable to restart Alces Storage Manager service"
-	fi
+        _notify_appliance "${port}" "${addr}" "storage"
     fi
 }
 
