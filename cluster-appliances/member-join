@@ -54,7 +54,7 @@ _add_storage_master_node() {
 :endpoints:
 - "${addr}:${port}"
 EOF
-        _notify_appliance "${port}" "${addr}"
+        _notify_appliance "${port}" "${addr}" "storage"
     fi
 }
 
@@ -105,7 +105,7 @@ main() {
         done
         if [[ "${cw_INSTANCE_tag_APPLIANCE_ROLES}" == *":storage:"* && "${storage_roles}" == *":master:"* ]]; then
             echo "Adding Storage Manager master node: ${cw_MEMBER_name} (${cw_MEMBER_ip}:${storage_daemon_port:-25268})"
-            _notify_appliance "${cw_MEMBER_ip}" "${storage_daemon_port:-25268}" "storage"
+            _add_storage_master_node "${cw_MEMBER_ip}" "${storage_daemon_port:-25268}"
         fi
         if [[ "${cw_INSTANCE_tag_APPLIANCE_ROLES}" == *":access:"* && "${access_roles}" == *":master:"* ]]; then
             echo "Adding Access Manager master node: ${cw_MEMBER_name} (${cw_MEMBER_ip}:${access_daemon_port:-25269})"
