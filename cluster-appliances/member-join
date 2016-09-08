@@ -21,6 +21,23 @@ setup() {
     kernel_load
 }
 
+_notify_appliance() {
+    local port address
+    port="$1"
+    address="$2"
+    files_load_config config config/cluster
+    cat <<JSON | webapi_post "${address}"/clusters/register
+{
+  "cluster": {
+    "name": "${cw_CLUSTER_name}",
+    "ip": "${address}",
+    "auth_port": ${port},
+    "ssl": true,
+  }
+}
+JSON
+}
+
 _add_storage_master_node() {
     local addr port
     addr="$1"
@@ -36,23 +53,7 @@ _add_storage_master_node() {
 :endpoints:
 - "${addr}:${port}"
 EOF
-	cat <<EOF > "${cw_APPLIANCES_storage_MANAGER_ROOT}"/webapp/config/storagemanager.yml
----
-:auth:
-  :address: "${addr}:${port}"
-  :ssl: true
-:ssl:
-  :root: /opt/alces-storage-manager/etc/ssl/client
-  :certificate: cert.pem
-  :key: key.pem
-  :verify: false
-  :ca: alces-ca_crt.pem
-EOF
-	if distro_restart_service alces-storage-manager; then
-            echo "Alces Storage Manager service restarted"
-	else
-            echo "Unable to restart Alces Storage Manager service"
-	fi
+        _notify_appliance "${port}" "${addr}"
     fi
 }
 
@@ -103,7 +104,7 @@ main() {
         done
         if [[ "${cw_INSTANCE_tag_APPLIANCE_ROLES}" == *":storage:"* && "${storage_roles}" == *":master:"* ]]; then
             echo "Adding Storage Manager master node: ${cw_MEMBER_name} (${cw_MEMBER_ip}:${storage_daemon_port:-25268})"
-            _add_storage_master_node "${cw_MEMBER_ip}" "${storage_daemon_port:-25268}"
+            _notify_appliance "${cw_MEMBER_ip}" "${storage_daemon_port:-25268}"
         fi
         if [[ "${cw_INSTANCE_tag_APPLIANCE_ROLES}" == *":access:"* && "${access_roles}" == *":master:"* ]]; then
             echo "Adding Access Manager master node: ${cw_MEMBER_name} (${cw_MEMBER_ip}:${access_daemon_port:-25269})"
