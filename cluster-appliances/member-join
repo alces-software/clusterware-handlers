@@ -25,8 +25,9 @@ _notify_appliance() {
     local port address
     port="$1"
     address="$2"
+    appliance_type="$3"
     files_load_config config config/cluster
-    cat <<JSON | webapi_post "${address}"/clusters/register
+    cat <<JSON | webapi_post "${address}"/${appliance_type}/register
 {
   "cluster": {
     "name": "${cw_CLUSTER_name}",
@@ -104,7 +105,7 @@ main() {
         done
         if [[ "${cw_INSTANCE_tag_APPLIANCE_ROLES}" == *":storage:"* && "${storage_roles}" == *":master:"* ]]; then
             echo "Adding Storage Manager master node: ${cw_MEMBER_name} (${cw_MEMBER_ip}:${storage_daemon_port:-25268})"
-            _notify_appliance "${cw_MEMBER_ip}" "${storage_daemon_port:-25268}"
+            _notify_appliance "${cw_MEMBER_ip}" "${storage_daemon_port:-25268}" "storage"
         fi
         if [[ "${cw_INSTANCE_tag_APPLIANCE_ROLES}" == *":access:"* && "${access_roles}" == *":master:"* ]]; then
             echo "Adding Access Manager master node: ${cw_MEMBER_name} (${cw_MEMBER_ip}:${access_daemon_port:-25269})"
