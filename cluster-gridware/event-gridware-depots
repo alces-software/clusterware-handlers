@@ -30,6 +30,8 @@ main() {
         echo "Received payload from master: ${payload[*]}"
         depots="${payload[@]:1}"
 	files_load_config distro
+        # respect locks established by cluster-nfs handler
+        files_lock cluster-nfs
         for a in $depots; do
             IFS=':' read -a depot_meta <<< "${a}"
             depot_id="${depot_meta[0]}"
@@ -45,6 +47,7 @@ main() {
                 "${cw_ROOT}"/bin/alces gridware depot disable ${depot_name}
             fi
         done
+        files_unlock
     fi
 }
 
