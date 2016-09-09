@@ -46,22 +46,31 @@ _fulfil_appliance_role() {
         "${cw_ROOT}"/bin/alces service enable appliance/alces-${role}-manager/base
         if distro_start_service alces-${role}-manager; then
             echo "Flight appliance service started: ${role}"
+        else
+            echo "Unable to start Flight appliance service: ${role}"
+        fi
+
+        if [ "${role}" == "access" ]; then
             if distro_start_service alces-${role}-manager-proxy; then
                 echo "Flight appliance proxy service started: ${role}"
             else
                 echo "Unable to start Flight appliance proxy service: ${role}"
             fi
-        else
-            echo "Unable to start Flight appliance service: ${role}"
-        fi
-
-        # if [ "${role}" == "access" ]; then
         #     if distro_start_service clusterware-alces-websocket-proxy; then
         #         echo "Alces Websocket Proxy service started"
         #     else
         #         echo "Unable to start Alces Websocket Proxy"
         #     fi
-        # fi
+        fi
+
+        if [ "${role}" == "storage" ]; then
+            "${cw_ROOT}"/bin/alces service enable alces-flight-www
+            if distro_start_service alces-flight-www; then
+                echo "Flight WWW service started"
+            else
+                echo "Unable to start Flight WWW service"
+            fi
+        fi
    fi
 }
 
