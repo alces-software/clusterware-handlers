@@ -42,11 +42,11 @@ RUBY
 _enable_alces_flight_www() {
     local role, certname
     role="$1"
-    ⁠⁠⁠⁠files_load_config config config/cluster
+    files_load_config config config/cluster
     
     certname = "${role}.${cw_CLUSTER_name}"
     
-    cat <<ENDCONF > "${cw_ROOT}"/etc/alces-flight-www.rc﻿⁠⁠⁠⁠
+    cat <<ENDCONF > "${cw_ROOT}"/etc/alces-flight-www.rc
 cw_ALCES_FLIGHT_WWW_ssl_strategy=allocate
 cw_ALCES_FLIGHT_WWW_ssl_name=${certname}
 ENDCONF
