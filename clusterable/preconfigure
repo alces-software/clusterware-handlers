@@ -268,7 +268,20 @@ _configure_hyperthreading() {
 }
 
 _allocate_hostname() {
-  printf "node-x%02x" $(network_get_iface_address "${cw_CLUSTER_iface:-$(network_get_first_iface)}" | cut -f4 -d'.')
+    local ipaddr iface_network prefix
+    ipaddr=$(network_get_iface_address "${cw_CLUSTER_iface:-$(network_get_first_iface)}")
+    iface_network=$(network_get_iface_network "${cw_CLUSTER_iface:-$(network_get_first_iface)}")
+    # if the subnet is >256 nodes, we need to work out what quad3 prefix we should use
+    if [ "$(echo "${iface_network}" | cut -f2 -d'/')" -lt 24 ]; then
+        prefix=$(ruby_run <<RUBY
+require 'ipaddr'
+network = IPAddr.new("${iface_network}")
+first_net = network.to_s.split('.')[2].to_i
+puts ("${ipaddr}".split('.')[2].to_i - first_net + 97).chr
+RUBY
+              )
+    fi
+    printf "flight-%s%03d" "${prefix}" "$(echo "${ipaddr}" | cut -f4 -d'.')"
 }
 
 _write_network_config() {
