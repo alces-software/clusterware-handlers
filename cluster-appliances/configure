@@ -65,7 +65,7 @@ _fulfil_appliance_role() {
 
         if [ "${role}" == "storage" ]; then
             "${cw_ROOT}"/bin/alces service enable alces-flight-www
-            if distro_start_service alces-flight-www; then
+            if distro_start_service clusterware-alces-flight-www; then
                 echo "Flight WWW service started"
             else
                 echo "Unable to start Flight WWW service"
