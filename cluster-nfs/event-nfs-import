@@ -26,6 +26,7 @@ main() {
 
     files_load_config instance config/cluster
     if [ "${cw_INSTANCE_role}" == "slave" ]; then
+        files_lock cluster-nfs
         payload=($(cat))
         log "Received payload from master: ${payload[*]}" "${cw_CLUSTER_NFS_log}"
         master_ip="${payload[1]}"
@@ -44,6 +45,7 @@ main() {
                 mount -t nfs -o _netdev,bg,intr,vers=3 $master_ip:$a $a
             done
         fi
+        files_unlock
     fi
 }
 

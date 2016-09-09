@@ -49,6 +49,9 @@ _notify_exports() {
 	log "Broadcasting 'nfs-import' event with: ${master_ip} ${ip} ${a}" \
             "${cw_CLUSTER_NFS_log}"
 	handler_broadcast nfs-import ${master_ip} ${ip} "${a}"
+        # sleep for a short time to allow NFS import hooks to fire on
+        # slaves and establish locks.
+        sleep 1
     fi
 }
 
