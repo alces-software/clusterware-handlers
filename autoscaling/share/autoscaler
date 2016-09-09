@@ -175,7 +175,11 @@ _empty_nodes() {
     for scheduler in "${_SCHEDULERS[@]}"; do
         empty_nodes+=($(${scheduler}_empty_nodes))
     done
-    echo "${empty_nodes[@]}" | tr ' ' '\n' | sort | uniq -d | tr '\n' ' '
+    if [ "${#_SCHEDULERS[@]}" -gt 1 ]; then
+        echo "${empty_nodes[@]}" | tr ' ' '\n' | sort | uniq -d | tr '\n' ' '
+    else
+        echo "${empty_nodes[@]}"
+    fi
 }
 
 _log_blob() {
