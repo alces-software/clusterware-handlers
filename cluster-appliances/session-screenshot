@@ -17,11 +17,33 @@ setup() {
 
 main() {
     local sessionid
+    local -A vnc
+
+    content="$(cat)"
+    # tee >(base64 -d > /tmp/${sessionid}.$(date "+%Y-%m-%d-%H%M%S").png)
 
     sessionid="$1"
     if sessiondir=$(vnc_find_sessiondir "${sessionid}"); then
         sessionid=$(basename "$sessiondir")
-        webapi_delete "${cw_CLUSTER_service_url}"/sessions/${sessionid}
+
+        files_load_config --optional cluster-appliances config/cluster-appliances
+        if [ "${cw_APPLIANCES_access_ADDRESS}" ]; then
+            cat <<JSON | webapi_post "${cw_APPLIANCES_access_ADDRESS}/api/v1/sessions/${sessionid}/screenshot"
+{
+    "data": {
+        "type": "screens",
+        "attributes": {
+            "content": "${content}"
+        },
+        "relationships": {
+            "session": {
+                 "data": {"type": "sessions", "id": "${sessionid}"}
+            }
+        }
+    }
+}
+JSON
+        fi
     fi
 }
 
@@ -29,5 +51,6 @@ setup
 require vnc
 require webapi
 require handler
+require files
 
 handler_tee main "$@"
