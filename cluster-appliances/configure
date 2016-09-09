@@ -39,6 +39,26 @@ write_file('cluster-appliances.rc', appliances_vars.join("\n"))
 RUBY
 }
 
+_enable_alces_flight_www() {
+    local role, certname
+    role="$1"
+    ⁠⁠⁠⁠files_load_config config config/cluster
+    
+    certname = "${role}.${cw_CLUSTER_name}"
+    
+    cat <<ENDCONF > "${cw_ROOT}"/etc/alces-flight-www.rc﻿⁠⁠⁠⁠
+cw_ALCES_FLIGHT_WWW_ssl_strategy=allocate
+cw_ALCES_FLIGHT_WWW_ssl_name=${certname}
+ENDCONF
+    
+    "${cw_ROOT}"/bin/alces service enable alces-flight-www
+    if distro_start_service clusterware-alces-flight-www; then
+        echo "Flight WWW service started"
+    else
+        echo "Unable to start Flight WWW service"
+    fi
+}
+
 _fulfil_appliance_role() {
     local role
     role="$1"
@@ -64,12 +84,7 @@ _fulfil_appliance_role() {
         fi
 
         if [ "${role}" == "storage" ]; then
-            "${cw_ROOT}"/bin/alces service enable alces-flight-www
-            if distro_start_service clusterware-alces-flight-www; then
-                echo "Flight WWW service started"
-            else
-                echo "Unable to start Flight WWW service"
-            fi
+            _enable_alces_flight_www "$role"
         fi
    fi
 }
