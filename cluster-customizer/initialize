@@ -136,12 +136,12 @@ _wait_for_internet() {
 main() {
     if network_has_metadata_service 1; then
         _setup
-        if _wait_for_internet; then
-            ${_ALCES} service install s3cmd
-            customize_fetch
-        else
-            echo "WARNING! No access to download customizations, no customization will occur."
-        fi
+    fi
+    if _wait_for_internet; then
+        ${_ALCES} service install s3cmd
+        customize_fetch
+    else
+        echo "WARNING! No access to download customizations, no customization will occur."
     fi
     _run_initialize_hooks
 }
