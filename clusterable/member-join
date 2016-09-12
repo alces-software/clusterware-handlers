@@ -78,6 +78,13 @@ _record_join() {
     if [ "${instance_id}" ]; then
         machine_type=$(member_find_tag aws_machinetype "${cw_MEMBER_tags}")
         "${cw_ROOT}"/libexec/share/flight-recorder "join" "${instance_id}" "${cw_MEMBER_role}" "${machine_type}"
+    else
+        instance_id=$(member_find_tag generic_systemid "${cw_MEMBER_tags}")
+        if [ "${instance_id}" ]; then
+            machine_type=$(member_find_tag generic_machinetype "${cw_MEMBER_tags}")
+            "${cw_ROOT}"/libexec/share/flight-recorder "join" \
+                        "${instance_id}" "${cw_MEMBER_role}" "${machine_type}"
+        fi
     fi
 }
 
