@@ -50,6 +50,9 @@ main() {
             log "Broadcasting 'nfs-import' event with: ${master_ip} ${cw_MEMBER_ip} ${cw_CLUSTER_NFS_exports}" \
                 "${cw_CLUSTER_NFS_log}"
             handler_broadcast nfs-import ${master_ip} ${cw_MEMBER_ip} ${cw_CLUSTER_NFS_exports}
+            # sleep for a short time to allow NFS import hooks to fire on
+            # slaves and establish locks.
+            sleep 1
         fi
     fi
 }
