@@ -46,17 +46,18 @@ _prune_ssh_known_hosts() {
 }
 
 _prune_genders() {
-    local tmpfile
+    local tmpfile name
+    name="$(echo "${cw_MEMBER_name}" | cut -f1 -d".")"
     if [ "${cw_CLUSTERABLE_manage_genders}" == "true" ]; then
         tmpfile="$(mktemp /tmp/genders.clusterable.XXXXXXXX)"
         if [ -f "${cw_ROOT}"/etc/genders ]; then
-            if grep -q "^${cw_MEMBER_name} " "${cw_ROOT}"/etc/genders; then
+            if grep -q "^${name} " "${cw_ROOT}"/etc/genders; then
                 if files_lock "clusterable"; then
-                    grep -v "^${cw_MEMBER_name} " "${cw_ROOT}"/etc/genders > "${tmpfile}"
+                    grep -v "^${name} " "${cw_ROOT}"/etc/genders > "${tmpfile}"
                     cat "${tmpfile}" > "${cw_ROOT}"/etc/genders
                     files_unlock
                 else
-                    echo "Locking failed; unable to prune ${cw_MEMBER_name} from genders file"
+                    echo "Locking failed; unable to prune ${name} from genders file"
                 fi
             fi
         fi
