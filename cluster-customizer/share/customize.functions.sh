@@ -165,7 +165,7 @@ customize_fetch_profiles() {
             bucket="alces-flight-$(network_ec2_hashed_account)"
         else
             echo "Unable to determine bucket name for customizations"
-            exit 0
+            return 0
         fi
     else
         bucket="${cw_CLUSTER_CUSTOMIZER_bucket#s3://}"
