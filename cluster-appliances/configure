@@ -43,14 +43,14 @@ _enable_alces_flight_www() {
     local role certname
     role="$1"
     files_load_config config config/cluster
-    
+
     certname="${role}.${cw_CLUSTER_name}"
-    
+
     cat <<ENDCONF > "${cw_ROOT}"/etc/alces-flight-www.rc
 cw_ALCES_FLIGHT_WWW_ssl_strategy=allocate
 cw_ALCES_FLIGHT_WWW_ssl_name=${certname}
 ENDCONF
-    
+
     "${cw_ROOT}"/bin/alces service enable alces-flight-www
     if distro_start_service clusterware-alces-flight-www; then
         echo "Flight WWW service started"
@@ -70,22 +70,7 @@ _fulfil_appliance_role() {
             echo "Unable to start Flight appliance service: ${role}"
         fi
 
-        if [ "${role}" == "access" ]; then
-            if distro_start_service alces-${role}-manager-proxy; then
-                echo "Flight appliance proxy service started: ${role}"
-            else
-                echo "Unable to start Flight appliance proxy service: ${role}"
-            fi
-        #     if distro_start_service clusterware-alces-websocket-proxy; then
-        #         echo "Alces Websocket Proxy service started"
-        #     else
-        #         echo "Unable to start Alces Websocket Proxy"
-        #     fi
-        fi
-
-        if [ "${role}" == "storage" ]; then
-            _enable_alces_flight_www "$role"
-        fi
+        _enable_alces_flight_www "$role"
    fi
 }
 
