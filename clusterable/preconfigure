@@ -80,7 +80,7 @@ EOF
         "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-clusterable-ec2.json
     else
         tags=(tags[generic_systemid]=$(network_get_iface_mac $(network_get_first_iface)))
-        tags+=(tags[generic_machinetype]="$(dmidecode -s "system-product-name" | tr ' ' '_')/$(dmidecode -s "processor-version" | head -n1 | tr ' ' '_')")
+        tags+=(tags[generic_machinetype]="$(dmidecode -s "system-product-name" | tail -n1 | tr ' ' '_')/$(dmidecode -s "processor-version" | tail -n1 | tr ' ' '_')")
         echo "Setting generic tags: ${tags[@]}"
         "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-clusterable-generic.json
     fi
