@@ -27,13 +27,14 @@ _notify_appliance() {
     address="$2"
     appliance_type="$3"
     files_load_config config config/cluster
-    cat <<JSON | webapi_post https://localhost/api/v1/${appliance_type}/register -k
+    sleep 5
+    cat <<JSON | webapi_post https://localhost/api/v1/${appliance_type}/register --mime-type application/json -k
 {
   "cluster": {
     "name": "${cw_CLUSTER_name}",
     "ip": "${address}",
     "auth_port": ${port},
-    "ssl": true,
+    "ssl": true
   }
 }
 JSON
