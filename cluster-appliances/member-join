@@ -21,22 +21,34 @@ setup() {
     kernel_load
 }
 
-_notify_appliance() {
+_notify_storage_appliance() {
     local port address appliance_type
     port="$1"
     address="$2"
-    appliance_type="$3"
+    appliance_type="storage"
     files_load_config config config/cluster
-    cat <<JSON | webapi_post https://localhost/api/v1/${appliance_type}/register -k
-{
-  "cluster": {
-    "name": "${cw_CLUSTER_name}",
-    "ip": "${address}",
-    "auth_port": ${port},
-    "ssl": true,
-  }
-}
-JSON
+
+    ruby_run <<RUBY
+require 'yaml'
+require 'base64'
+
+    config_file = '/opt/alces-storage-manager/webapp/config/storagemanager.yml'
+    config = YAML.load_file(config_file)
+
+    config['collections'] ||= {}
+
+    hash = Base64.strict_encode64("${address}:${port}")
+
+    config['collections'][hash] = {
+        "name": "${cw_CLUSTER_name}",
+        "ip": "${address}",
+        "auth_port": ${port},
+        "ssl": true,
+    }
+
+    File.write(config_file, YAML.dump(config))
+
+RUBY
 }
 
 _add_storage_master_node() {
@@ -54,7 +66,7 @@ _add_storage_master_node() {
 :endpoints:
 - "${addr}:${port}"
 EOF
-        _notify_appliance "${port}" "${addr}" "storage"
+        _notify_storage_appliance "${port}" "${addr}"
     fi
 }
 
@@ -119,6 +131,5 @@ require member
 require handler
 require files
 require distro
-require webapi
 
 handler_tee main "$@"
