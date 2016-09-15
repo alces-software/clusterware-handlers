@@ -132,5 +132,6 @@ require member
 require handler
 require files
 require distro
+require webapi
 
 handler_tee main "$@"
