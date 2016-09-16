@@ -52,7 +52,7 @@ main() {
 
         # If cluster-www handler is enabled we add in config so requests to
         # `/vpn/` will provide access to the VPN configuration files.
-        if handler_is_enabled cluster-www; then
+        if [ "$(network_get_edition)" != "community" ] && handler_is_enabled cluster-www; then
             sed -e "s,_ROOT_,${cw_ROOT},g" \
                 "${dir}"/etc/alces-flight-www/cluster-vpn.conf.template > \
                 "${cw_ROOT}"/etc/alces-flight-www/server-https.d/cluster-vpn.conf
@@ -73,5 +73,6 @@ require handler
 require ruby
 require files
 require serviceware
+require network
 
 handler_tee main "$@"

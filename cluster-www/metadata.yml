@@ -2,11 +2,3 @@
 install:
   _: |
     alces service install alces-flight-www
-
-    mkdir -p "${cw_ROOT}"/var/lib/alces-flight-www/flight
-    cp -R sites/flight/* "${cw_ROOT}"/var/lib/alces-flight-www/flight
-
-    mkdir -p "${cw_ROOT}"/etc/alces-flight-www/templates
-    cp etc/templates/* "${cw_ROOT}"/etc/alces-flight-www/templates
-
-    cp libexec/www-add-resource "${cw_ROOT}"/libexec/share/www-add-resource
