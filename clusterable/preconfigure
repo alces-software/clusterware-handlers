@@ -98,7 +98,9 @@ EOF
 
     if [[ "$cw_DIST" == "el"* ]]; then
         echo "Prewarming yum cache in background; refer to /var/log/clusterware/clusterable-preconfigure-yum.log"
-        yum makecache </dev/null 2>&1 | log_blob /var/log/clusterware/clusterable-preconfigure-yum.log &
+        ( yum makecache 2>&1 | \
+              log_blob /var/log/clusterware/clusterable-preconfigure-yum.log ) \
+            </dev/null &>/dev/null & disown
     fi
 }
 
