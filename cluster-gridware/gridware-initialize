@@ -48,7 +48,7 @@ _notify_depots() {
         fi
     done
     if [ "${depots}" ]; then
-        handler_run_hook nfs-export "${cw_GRIDWARE_root:-/opt/gridware}/etc" "${exports[@]}"
+        handler_run_hook nfs-export "${cw_GRIDWARE_root:-/opt/gridware}/etc" "${cw_GRIDWARE_root:-/opt/gridware}/data" "${exports[@]}"
         handler_broadcast gridware-depots ${depots[*]}
     fi
 }

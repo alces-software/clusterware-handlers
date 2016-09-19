@@ -120,6 +120,11 @@ main() {
         if [ "${cw_GRIDWARE_trigger:-immediate}" == 'immediate' ]; then
             _initialize_gridware
         fi
+        files_load_config gridware config/gridware
+        if "${_ALCES}" storage enable http; then
+            echo -e "Gridware Data\nhttps://${cw_GRIDWARE_s3_host}/${cw_GRIDWARE_s3_bucket}/data\n" | \
+                "${_ALCES}" storage configure --system gridware-data http
+        fi
     fi
 }
 
