@@ -28,7 +28,7 @@ _notify_appliance() {
     appliance_type="$3"
     files_load_config config config/cluster
     sleep 5
-    cat <<JSON | webapi_post https://localhost/api/v1/${appliance_type}/register --mime-type application/json -k
+    cat <<JSON | webapi_post https://localhost/api/v1/${appliance_type}/register --mimetype application/json -k
 {
   "cluster": {
     "name": "${cw_CLUSTER_name}",
