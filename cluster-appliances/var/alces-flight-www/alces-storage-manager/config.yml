@@ -1,0 +1,11 @@
+ ---
+title: Alces Flight Storage Manager
+short_title: Storage
+paras:
+  - >
+    Your cluster has been configured with the Storage Manager appliance,
+    which enables you to access, upload to and download from cluster
+    storage.
+  - >
+    <a href="https://storage._CLUSTERNAME_.cloud.alces.network/">Access the
+    Storage Manager appliance by clicking here</a>.
