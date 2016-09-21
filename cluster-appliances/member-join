@@ -27,7 +27,10 @@ _notify_appliance() {
     address="$2"
     appliance_type="$3"
     files_load_config config config/cluster
-    sleep 5
+    until curl -ksf "https://localhost/api/v1/${appliance_type}/" > /dev/null; do
+        echo "Waiting for ASM webapp to become available..."
+        sleep 5
+    done
     cat <<JSON | webapi_post https://localhost/api/v1/${appliance_type}/register --mimetype application/json -k
 {
   "cluster": {
