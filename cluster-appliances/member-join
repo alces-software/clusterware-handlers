@@ -80,7 +80,7 @@ EOF
 }
 
 main() {
-    local appliance_roles dir tags tag tuple key value storage_roles storage_daemon_port access_roles access_daemon_port
+    local appliance_roles dir tags tag tuple key value storage_roles storage_daemon_port access_roles access_daemon_port appliance_url
 
     files_load_config instance config/cluster
     files_load_config config config/cluster
@@ -119,8 +119,9 @@ main() {
         # We are the master and have just been notified of an ASM appliance instance
         if handler_is_enabled cluster-www; then
             dir=$(handler_dir)
+            appliance_url = "https://storage.${cw_CLUSTER_name}.cloud.alces.network/"
             # insert cluster name into URL in config file
-            sed -i "s/_CLUSTERNAME_/${cw_CLUSTER_name}/" "${dir}"/var/alces-flight-www/alces-storage-manager/config.yml
+            sed -i "s/_APPLIANCEURL_/${appliance_url}/" "${dir}"/var/alces-flight-www/alces-storage-manager/config.yml
             "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/alces-storage-manager
         fi
     fi
