@@ -63,20 +63,16 @@ main() {
 
     mkdir -p "${cw_ROOT}"/var/lib/alces-flight-www/flight
     edition="$(network_get_edition)"
-    case ${edition} in
-        community)
-            cp -R "$(handler_dir)"/sites/community/* "${cw_ROOT}"/var/lib/alces-flight-www/flight
-        ;;
-        enhanced|enterprise)
-            cp -R "$(handler_dir)"/sites/enhanced/* "${cw_ROOT}"/var/lib/alces-flight-www/flight
-            mkdir -p "${cw_ROOT}"/etc/alces-flight-www/templates
-            cp "$(handler_dir)"/etc/templates/* "${cw_ROOT}"/etc/alces-flight-www/templates
-            cp "$(handler_dir)"/libexec/www-add-resource "${cw_ROOT}"/libexec/share/www-add-resource
-            if [ "${edition}" == "enterprise" ]; then
-                cp "$(handler_dir)"/sites/enterprise/index.html "${cw_ROOT}"/var/lib/alces-flight-www/flight
-            fi
-        ;;
-    esac
+    if [ ! -d "$(handler_dir)"/sites/${edition}/* ]; then
+        edition="community"
+    fi
+    cp -R "$(handler_dir)"/sites/${edition}/* "${cw_ROOT}"/var/lib/alces-flight-www/flight
+    if [ "${edition}" == "professional" ]; then
+        cp -R "$(handler_dir)"/sites/professional/* "${cw_ROOT}"/var/lib/alces-flight-www/flight
+        mkdir -p "${cw_ROOT}"/etc/alces-flight-www/templates
+        cp "$(handler_dir)"/etc/templates/* "${cw_ROOT}"/etc/alces-flight-www/templates
+        cp "$(handler_dir)"/libexec/www-add-resource "${cw_ROOT}"/libexec/share/www-add-resource
+    fi
 
     mkdir -p "${cw_ROOT}/etc/config/cluster-www"
 
