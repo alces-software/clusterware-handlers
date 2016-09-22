@@ -19,7 +19,7 @@ cw_META_vpn_config_zip="${cw_ROOT}/etc/openvpn/client/clusterware-openvpn.zip"
 cw_META_vpn_config_tblk_desc="Tunnelblick configuration"
 cw_META_vpn_config_tblk="${cw_ROOT}/etc/openvpn/client/clusterware-tunnelblick.zip"
 if files_load_config --optional alces-flight-www; then
-   if [ "${cw_ALCES_FLIGHT_WWW_https_enabled:-true}" == "true" ]; then
+   if [ "${cw_ALCES_FLIGHT_WWW_https_enabled:-true}" == "true" -a -n "${cw_CLUSTER_VPN_access_password}" ]; then
        require network
        files_load_config --optional access
        host="${cw_ACCESS_fqdn:-$(network_get_public_hostname)}"
