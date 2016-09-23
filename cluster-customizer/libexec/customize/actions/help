@@ -73,7 +73,7 @@ help_for_list() {
 EOF
 }
 
-help_for_list() {
+help_for_pull() {
     cat <<EOF
   SYNOPSIS:
 
