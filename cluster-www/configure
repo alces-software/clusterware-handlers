@@ -63,7 +63,7 @@ main() {
 
     mkdir -p "${cw_ROOT}"/var/lib/alces-flight-www/flight
     edition="$(network_get_edition)"
-    if [ ! -d "$(handler_dir)"/sites/${edition}/* ]; then
+    if [ ! -d "$(handler_dir)"/sites/${edition} ]; then
         edition="community"
     fi
     cp -R "$(handler_dir)"/sites/${edition}/* "${cw_ROOT}"/var/lib/alces-flight-www/flight
