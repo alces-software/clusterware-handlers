@@ -49,14 +49,24 @@ _notify_appliance() {
   }
 }
 JSON
-        if [[ "$?" -eq 0 && "$appliance_type" == "storage" ]] && handler_is_enabled cluster_www; then
+        if [[ "$?" -eq 0 ]] && handler_is_enabled cluster_www; then
             # if the POST to /register was successful and we are running
             # alces-flight-www then add a resource section
             dir=$(handler_dir)
-            # insert appliance URL into config file
-            sed -i "s/_APPLIANCE_URL_/${address}/" "${dir}"/var/alces-flight-www/alces-storage-manager/config.yml
-            # then add the resource
-            "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/alces-storage-manager
+
+            if [[ "$appliance_type" == "storage" ]]; then
+                # insert appliance URL into config file
+                sed -i "s/_APPLIANCEURL_/${address}/" "${dir}"/var/alces-flight-www/alces-storage-manager/config.yml
+                # then add the resource
+                "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/alces-storage-manager
+            fi
+
+            if [[ "$appliance_type" == "clusters" ]]; then  # Note (hack) that this isn't 'access'
+                # insert appliance URL into config file
+                sed -i "s/_APPLIANCEURL_/${address}/" "${dir}"/var/alces-flight-www/alces-access-manager/config.yml
+                # then add the resource
+                "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/alces-access-manager
+            fi
         fi
     fi
 }
