@@ -22,21 +22,43 @@ setup() {
 }
 
 _notify_appliance() {
-    local port address appliance_type
+    local port address appliance_type fail_count max_retries dir
     port="$1"
     address="$2"
     appliance_type="$3"
+    fail_count=0
+    max_retries=10
     files_load_config config config/cluster
-    cat <<JSON | webapi_post "${address}"/"${appliance_type}"/register
+    until curl -sf "${address}"/api/v1/"${appliance_type}"/ > /dev/null; do
+        if [[ "$fail_count" -ge "$max_retries" ]]; then
+            echo "Appliance still not reachable, giving up."
+            break
+        fi
+        fail_count="$fail_count"+1
+        echo "Appliance not reachable, trying again."
+        sleep 5
+    done
+    if [[ "$fail_count" -le "$max_retries" ]]; then
+        cat <<JSON | webapi_post "${address}"/api/v1/"${appliance_type}"/register --mimetype application/json
 {
   "cluster": {
     "name": "${cw_CLUSTER_name}",
     "ip": "$(network_get_public_address)",
     "auth_port": ${port},
-    "ssl": true,
+    "ssl": true
   }
 }
 JSON
+        if [[ "$?" -eq 0 && "$appliance_type" == "storage" ]] && handler_is_enabled cluster_www; then
+            # if the POST to /register was successful and we are running
+            # alces-flight-www then add a resource section
+            dir=$(handler_dir)
+            # insert appliance URL into config file
+            sed -i "s/_APPLIANCE_URL_/${address}/" "${dir}"/var/alces-flight-www/alces-storage-manager/config.yml
+            # then add the resource
+            "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/alces-storage-manager
+        fi
+    fi
 }
 
 main() {
