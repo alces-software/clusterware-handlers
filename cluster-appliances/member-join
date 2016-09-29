@@ -76,10 +76,7 @@ _add_access_master_node() {
 :endpoints:
 - "${addr}:${port}"
 EOF
-	files_load_config config config/cluster
-        sed -e 's/^clusters: \[\]$/clusters:/g' \
-	    -e "s/^clusters:$/clusters:\n  - name: ${cw_CLUSTER_name}\n    ip: ${addr}\n    auth_port: ${port}\n    ssl: true\n/g" \
-	    -i "${cw_APPLIANCES_access_MANAGER_ROOT}"/webapp/config.yaml
+	_notify_appliance "${port}" "${addr}" "clusters"  # Note the hack that means this is 'clusters' not 'access'
     fi
 }
 
