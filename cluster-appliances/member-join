@@ -116,7 +116,7 @@ main() {
             _add_access_master_node "${cw_MEMBER_ip}" "${access_daemon_port:-25269}"
         fi
     fi
-    if [[ "${cw_INSTANCE_role}" == "master" ]] && handler_is_enabled cluster-www; then
+    if [[ "${cw_INSTANCE_role}" == "master" && "$(network_get_edition)" != "community" ]] && handler_is_enabled cluster-www; then
         # We are the master and have just been notified of an appliance instance
 
         dir=$(handler_dir)
@@ -140,6 +140,7 @@ main() {
 
 setup
 require member
+require network
 require handler
 require files
 require distro
