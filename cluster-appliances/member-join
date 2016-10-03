@@ -117,7 +117,7 @@ main() {
     fi
     if [[ "${cw_INSTANCE_role}" == "master" && "${appliance_roles}" == *":storage:"* ]]; then
         # We are the master and have just been notified of an ASM appliance instance
-        if handler_is_enabled cluster-www; then
+        if [ "$(network_get_edition)" != "community" ] && handler_is_enabled cluster-www; then
             dir=$(handler_dir)
             appliance_url = "https://storage.${cw_CLUSTER_name}.cloud.alces.network/"
             # insert cluster name into URL in config file
