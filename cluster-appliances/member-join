@@ -76,10 +76,7 @@ _add_access_master_node() {
 :endpoints:
 - "${addr}:${port}"
 EOF
-	files_load_config config config/cluster
-        sed -e 's/^clusters: \[\]$/clusters:/g' \
-	    -e "s/^clusters:$/clusters:\n  - name: ${cw_CLUSTER_name}\n    ip: ${addr}\n    auth_port: ${port}\n    ssl: true\n/g" \
-	    -i "${cw_APPLIANCES_access_MANAGER_ROOT}"/webapp/config.yaml
+	_notify_appliance "${port}" "${addr}" "clusters"  # Note the hack that means this is 'clusters' not 'access'
     fi
 }
 
@@ -119,14 +116,24 @@ main() {
             _add_access_master_node "${cw_MEMBER_ip}" "${access_daemon_port:-25269}"
         fi
     fi
-    if [[ "${cw_INSTANCE_role}" == "master" && "${appliance_roles}" == *":storage:"* ]]; then
-        # We are the master and have just been notified of an ASM appliance instance
-        if [ "$(network_get_edition)" != "community" ] && handler_is_enabled cluster-www; then
-            dir=$(handler_dir)
+
+    if [[ "${cw_INSTANCE_role}" == "master" && "$(network_get_edition)" != "community" ]] && handler_is_enabled cluster-www; then
+        # We are the master and have just been notified of an appliance instance
+
+        dir=$(handler_dir)
+
+        if [[ "${appliance_roles}" == *":storage:"* ]]; then
             appliance_url = "https://storage.${cw_CLUSTER_name}.cloud.alces.network/"
             # insert cluster name into URL in config file
             sed -i "s/_APPLIANCE_URL_/${appliance_url}/" "${dir}"/var/alces-flight-www/alces-storage-manager/config.yml
             "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/alces-storage-manager
+        fi
+
+        if [[ "${appliance_roles}" == *":access:"* ]]; then
+            appliance_url = "https://access.${cw_CLUSTER_name}.cloud.alces.network/"
+            # insert cluster name into URL in config file
+            sed -i "s/_APPLIANCE_URL_/${appliance_url}/" "${dir}"/var/alces-flight-www/alces-access-manager/config.yml
+            "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/alces-access-manager
         fi
     fi
 
