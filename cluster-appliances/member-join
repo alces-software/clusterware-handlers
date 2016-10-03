@@ -129,6 +129,7 @@ main() {
 
 setup
 require member
+require network
 require handler
 require files
 require distro
