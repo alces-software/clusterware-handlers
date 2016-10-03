@@ -7,5 +7,5 @@ paras:
     which enables you to access, upload to and download from cluster
     storage.
   - >
-    <a href="https://storage._CLUSTERNAME_.cloud.alces.network/">Access the
+    <a href="_APPLIANCE_URL_">Access the
     Storage Manager appliance by clicking here</a>.
