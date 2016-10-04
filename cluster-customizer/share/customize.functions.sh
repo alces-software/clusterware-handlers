@@ -108,10 +108,10 @@ customize_fetch_profile() {
         "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --force -r get "s3://${source}"/ "${target}"
     else
         # fetch manifest file
-        if [ "${cw_CLUSTER_CUSTOMIZER_region:-eu-west-1}" == "us-east-1" ]; then
+        if [ "${_REGION:-${cw_CLUSTER_CUSTOMIZER_region:-eu-west-1}}" == "us-east-1" ]; then
             host=s3.amazonaws.com
         else
-            host=s3-${cw_CLUSTER_CUSTOMIZER_region:-eu-west-1}.amazonaws.com
+            host=s3-${_REGION:-${cw_CLUSTER_CUSTOMIZER_region:-eu-west-1}}.amazonaws.com
         fi
         manifest=$(curl -s -f https://${host}/${source}/manifest.txt)
         if [ "${manifest}" ] && ! echo "${manifest[*]}" | grep -q '<Error>'; then
