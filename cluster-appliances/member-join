@@ -27,13 +27,17 @@ _notify_appliance() {
     address="$2"
     appliance_type="$3"
     files_load_config config config/cluster
-    cat <<JSON | webapi_post https://localhost/api/v1/${appliance_type}/register -k
+    until curl -ksf "https://localhost/api/v1/${appliance_type}/" > /dev/null; do
+        echo "Waiting for ASM webapp to become available..."
+        sleep 5
+    done
+    cat <<JSON | webapi_post https://localhost/api/v1/${appliance_type}/register --mimetype application/json -k
 {
   "cluster": {
     "name": "${cw_CLUSTER_name}",
     "ip": "${address}",
     "auth_port": ${port},
-    "ssl": true,
+    "ssl": true
   }
 }
 JSON
@@ -72,37 +76,37 @@ _add_access_master_node() {
 :endpoints:
 - "${addr}:${port}"
 EOF
-	files_load_config config config/cluster
-        sed -e 's/^clusters: \[\]$/clusters:/g' \
-	    -e "s/^clusters:$/clusters:\n  - name: ${cw_CLUSTER_name}\n    ip: ${addr}\n    auth_port: ${port}\n    ssl: true\n/g" \
-	    -i "${cw_APPLIANCES_access_MANAGER_ROOT}"/webapp/config.yaml
+	_notify_appliance "${port}" "${addr}" "clusters"  # Note the hack that means this is 'clusters' not 'access'
     fi
 }
 
 main() {
-    local tags tag tuple key value storage_roles storage_daemon_port access_roles access_daemon_port
+    local appliance_roles dir tags tag tuple key value storage_roles storage_daemon_port access_roles access_daemon_port appliance_url
 
     files_load_config instance config/cluster
+    files_load_config config config/cluster
+    eval "$(member_parse)"
+    echo "Tags for member ${cw_MEMBER_name} (${cw_MEMBER_ip}): ${cw_MEMBER_tags}"
+    IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
+    for tag in "${tags[@]}"; do
+        IFS='=' read -a tuple <<< "${tag}"
+        echo "Found tuple: ${tag}, key: ${tuple[0]}, value: ${tuple[1]}"
+        key=${tuple[0]}
+        value=${tuple[1]}
+        if [ "$key" == "storage_roles" ]; then
+            storage_roles="${value}"
+        elif [ "$key" == "storage_daemon_port" ]; then
+            storage_daemon_port="${value}"
+        elif [ "$key" == "access_roles" ]; then
+            access_roles="${value}"
+        elif [ "$key" == "access_daemon_port" ]; then
+            access_daemon_port="${value}"
+        elif [ "$key" == "appliance_roles" ]; then
+            appliance_roles="$value"
+        fi
+    done
 
     if [[ "${cw_INSTANCE_role}" == "appliance" ]]; then
-        eval "$(member_parse)"
-        echo "Tags for member ${cw_MEMBER_name} (${cw_MEMBER_ip}): ${cw_MEMBER_tags}"
-        IFS=',' read -a tags <<< "${cw_MEMBER_tags}"
-        for tag in "${tags[@]}"; do
-            IFS='=' read -a tuple <<< "${tag}"
-            echo "Found tuple: ${tag}, key: ${tuple[0]}, value: ${tuple[1]}"
-            key=${tuple[0]}
-            value=${tuple[1]}
-            if [ "$key" == "storage_roles" ]; then
-                storage_roles="${value}"
-            elif [ "$key" == "storage_daemon_port" ]; then
-                storage_daemon_port="${value}"
-            elif [ "$key" == "access_roles" ]; then
-                access_roles="${value}"
-            elif [ "$key" == "access_daemon_port" ]; then
-                access_daemon_port="${value}"
-            fi
-        done
         if [[ "${cw_INSTANCE_tag_APPLIANCE_ROLES}" == *":storage:"* && "${storage_roles}" == *":master:"* ]]; then
             echo "Adding Storage Manager master node: ${cw_MEMBER_name} (${cw_MEMBER_ip}:${storage_daemon_port:-25268})"
             _add_storage_master_node "${cw_MEMBER_ip}" "${storage_daemon_port:-25268}"
@@ -112,10 +116,32 @@ main() {
             _add_access_master_node "${cw_MEMBER_ip}" "${access_daemon_port:-25269}"
         fi
     fi
+
+    if [[ "${cw_INSTANCE_role}" == "master" && "$(network_get_edition)" != "community" ]] && handler_is_enabled cluster-www; then
+        # We are the master and have just been notified of an appliance instance
+
+        dir=$(handler_dir)
+
+        if [[ "${appliance_roles}" == *":storage:"* ]]; then
+            appliance_url = "https://storage.${cw_CLUSTER_name}.cloud.alces.network/"
+            # insert cluster name into URL in config file
+            sed -i "s/_APPLIANCE_URL_/${appliance_url}/" "${dir}"/var/alces-flight-www/alces-storage-manager/config.yml
+            "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/alces-storage-manager
+        fi
+
+        if [[ "${appliance_roles}" == *":access:"* ]]; then
+            appliance_url = "https://access.${cw_CLUSTER_name}.cloud.alces.network/"
+            # insert cluster name into URL in config file
+            sed -i "s/_APPLIANCE_URL_/${appliance_url}/" "${dir}"/var/alces-flight-www/alces-access-manager/config.yml
+            "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/alces-access-manager
+        fi
+    fi
+
 }
 
 setup
 require member
+require network
 require handler
 require files
 require distro
