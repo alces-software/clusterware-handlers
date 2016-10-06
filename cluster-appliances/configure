@@ -94,8 +94,13 @@ main() {
     mkdir -p "${cw_ROOT}/etc/config/cluster-appliances"
 
     files_load_config instance config/cluster
-    if [[ "${cw_INSTANCE_tag_STORAGE_ROLES}" == *":master:"* ]]; then
+
+    if [[ "${cw_INSTANCE_tag_STORAGE_ROLES}" == *":master:"* ]] ||
+      [[ "${cw_INSTANCE_tag_ACCESS_ROLES}" == *":master:"* ]]; then
         _write_configuration
+    fi
+
+    if [[ "${cw_INSTANCE_tag_STORAGE_ROLES}" == *":master:"* ]]; then
         _fulfil_endpoint_role "storage" "${cw_INSTANCE_tag_STORAGE_DAEMON_PORT:-25268}"
         if [ "${cw_APPLIANCES_storage_SKIP_DEFAULTS}" != "true" ]; then
             "${cw_ROOT}"/bin/alces storage enable posix
