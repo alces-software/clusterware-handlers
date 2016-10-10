@@ -28,7 +28,7 @@ main() {
 
         files_load_config --optional cluster-appliances config/cluster-appliances
         if [ "${cw_APPLIANCES_access_ADDRESS}" ]; then
-            cat <<JSON | webapi_post "${cw_APPLIANCES_access_ADDRESS}/api/v1/sessions/${sessionid}/screenshot"
+            cat <<JSON | webapi_post --location "${cw_APPLIANCES_access_ADDRESS}/api/v1/sessions/${sessionid}/screenshot"
 {
     "data": {
         "type": "screens",

@@ -117,23 +117,34 @@ main() {
         fi
     fi
 
-    if [[ "${cw_INSTANCE_role}" == "master" && "$(network_get_edition)" != "community" ]] && handler_is_enabled cluster-www; then
+    if [[ "${cw_INSTANCE_role}" == "master" && "$(network_get_edition)" != "community" ]]; then
         # We are the master and have just been notified of an appliance instance
 
-        dir=$(handler_dir)
-
-        if [[ "${appliance_roles}" == *":storage:"* ]]; then
-            appliance_url = "https://storage.${cw_CLUSTER_name}.cloud.alces.network/"
-            # insert cluster name into URL in config file
-            sed -i "s/_APPLIANCE_URL_/${appliance_url}/" "${dir}"/var/alces-flight-www/alces-storage-manager/config.yml
-            "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/alces-storage-manager
+        if [[ "${appliance_roles}" == *":access:"* ]]; then
+          # We need to record the address of the Access appliance, so we can
+          # send it screenshots in the `session-screenshot` handler.
+          echo "cw_APPLIANCES_access_ADDRESS=${cw_MEMBER_ip}" >> \
+          "${cw_ROOT}/etc/config/cluster-appliances/cluster-appliances.rc"
         fi
 
-        if [[ "${appliance_roles}" == *":access:"* ]]; then
-            appliance_url = "https://access.${cw_CLUSTER_name}.cloud.alces.network/"
-            # insert cluster name into URL in config file
-            sed -i "s/_APPLIANCE_URL_/${appliance_url}/" "${dir}"/var/alces-flight-www/alces-access-manager/config.yml
-            "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/alces-access-manager
+        if handler_is_enabled cluster-www; then
+          # Add appliance entry to cluster landing page.
+
+          dir=$(handler_dir)
+
+          if [[ "${appliance_roles}" == *":storage:"* ]]; then
+              appliance_url="https://storage.${cw_CLUSTER_name}.cloud.alces.network/"
+              # insert cluster name into URL in config file
+              sed -i "s%_APPLIANCE_URL_%${appliance_url}%" "${dir}"/var/alces-flight-www/alces-storage-manager/config.yml
+              "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/alces-storage-manager
+          fi
+
+          if [[ "${appliance_roles}" == *":access:"* ]]; then
+              appliance_url="https://access.${cw_CLUSTER_name}.cloud.alces.network/"
+              # insert cluster name into URL in config file
+              sed -i "s%_APPLIANCE_URL_%${appliance_url}%" "${dir}"/var/alces-flight-www/alces-access-manager/config.yml
+              "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/alces-access-manager
+          fi
         fi
     fi
 
