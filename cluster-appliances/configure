@@ -111,6 +111,7 @@ main() {
 
     if [[ "${cw_INSTANCE_tag_ACCESS_ROLES}" == *":master:"* ]]; then
         _fulfil_endpoint_role "access" "${cw_INSTANCE_tag_ACCESS_DAEMON_PORT:-25269}"
+        "${cw_ROOT}"/bin/alces service enable alces-flight-www/websocket-proxy
     fi
 
     if [[ "${cw_INSTANCE_role}" == "appliance" ]]; then
