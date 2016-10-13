@@ -117,15 +117,15 @@ main() {
         fi
     fi
 
+    if [[ "${appliance_roles}" == *":access:"* ]]; then
+      # We need to record the address of the Access appliance, so we can
+      # send it screenshots in the `session-screenshot` handler.
+      echo "cw_APPLIANCES_access_ADDRESS=${cw_MEMBER_ip}" >> \
+        "${cw_ROOT}/etc/config/cluster-appliances/cluster-appliances.rc"
+    fi
+
     if [[ "${cw_INSTANCE_role}" == "master" && "$(network_get_edition)" != "community" ]]; then
         # We are the master and have just been notified of an appliance instance
-
-        if [[ "${appliance_roles}" == *":access:"* ]]; then
-          # We need to record the address of the Access appliance, so we can
-          # send it screenshots in the `session-screenshot` handler.
-          echo "cw_APPLIANCES_access_ADDRESS=${cw_MEMBER_ip}" >> \
-          "${cw_ROOT}/etc/config/cluster-appliances/cluster-appliances.rc"
-        fi
 
         if handler_is_enabled cluster-www; then
           # Add appliance entry to cluster landing page.
