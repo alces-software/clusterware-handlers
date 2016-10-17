@@ -42,6 +42,9 @@ case $action in
     p|pu|pul|pull)
         exec /bin/bash "${cw_ROOT}"/libexec/customize/actions/pull "$@"
         ;;
+    a|av|ava|avai|avail)
+        exec /bin/bash "${cw_ROOT}"/libexec/customize/actions/avail "$@"
+        ;;
     *)
         cat <<EOF
 Usage: $cw_BINNAME COMMAND [[OPTION]... [ARGS]]
