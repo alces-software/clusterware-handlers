@@ -219,3 +219,28 @@ customize_fetch() {
     chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}"
     customize_clear_s3_config
 }
+
+customize_list_features() {
+  local bucket profile
+  if [ -z "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
+      if network_is_ec2; then
+          bucket="alces-flight-$(network_ec2_hashed_account)"
+      else
+          echo "Unable to determine bucket name for customizations"
+          return 0
+      fi
+  else
+      bucket="${cw_CLUSTER_CUSTOMIZER_bucket#s3://}"
+  fi
+  if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
+      echo "S3 access to '${bucket}' is not available.  Falling back to HTTP manifests."
+      s3cfg=""
+  fi
+  "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "s3://${bucket}" | grep manifest.txt | awk '{ print $4 }'
+}
+
+customize_list() {
+  customize_set_s3_config
+  customize_list_features "${s3cfg}"
+  customize_clear_s3_config
+}
