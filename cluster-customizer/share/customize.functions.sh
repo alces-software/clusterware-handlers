@@ -190,7 +190,6 @@ customize_is_s3_access_available() {
 }
 
 customize_set_s3_config() {
-  local s3cfg
   customize_set_region
   s3cfg="$(mktemp /tmp/cluster-customizer.s3cfg.XXXXXXXX)"
   cat <<EOF > "${s3cfg}"
@@ -205,6 +204,7 @@ EOF
 
 customize_clear_s3_config() {
   rm -f "${s3cfg}"
+  unset s3cfg
 }
 
 customize_fetch() {
