@@ -27,7 +27,7 @@ if [ -d "${cw_ROOT}"/etc/handlers/cluster-customizer/share ]; then
     handler_add_libdir "${cw_ROOT}"/etc/handlers/cluster-customizer/share
     require customize
 
-    echo "avail command not yet written! Coming soon™"
+    echo "avail command not yet written! Coming soon™..."
 else
     action_die 'cluster-customizer handler is not enabled'
 fi
