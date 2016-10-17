@@ -189,11 +189,11 @@ customize_is_s3_access_available() {
     "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} ls "s3://${bucket}" 2>/dev/null
 }
 
-customize_fetch() {
-    local s3cfg
-    customize_set_region
-    s3cfg="$(mktemp /tmp/cluster-customizer.s3cfg.XXXXXXXX)"
-    cat <<EOF > "${s3cfg}"
+customize_set_s3_config() {
+  local s3cfg
+  customize_set_region
+  s3cfg="$(mktemp /tmp/cluster-customizer.s3cfg.XXXXXXXX)"
+  cat <<EOF > "${s3cfg}"
 [default]
 access_key = "${cw_CLUSTER_CUSTOMIZER_access_key_id}"
 secret_key = "${cw_CLUSTER_CUSTOMIZER_secret_access_key}"
@@ -201,6 +201,14 @@ security_token = ""
 use_https = True
 check_ssl_certificate = True
 EOF
+}
+
+customize_clear_s3_config() {
+  rm -f "${s3cfg}"
+}
+
+customize_fetch() {
+    customize_set_s3_config
     mkdir -p "${cw_CLUSTER_CUSTOMIZER_path}"
     customize_set_machine_type
     if [ "${_MACHINE_TYPE}" ]; then
@@ -209,5 +217,5 @@ EOF
     customize_fetch_features "${s3cfg}"
     customize_fetch_profiles "${s3cfg}"
     chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}"
-    rm -f "${s3cfg}"
+    customize_clear_s3_config
 }
