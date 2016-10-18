@@ -186,7 +186,7 @@ customize_is_s3_access_available() {
     local s3cfg bucket
     s3cfg="$1"
     bucket="$2"
-    "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} ls "s3://${bucket}" 2>/dev/null
+    "${cw_ROOT}"/opt/s3cmd/s3cmd -q -c ${s3cfg} ls "s3://${bucket}" 2>/dev/null
 }
 
 customize_set_s3_config() {
