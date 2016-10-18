@@ -220,6 +220,14 @@ customize_fetch() {
     customize_clear_s3_config
 }
 
+customize_list_from_s3() {
+  local s3cfg url
+  s3cfg=$1
+  url=$2
+  # Arg $4 is the manifest file path; split on /; the second-last element is the profile name
+  "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "${url}" | grep manifest.txt | awk '{ b=split($4, a, "/"); print a[b-1] }'
+}
+
 customize_list_profiles() {
   local bucket
   if [ -z "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
@@ -237,8 +245,7 @@ customize_list_profiles() {
       s3cfg=""
   else
     echo "Account profiles available:"
-    # Arg $4 is the manifest file path; split on /; the second-last element is the profile name
-    "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "s3://${bucket}/customizer" | grep manifest.txt | awk '{ b=split($4, a, "/"); print a[b-1] }'
+    customize_list_from_s3 "$s3cfg" "s3://${bucket}/customizer"
   fi
 }
 
@@ -251,8 +258,7 @@ customize_list_features() {
       s3cfg=""
   else
     echo "Feature profiles available:"
-    # Arg $4 is the manifest file path; split on /; the second-last element is the profile name
-    "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "s3://${bucket}/features" | grep manifest.txt | awk '{ b=split($4, a, "/"); print a[b-1] }'
+    customize_list_from_s3 "$s3cfg" "s3://${bucket}/features"
   fi
 }
 
