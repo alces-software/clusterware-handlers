@@ -229,7 +229,7 @@ customize_list_from_s3() {
 }
 
 customize_list_profiles() {
-  local bucket
+  local bucket ex existing av avail found
   if [ -z "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
       if network_is_ec2; then
           bucket="alces-flight-$(network_ec2_hashed_account)"
@@ -240,12 +240,26 @@ customize_list_profiles() {
   else
       bucket="${cw_CLUSTER_CUSTOMIZER_bucket#s3://}"
   fi
+  existing="$(mktemp /tmp/cluster-customizer.s3cfg.XXXXXXXX)"
+  ls "${cw_CLUSTER_CUSTOMIZER_path}" | grep -Po "(?<=profile-).*"grep -Po "(?<=profile-).*" > existing
   if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
       echo "S3 access to '${bucket}' is not available.  HTTP not yet implemented. Sorry."
       s3cfg=""
   else
     echo "Account profiles available:"
-    customize_list_from_s3 "$s3cfg" "s3://${bucket}/customizer"
+    avail=$(customize_list_from_s3 "$s3cfg" "s3://${bucket}/customizer")
+    for av in avail; do
+      found=false
+      for ex in existing; do
+        if [[ "$av" == "$existing" ]]; then
+          found=true
+          break
+        fi
+      done
+      if [[ !"$found" ]]; then
+        echo av
+      fi
+    done
   fi
 }
 
