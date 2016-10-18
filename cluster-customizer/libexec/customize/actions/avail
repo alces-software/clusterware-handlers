@@ -22,6 +22,7 @@
 #==============================================================================
 require action
 require handler
+require network
 
 if [ -d "${cw_ROOT}"/etc/handlers/cluster-customizer/share ]; then
     handler_add_libdir "${cw_ROOT}"/etc/handlers/cluster-customizer/share
