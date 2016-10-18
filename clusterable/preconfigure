@@ -288,7 +288,7 @@ puts ("${ipaddr}".split('.')[2].to_i - first_net + 97).chr
 RUBY
               )
     fi
-    printf "flight-%s%03d" "${prefix}" "$(echo "${ipaddr}" | cut -f4 -d'.')"
+    printf "${cw_CLUSTER_hostname_prefix:-flight}-%s%03d" "${prefix}" "$(echo "${ipaddr}" | cut -f4 -d'.')"
 }
 
 _write_network_config() {
