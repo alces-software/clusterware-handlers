@@ -220,8 +220,8 @@ customize_fetch() {
     customize_clear_s3_config
 }
 
-customize_list_features() {
-  local bucket profile
+customize_list_profiles() {
+  local bucket
   if [ -z "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
       if network_is_ec2; then
           bucket="alces-flight-$(network_ec2_hashed_account)"
@@ -236,12 +236,12 @@ customize_list_features() {
       echo "S3 access to '${bucket}' is not available.  HTTP not yet implemented. Sorry."
       s3cfg=""
   else
-    "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "s3://${bucket}" | grep manifest.txt | awk '{ print $4 }'
+    "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "s3://${bucket}/customizer" | grep manifest.txt | awk '{ print $4 }'
   fi
 }
 
 customize_list() {
   customize_set_s3_config
-  customize_list_features "${s3cfg}"
+  customize_list_profiles "${s3cfg}"
   customize_clear_s3_config
 }
