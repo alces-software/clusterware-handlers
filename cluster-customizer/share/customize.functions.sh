@@ -233,10 +233,11 @@ customize_list_features() {
       bucket="${cw_CLUSTER_CUSTOMIZER_bucket#s3://}"
   fi
   if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
-      echo "S3 access to '${bucket}' is not available.  Falling back to HTTP manifests."
+      echo "S3 access to '${bucket}' is not available.  HTTP not yet implemented. Sorry."
       s3cfg=""
+  else
+    "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "s3://${bucket}" | grep manifest.txt | awk '{ print $4 }'
   fi
-  "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "s3://${bucket}" | grep manifest.txt | awk '{ print $4 }'
 }
 
 customize_list() {
