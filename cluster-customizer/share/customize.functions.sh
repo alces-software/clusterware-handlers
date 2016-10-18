@@ -237,7 +237,8 @@ customize_list_profiles() {
       s3cfg=""
   else
     echo "Account profiles available:"
-    "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "s3://${bucket}/customizer" | grep manifest.txt | awk '{ print $4 }'
+    # Arg $4 is the manifest file path; split on /; the second-last element is the profile name
+    "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "s3://${bucket}/customizer" | grep manifest.txt | awk '{ b=split($4, a, "/"); print a[b-1] }'
   fi
 }
 
@@ -250,7 +251,8 @@ customize_list_features() {
       s3cfg=""
   else
     echo "Feature profiles available:"
-    "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "s3://${bucket}/features" | grep manifest.txt | awk '{ print $4 }'
+    # Arg $4 is the manifest file path; split on /; the second-last element is the profile name
+    "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "s3://${bucket}/features" | grep manifest.txt | awk '{ b=split($4, a, "/"); print a[b-1] }'
   fi
 }
 
