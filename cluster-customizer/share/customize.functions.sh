@@ -247,9 +247,10 @@ customize_list_from_http() {
 }
 
 customize_print_list_excluding() {
-  local ex existing av avail found
+  local ex existing av avail found prefix
   avail="$1"
   existing="$2"
+  prefix="$3"
   for av in $avail; do
     found=false
     for ex in $existing; do
@@ -259,7 +260,7 @@ customize_print_list_excluding() {
       fi
     done
     if [[ "$found" == false ]]; then
-      echo " - $av"
+      echo " - $prefix/$av"
     fi
   done
 }
@@ -284,8 +285,7 @@ customize_list_profiles() {
   else
     avail=$(customize_list_from_s3 "$s3cfg" "s3://${bucket}/customizer")
   fi
-  echo "Account profiles available:"
-  customize_print_list_excluding "$avail" "$existing"
+  customize_print_list_excluding "$avail" "$existing" "profile"
 }
 
 customize_list_features() {
@@ -302,8 +302,7 @@ customize_list_features() {
   else
     avail=$(customize_list_from_s3 "$s3cfg" "s3://${bucket}/features")
   fi
-  echo "Feature profiles available:"
-  customize_print_list_excluding "$avail" "$existing"
+  customize_print_list_excluding "$avail" "$existing" "feature"
 }
 
 customize_list() {
