@@ -232,9 +232,9 @@ customize_print_list_excluding() {
   local ex existing av avail found
   avail="$1"
   existing="$2"
-  for av in "$avail"; do
+  for av in $avail; do
     found=false
-    for ex in "$existing"; do
+    for ex in $existing; do
       if [[ "$av" == "$existing" ]]; then
         found=true
         break
