@@ -228,6 +228,24 @@ customize_list_from_s3() {
   "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "${url}" | grep manifest.txt | awk '{ b=split($4, a, "/"); print a[b-1] }'
 }
 
+customize_list_from_http() {
+  local host source prefix index
+  source="$1"
+  prefix="$2"
+  if [ "${_REGION:-${cw_CLUSTER_CUSTOMIZER_region:-eu-west-1}}" == "us-east-1" ]; then
+      host=s3.amazonaws.com
+  else
+      host=s3-${_REGION:-${cw_CLUSTER_CUSTOMIZER_region:-eu-west-1}}.amazonaws.com
+  fi
+  index=$(curl -s -f https://${host}/${source}/)
+  if [[ $? -eq 0 ]]; then
+    echo "$index" | grep -oP '(?<=\<Key>'$prefix'\/)[^\<]+?(?=\/manifest.txt\<\/Key\>)'
+  else
+    echo "HTTPS call failed, customization listing unavailable."
+    return 1
+  fi
+}
+
 customize_print_list_excluding() {
   local ex existing av avail found
   avail="$1"
@@ -260,13 +278,14 @@ customize_list_profiles() {
   fi
   existing=$(ls "${cw_CLUSTER_CUSTOMIZER_path}" | grep -Po "(?<=profile-).*")
   if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
-      echo "S3 access to '${bucket}' is not available.  HTTP not yet implemented. Sorry."
+      echo "S3 access to '${bucket}' is not available.  Falling back to HTTP manifests."
       s3cfg=""
+      avail=$(customize_list_from_http "$bucket" "customizer")
   else
     avail=$(customize_list_from_s3 "$s3cfg" "s3://${bucket}/customizer")
-    echo "Account profiles available:"
-    customize_print_list_excluding "$avail" "$existing"
   fi
+  echo "Account profiles available:"
+  customize_print_list_excluding "$avail" "$existing"
 }
 
 customize_list_features() {
@@ -279,11 +298,12 @@ customize_list_features() {
   if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
       echo "S3 access to '${bucket}' is not available.  Falling back to HTTP manifests."
       s3cfg=""
+      avail=$(customize_list_from_http "$bucket" "features")
   else
     avail=$(customize_list_from_s3 "$s3cfg" "s3://${bucket}/features")
-    echo "Feature profiles available:"
-    customize_print_list_excluding "$avail" "$existing"
   fi
+  echo "Feature profiles available:"
+  customize_print_list_excluding "$avail" "$existing"
 }
 
 customize_list() {
