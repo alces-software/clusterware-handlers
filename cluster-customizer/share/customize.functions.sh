@@ -240,8 +240,8 @@ customize_print_list_excluding() {
         break
       fi
     done
-    if [[ !"$found" ]]; then
-      echo "$av"
+    if [[ "$found" == false ]]; then
+      echo " - $av"
     fi
   done
 }
