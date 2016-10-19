@@ -23,8 +23,9 @@
 require action
 require handler
 require network
+require process
 
-action_die_unless_root
+process_reexec_sudo "$@"
 
 if [ -d "${cw_ROOT}"/etc/handlers/cluster-customizer/share ]; then
     handler_add_libdir "${cw_ROOT}"/etc/handlers/cluster-customizer/share
