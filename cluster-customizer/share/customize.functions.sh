@@ -228,8 +228,26 @@ customize_list_from_s3() {
   "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "${url}" | grep manifest.txt | awk '{ b=split($4, a, "/"); print a[b-1] }'
 }
 
+customize_print_list_excluding() {
+  local ex existing av avail found
+  avail="$1"
+  existing="$2"
+  for av in "$avail"; do
+    found=false
+    for ex in "$existing"; do
+      if [[ "$av" == "$existing" ]]; then
+        found=true
+        break
+      fi
+    done
+    if [[ !"$found" ]]; then
+      echo "$av"
+    fi
+  done
+}
+
 customize_list_profiles() {
-  local bucket ex existing av avail found
+  local bucket existing avail
   if [ -z "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
       if network_is_ec2; then
           bucket="alces-flight-$(network_ec2_hashed_account)"
@@ -240,39 +258,31 @@ customize_list_profiles() {
   else
       bucket="${cw_CLUSTER_CUSTOMIZER_bucket#s3://}"
   fi
-  existing="$(mktemp /tmp/cluster-customizer.s3cfg.XXXXXXXX)"
-  ls "${cw_CLUSTER_CUSTOMIZER_path}" | grep -Po "(?<=profile-).*"grep -Po "(?<=profile-).*" > existing
+  existing=$(ls "${cw_CLUSTER_CUSTOMIZER_path}" | grep -Po "(?<=profile-).*")
   if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
       echo "S3 access to '${bucket}' is not available.  HTTP not yet implemented. Sorry."
       s3cfg=""
   else
-    echo "Account profiles available:"
     avail=$(customize_list_from_s3 "$s3cfg" "s3://${bucket}/customizer")
-    for av in avail; do
-      found=false
-      for ex in existing; do
-        if [[ "$av" == "$existing" ]]; then
-          found=true
-          break
-        fi
-      done
-      if [[ !"$found" ]]; then
-        echo av
-      fi
-    done
+    echo "Account profiles available:"
+    customize_print_list_excluding "$avail" "$existing"
   fi
 }
 
 customize_list_features() {
-  local bucket feature s3cfg
-  s3cfg=$1
+  local bucket s3cfg existing avail
+  s3cfg="$1"
   bucket="alces-flight-profiles-${_REGION}"
+
+  existing=$(ls "${cw_CLUSTER_CUSTOMIZER_path}" | grep -Po "(?<=feature-).*")
+
   if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
       echo "S3 access to '${bucket}' is not available.  Falling back to HTTP manifests."
       s3cfg=""
   else
+    avail=$(customize_list_from_s3 "$s3cfg" "s3://${bucket}/features")
     echo "Feature profiles available:"
-    customize_list_from_s3 "$s3cfg" "s3://${bucket}/features"
+    customize_print_list_excluding "$avail" "$existing"
   fi
 }
 
