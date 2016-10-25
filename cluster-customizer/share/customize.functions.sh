@@ -254,7 +254,7 @@ customize_print_list_excluding() {
   for av in $avail; do
     found=false
     for ex in $existing; do
-      if [[ "$av" == "$existing" ]]; then
+      if [[ "$av" == "$ex" ]]; then
         found=true
         break
       fi
