@@ -57,14 +57,14 @@ JSON
 
             if [[ "$appliance_type" == "storage" ]]; then
                 # insert appliance URL into config file
-                sed -i "s/_APPLIANCE_URL_/${address}/" "${dir}"/var/alces-flight-www/alces-storage-manager/config.yml
+                sed -i "s%_APPLIANCE_URL_%${address}%" "${dir}"/var/alces-flight-www/alces-storage-manager/config.yml
                 # then add the resource
                 "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/alces-storage-manager
             fi
 
             if [[ "$appliance_type" == "clusters" ]]; then  # Note (hack) that this isn't 'access'
                 # insert appliance URL into config file
-                sed -i "s/_APPLIANCE_URL_/${address}/" "${dir}"/var/alces-flight-www/alces-access-manager/config.yml
+                sed -i "s%_APPLIANCE_URL_%${address}%" "${dir}"/var/alces-flight-www/alces-access-manager/config.yml
                 # then add the resource
                 "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/alces-access-manager
             fi
