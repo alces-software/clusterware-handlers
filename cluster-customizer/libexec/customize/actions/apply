@@ -35,9 +35,9 @@ main() {
   fi
 
   if [[ "$type" == "feature" ]]; then
-    echo "Requested feature $profile_name"
+    customize_apply_feature "$profile_name"
   elif [[ "$type" == "profile" ]]; then
-    echo "Requested profile $profile_name"
+    customize_apply_profile "$profile_name"
   else
     echo "Unknown customization type: $type"
   fi

@@ -311,3 +311,15 @@ customize_list() {
   customize_list_features "${s3cfg}"
   customize_clear_s3_config
 }
+
+customize_apply_profile() {
+  local profile_name
+  profile_name="$1"
+  echo "Requested apply profile $profile_name"
+}
+
+customize_apply_feature() {
+  local feature_name
+  feature_name="$1"
+  echo "Requested apply feature $feature_name"
+}
