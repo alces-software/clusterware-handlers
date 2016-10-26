@@ -313,13 +313,45 @@ customize_list() {
 }
 
 customize_apply_profile() {
-  local profile_name
+  local bucket profile_name
   profile_name="$1"
+
+  customize_set_s3_config
+
+  if [ -z "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
+      if network_is_ec2; then
+          bucket="alces-flight-$(network_ec2_hashed_account)"
+      else
+          echo "Unable to determine bucket name for customizations"
+          return 0
+      fi
+  else
+      bucket="${cw_CLUSTER_CUSTOMIZER_bucket#s3://}"
+  fi
+
   echo "Requested apply profile $profile_name"
+
+  if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
+      echo "S3 access to '${bucket}' is not available.  Falling back to HTTP manifests."
+      s3cfg=""
+  fi
+
+  echo "Retrieving customization from: ${bucket}/customizer/$profile_name"
+  customize_fetch_profile "${s3cfg}" "${bucket}"/customizer/"${profile_name}" \
+                          "${cw_CLUSTER_CUSTOMIZER_path}"/profile-${profile_name}
+
+  sed -i "s/cw_CLUSTER_CUSTOMIZER_profiles=.*/cw_CLUSTER_CUSTOMIZER_profiles=\"$cw_CLUSTER_CUSTOMIZER_profiles $profile_name\"" "$cw_ROOT"/etc/cluster_customizer.rc
+
+  customize_clear_s3_config
 }
 
 customize_apply_feature() {
   local feature_name
   feature_name="$1"
+
+  customize_set_s3_config
+
   echo "Requested apply feature $feature_name"
+
+  customize_clear_s3_config
 }
