@@ -42,8 +42,11 @@ case $action in
     p|pu|pul|pull)
         exec /bin/bash "${cw_ROOT}"/libexec/customize/actions/pull "$@"
         ;;
-    a|av|ava|avai|avail)
+    av|ava|avai|avail)
         exec /bin/bash "${cw_ROOT}"/libexec/customize/actions/avail "$@"
+        ;;
+    ap|app|appl|apply)
+        exec /bin/bash "${cw_ROOT}"/libexec/customize/actions/apply "$@"
         ;;
     *)
         cat <<EOF
