@@ -50,7 +50,7 @@ _notify_appliance() {
 }
 JSON
 
-        if [[ "$?" -eq 0 && "$(network_get_edition)" != "community" ]] && handler_is_enabled cluster_www; then
+        if [[ "$?" -eq 0 && "$(network_get_edition)" != "community" ]] && handler_is_enabled cluster-www; then
             # if the POST to /register was successful and we are running
             # alces-flight-www then add a resource section
             dir=$(handler_dir)
