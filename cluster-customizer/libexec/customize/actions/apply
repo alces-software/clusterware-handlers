@@ -27,8 +27,8 @@ require network
 
 main() {
   local type profile_name
-  type=${1##/}
-  profile_name=${1%%/}
+  type=${1%%/*}
+  profile_name=${1##*/}
   echo "Type: $type"
   echo "Profile: $profile_name"
 }
