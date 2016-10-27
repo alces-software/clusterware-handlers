@@ -340,7 +340,7 @@ customize_apply_profile() {
   customize_fetch_profile "${s3cfg}" "${bucket}"/customizer/"${profile_name}" \
                           "${cw_CLUSTER_CUSTOMIZER_path}"/profile-${profile_name}
 
-  sed -i "s/cw_CLUSTER_CUSTOMIZER_profiles=.*/cw_CLUSTER_CUSTOMIZER_profiles=\"$cw_CLUSTER_CUSTOMIZER_profiles $profile_name\"" "$cw_ROOT"/etc/cluster_customizer.rc
+  sed -i "s/cw_CLUSTER_CUSTOMIZER_profiles=.*/cw_CLUSTER_CUSTOMIZER_profiles=\"$cw_CLUSTER_CUSTOMIZER_profiles $profile_name\"/" "$cw_ROOT"/etc/cluster_customizer.rc
 
   customize_clear_s3_config
 }
