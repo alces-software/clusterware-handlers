@@ -97,6 +97,13 @@ customize_set_machine_type() {
     fi
 }
 
+customize_profile_exists() {
+  local s3cfg source
+  s3cfg="$1"
+  source="$2"
+  "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} info "s3://${source}"/manifest.txt >/dev/null 2>&1
+}
+
 customize_fetch_profile() {
     local s3cfg source target host manifest f s3cmd
     s3cfg="$1"
@@ -104,8 +111,14 @@ customize_fetch_profile() {
     target="$3"
     mkdir -p "${target}"
     if [ "${s3cfg}" ]; then
+        # Create bucket if it does not already exist
         "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} mb "s3://${source%%/*}" &>/dev/null
-        "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --force -r get "s3://${source}"/ "${target}"
+        if customize_profile_exists ${s3cfg} ${source}; then
+          "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --force -r get "s3://${source}"/ "${target}"
+        else
+          echo "No manifest found for: ${source}"
+          return 1
+        fi
     else
         # fetch manifest file
         if [ "${_REGION:-${cw_CLUSTER_CUSTOMIZER_region:-eu-west-1}}" == "us-east-1" ]; then
