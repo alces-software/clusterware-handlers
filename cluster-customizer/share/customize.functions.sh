@@ -104,7 +104,7 @@ customize_fetch_profile() {
     target="$3"
     mkdir -p "${target}"
     if [ "${s3cfg}" ]; then
-        "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} mb "s3://${source%/*}" &>/dev/null
+        "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} mb "s3://${source%%/*}" &>/dev/null
         "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --force -r get "s3://${source}"/ "${target}"
     else
         # fetch manifest file
