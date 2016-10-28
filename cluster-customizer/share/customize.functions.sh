@@ -366,12 +366,29 @@ customize_apply_profile() {
 }
 
 customize_apply_feature() {
-  local feature_name
+  local bucket feature_name
   feature_name="$1"
+  bucket="alces-flight-profiles-${_REGION}"
 
   customize_set_s3_config
 
   echo "Requested apply feature $feature_name"
+
+  if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
+      echo "S3 access to '${bucket}' is not available.  Falling back to HTTP manifests."
+      s3cfg=""
+  fi
+
+  echo "Retrieving customization from: ${bucket}/features/$feature_name"
+  customize_fetch_profile "${s3cfg}" "${bucket}"/features/"${feature_name}" \
+                          "${cw_CLUSTER_CUSTOMIZER_path}"/feature-${feature_name}
+
+  if [[ $? -eq 0 ]]; then
+    sed -i "s/cw_CLUSTER_CUSTOMIZER_features=.*/cw_CLUSTER_CUSTOMIZER_features=\"$cw_CLUSTER_CUSTOMIZER_features $feature_name\"/" "$cw_ROOT"/etc/cluster-customizer.rc
+  else
+    echo "Applying profile failed."
+    return 1
+  fi
 
   customize_clear_s3_config
 }
