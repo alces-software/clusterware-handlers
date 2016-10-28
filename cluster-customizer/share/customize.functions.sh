@@ -372,8 +372,9 @@ customize_apply_profile() {
 
   if [[ $? -eq 0 ]]; then
     sed -i "s/cw_CLUSTER_CUSTOMIZER_profiles=.*/cw_CLUSTER_CUSTOMIZER_profiles=\"$cw_CLUSTER_CUSTOMIZER_profiles $profile_name\"/" "$cw_ROOT"/etc/cluster-customizer.rc
-    customize_run_hooks "$profile_name:initialize"
-    member_each _run_member_hooks "${members}" "$profile_name:member-join"
+    echo "Running initialize, configure for $profile_name"
+    customize_run_hooks "initialize:$profile_name"
+    member_each _run_member_hooks "${members}" "member-join:$profile_name"
   else
     echo "Applying profile failed."
     return 1
@@ -403,8 +404,9 @@ customize_apply_feature() {
 
   if [[ $? -eq 0 ]]; then
     sed -i "s/cw_CLUSTER_CUSTOMIZER_features=.*/cw_CLUSTER_CUSTOMIZER_features=\"$cw_CLUSTER_CUSTOMIZER_features $feature_name\"/" "$cw_ROOT"/etc/cluster-customizer.rc
-    customize_run_hooks "$feature_name:initialize"
-    member_each _run_member_hooks "${members}" "$feature_name:member-join"
+    echo "Running initialize, configure for $feature_name"
+    customize_run_hooks "initialize:$feature_name"
+    member_each _run_member_hooks "${members}" "member-join:$feature_name"
   else
     echo "Applying profile failed."
     return 1
