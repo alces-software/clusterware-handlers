@@ -368,9 +368,10 @@ customize_apply_profile() {
 customize_apply_feature() {
   local bucket feature_name
   feature_name="$1"
-  bucket="alces-flight-profiles-${_REGION}"
 
   customize_set_s3_config
+
+  bucket="alces-flight-profiles-${_REGION}"
 
   echo "Requested apply feature $feature_name"
 
