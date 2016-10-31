@@ -374,9 +374,9 @@ customize_apply_profile() {
     sed -i "s/cw_CLUSTER_CUSTOMIZER_profiles=.*/cw_CLUSTER_CUSTOMIZER_profiles=\"$cw_CLUSTER_CUSTOMIZER_profiles $profile_name\"/" "$cw_ROOT"/etc/cluster-customizer.rc
     chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}"/profile-${profile_name}
     echo "Running initialize, configure for $profile_name"
-    customize_run_hooks "initialize:$profile_name"
-    customize_run_hooks "configure:$profile_name"
-    member_each _run_member_hooks "${members}" "member-join:$profile_name"
+    customize_run_hooks "initialize:profile-$profile_name"
+    customize_run_hooks "configure:profile-$profile_name"
+    member_each _run_member_hooks "${members}" "member-join:profile-$profile_name"
   else
     echo "Applying profile failed."
     return 1
@@ -408,9 +408,9 @@ customize_apply_feature() {
     sed -i "s/cw_CLUSTER_CUSTOMIZER_features=.*/cw_CLUSTER_CUSTOMIZER_features=\"$cw_CLUSTER_CUSTOMIZER_features $feature_name\"/" "$cw_ROOT"/etc/cluster-customizer.rc
     chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}"/feature-${feature_name}
     echo "Running initialize, configure for $feature_name"
-    customize_run_hooks "initialize:$feature_name"
-    customize_run_hooks "configure:$feature_name"
-    member_each _run_member_hooks "${members}" "member-join:$feature_name"
+    customize_run_hooks "initialize:feature-$feature_name"
+    customize_run_hooks "configure:feature-$feature_name"
+    member_each _run_member_hooks "${members}" "member-join:feature-$feature_name"
   else
     echo "Applying profile failed."
     return 1
