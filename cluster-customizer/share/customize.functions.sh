@@ -342,6 +342,42 @@ _run_member_hooks() {
     fi
 }
 
+customize_apply() {
+  local bucket name type varname sourcepath
+  bucket="$1"
+  name="$2"
+  type="$3"
+
+  if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
+      echo "S3 access to '${bucket}' is not available.  Falling back to HTTP manifests."
+      s3cfg=""
+  fi
+
+  if [[ "$type" == "feature" ]] ; then
+    varname="cw_CLUSTER_CUSTOMIZER_features"
+    sourcepath="features"
+  else
+    varname="cw_CLUSTER_CUSTOMIZER_profiles"
+    sourcepath="customizer"
+  fi
+
+  echo "Retrieving customization from: ${bucket}/${sourcepath}/$name"
+  customize_fetch_profile "${s3cfg}" "${bucket}/${sourcepath}/$name" \
+                          "${cw_CLUSTER_CUSTOMIZER_path}/${type}-${name}"
+
+  if [[ $? -eq 0 ]]; then
+    sed -i "s/$varname=.*/$varname=\"${!varname} $name\"/" "$cw_ROOT"/etc/cluster-customizer.rc
+    chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}/${type}-${name}"
+    echo "Running initialize, configure for $name"
+    customize_run_hooks "initialize:$type-$name"
+    customize_run_hooks "configure:$type-$name"
+    member_each _run_member_hooks "${members}" "member-join:$type-$name"
+  else
+    echo "Applying profile failed."
+    return 1
+  fi
+}
+
 customize_apply_profile() {
   local bucket profile_name
   profile_name="$1"
@@ -361,26 +397,7 @@ customize_apply_profile() {
 
   echo "Requested apply profile $profile_name"
 
-  if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
-      echo "S3 access to '${bucket}' is not available.  Falling back to HTTP manifests."
-      s3cfg=""
-  fi
-
-  echo "Retrieving customization from: ${bucket}/customizer/$profile_name"
-  customize_fetch_profile "${s3cfg}" "${bucket}"/customizer/"${profile_name}" \
-                          "${cw_CLUSTER_CUSTOMIZER_path}"/profile-${profile_name}
-
-  if [[ $? -eq 0 ]]; then
-    sed -i "s/cw_CLUSTER_CUSTOMIZER_profiles=.*/cw_CLUSTER_CUSTOMIZER_profiles=\"$cw_CLUSTER_CUSTOMIZER_profiles $profile_name\"/" "$cw_ROOT"/etc/cluster-customizer.rc
-    chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}"/profile-${profile_name}
-    echo "Running initialize, configure for $profile_name"
-    customize_run_hooks "initialize:profile-$profile_name"
-    customize_run_hooks "configure:profile-$profile_name"
-    member_each _run_member_hooks "${members}" "member-join:profile-$profile_name"
-  else
-    echo "Applying profile failed."
-    return 1
-  fi
+  customize_apply "$bucket" "$profile_name" "profile"
 
   customize_clear_s3_config
 }
@@ -395,26 +412,7 @@ customize_apply_feature() {
 
   echo "Requested apply feature $feature_name"
 
-  if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
-      echo "S3 access to '${bucket}' is not available.  Falling back to HTTP manifests."
-      s3cfg=""
-  fi
-
-  echo "Retrieving customization from: ${bucket}/features/$feature_name"
-  customize_fetch_profile "${s3cfg}" "${bucket}"/features/"${feature_name}" \
-                          "${cw_CLUSTER_CUSTOMIZER_path}"/feature-${feature_name}
-
-  if [[ $? -eq 0 ]]; then
-    sed -i "s/cw_CLUSTER_CUSTOMIZER_features=.*/cw_CLUSTER_CUSTOMIZER_features=\"$cw_CLUSTER_CUSTOMIZER_features $feature_name\"/" "$cw_ROOT"/etc/cluster-customizer.rc
-    chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}"/feature-${feature_name}
-    echo "Running initialize, configure for $feature_name"
-    customize_run_hooks "initialize:feature-$feature_name"
-    customize_run_hooks "configure:feature-$feature_name"
-    member_each _run_member_hooks "${members}" "member-join:feature-$feature_name"
-  else
-    echo "Applying profile failed."
-    return 1
-  fi
+  customize_apply "$bucket" "$feature_name" "feature"
 
   customize_clear_s3_config
 }
