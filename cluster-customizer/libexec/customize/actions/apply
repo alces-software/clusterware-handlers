@@ -27,7 +27,13 @@ require member
 require network
 
 main() {
-  local type profile_name
+  local type profile_name nodes
+
+  if [ "$1" == "-n" ]; then
+      nodes="$2"
+      shift 2
+  fi
+
   type=${1%%/*}
   profile_name=${1##*/}
   if [[ "$type" == "$profile_name" ]]; then
@@ -35,12 +41,19 @@ main() {
     return 1
   fi
 
-  if [[ "$type" == "feature" ]]; then
-    customize_apply_feature "$profile_name"
-  elif [[ "$type" == "profile" ]]; then
-    customize_apply_profile "$profile_name"
+  if [[ "$nodes" ]]; then
+    echo $nodes | tr ',' '\n' | while read node; do
+      echo "Applying $1 to node $node..."
+      ssh $node alces customize apply "$1" < /dev/null
+    done
   else
-    echo "Unknown customization type: $type"
+    if [[ "$type" == "feature" ]]; then
+      customize_apply_feature "$profile_name"
+    elif [[ "$type" == "profile" ]]; then
+      customize_apply_profile "$profile_name"
+    else
+      echo "Unknown customization type: $type"
+    fi
   fi
 }
 
