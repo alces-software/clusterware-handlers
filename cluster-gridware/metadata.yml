@@ -10,11 +10,12 @@ install:
           exit 1
           ;;
     esac
+    alces service install gridware
     alces handler enable cluster-nfs
     files_load_config gridware
     for name in ${cw_GRIDWARE_default_depot:-local} ${cw_GRIDWARE_init_depots}; do
       depot="${cw_GRIDWARE_root:-/opt/gridware}/${name}"
-      if ! grep -q "${depot}/\$cw_DIST/etc/modules" "${cw_ROOT}"/etc/gridware/global/modulespath; then
+      if ! grep -q "${depot}/\$cw_DIST/etc/modules" "${cw_ROOT}"/etc/modulerc/modulespath; then
         sed -e "/^#=Alces Gridware Depots/a ${depot}/\$cw_DIST/etc/modules" \
             -i "${cw_ROOT}"/etc/gridware/global/modulespath
       fi
