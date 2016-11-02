@@ -11,6 +11,7 @@ install:
           ;;
     esac
     alces service install gridware
+    alces service install clusterware-storage
     alces handler enable cluster-nfs
     files_load_config gridware
     for name in ${cw_GRIDWARE_default_depot:-local} ${cw_GRIDWARE_init_depots}; do

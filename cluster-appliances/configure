@@ -103,6 +103,7 @@ main() {
     if [[ "${cw_INSTANCE_tag_STORAGE_ROLES}" == *":master:"* ]]; then
         _fulfil_endpoint_role "storage" "${cw_INSTANCE_tag_STORAGE_DAEMON_PORT:-25268}"
         if [ "${cw_APPLIANCES_storage_SKIP_DEFAULTS}" != "true" ]; then
+            "${cw_ROOT}"/bin/alces service install clusterware-storage
             "${cw_ROOT}"/bin/alces storage enable posix
             echo -e "Home\n%#{dir}\n" | "${cw_ROOT}"/bin/alces storage configure --system home posix
             "${cw_ROOT}"/bin/alces storage use --system home
