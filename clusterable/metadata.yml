@@ -43,27 +43,6 @@ install:
     ${distro_preamble}
     EOF
     cat <<'END' >> ${cw_ROOT}/etc/profile.d/10-clusterable.sh
-    _cw_banner() {
-      local bannerfile
-      if [ "$1" == "--short" ]; then
-        _cw_emit() {
-          printf "%*s\n" $(((${#1}+80)/2)) "$1"
-        }
-        bannerfile=banner.short
-        shift
-      else
-        _cw_emit() {
-          printf "%40s\n" "$1"
-        }
-        bannerfile=banner
-      fi
-      if [ -f "${cw_ROOT}"/etc/${bannerfile} ]; then
-        sed -e "s/%CLUSTER%/$(_cw_emit "Welcome to $1")/g" \
-          -e "s/%RELEASE%/$(_cw_emit "Alces Clusterware (r$2)")/g" \
-          -e "s/%DISTRO%/$(_cw_emit "Based on $(_cw_distro)")/g" "${cw_ROOT}"/etc/${bannerfile}
-      fi
-      unset -f _cw_emit
-    }
     if [ "$PS1" ]; then
         _cw_set_prompt() {
             if [ -f "${cw_ROOT}"/etc/config/cluster/config.rc ]; then
@@ -152,7 +131,7 @@ install:
             eval $(grep '^cw_CLUSTER_name=' "${cw_ROOT}"/etc/config/cluster/config.rc)
           fi
           if [ -f "${cw_ROOT}"/etc/clusterware.rc ]; then
-            eval $(egrep '^cw_(RELEASE|STATUS)=' "${cw_ROOT}"/etc/clusterware.rc)
+            eval $(egrep '^cw_(VERSION|STATUS)=' "${cw_ROOT}"/etc/clusterware.rc)
           fi
           if [ -f "${cw_ROOT}"/etc/config/cluster/instance.rc ]; then
             eval $(egrep '^cw_INSTANCE_role=' "${cw_ROOT}"/etc/config/cluster/instance.rc)
@@ -163,10 +142,11 @@ install:
           fi
 
           if [ "${cw_SETTINGS_skip_banner:-false}" == "false" ]; then
+            export cw_ROOT
             if [ "$cw_INSTANCE_role" == "master" ] || [[ "${cw_INSTANCE_tag_CLUSTER_ROLES}" == *":login:"* ]]; then
-              _cw_banner "${cw_CLUSTER_name:-your cluster}" "${cw_RELEASE:-1}"
+              "${cw_ROOT}"/libexec/share/banner "${cw_CLUSTER_name:-your cluster}" "${cw_VERSION}" "$(_cw_distro)"
             else
-              _cw_banner --short "${cw_CLUSTER_name:-your cluster}" "${cw_RELEASE:-1}"
+              "${cw_ROOT}"/libexec/share/banner --short "${cw_CLUSTER_name:-your cluster}" "${cw_VERSON}" "$(_cw_distro)"
             fi
           fi
           if [[ "${cw_SETTINGS_skip_motd:-false}" == "false" && "$cw_INSTANCE_role" == "master" || "${cw_INSTANCE_tag_CLUSTER_ROLES}" == *":login:"* ]]; then
@@ -218,7 +198,6 @@ install:
         unset cw_SETTINGS_skip_motd cw_SETTINGS_skip_banner cw_SETTINGS_skip_status
         export cw_SETTINGS_theme
     fi
-    unset -f _cw_banner
     END
     echo "${distro_postamble}" >> ${cw_ROOT}/etc/profile.d/10-clusterable.sh
 
