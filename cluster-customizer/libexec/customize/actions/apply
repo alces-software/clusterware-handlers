@@ -44,7 +44,7 @@ main() {
   if [[ "$nodes" ]]; then
     echo $nodes | tr ',' '\n' | while read node; do
       echo "Applying $1 to node $node..."
-      ssh $node 'alces handler enable cluster-customizer; alces customize apply "$1"' < /dev/null
+      ssh $node 'alces handler enable cluster-customizer; alces customize apply "'$1'"' < /dev/null
     done
   else
     if [[ "$type" == "feature" ]]; then
