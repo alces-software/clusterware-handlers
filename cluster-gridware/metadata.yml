@@ -18,10 +18,10 @@ install:
       depot="${cw_GRIDWARE_root:-/opt/gridware}/${name}"
       if ! grep -q "${depot}/\$cw_DIST/etc/modules" "${cw_ROOT}"/etc/modulerc/modulespath; then
         sed -e "/^#=Alces Gridware Depots/a ${depot}/\$cw_DIST/etc/modules" \
-            -i "${cw_ROOT}"/etc/gridware/global/modulespath
+            -i "${cw_ROOT}"/etc/modulerc/modulespath
       fi
     done
-    cat <<EOF > "${cw_ROOT}"/etc/gridware/global/region_map.yml
+    cat <<EOF > "${cw_ROOT}"/etc/gridware/region_map.yml
     ---
     eu-west-1: eu-west-1
     eu-west-2: eu-west-1
