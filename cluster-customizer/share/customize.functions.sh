@@ -342,6 +342,19 @@ _run_member_hooks() {
     fi
 }
 
+customize_profile_can_be_installed() {
+  local initCount s3cfg source
+  s3cfg="$1"
+  source="$2"
+  initCount=$("${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} ls "s3://${source}"/initialize.d 2>/dev/null | wc -l)
+  if [[ $initCount == 0 ]]; then
+    return 0
+  else
+    echo "Cannot apply profile. This profile requires installation before cluster initialization and does not support being applied while the cluster is running."
+    return 1
+  fi
+}
+
 customize_apply() {
   local bucket name type varname sourcepath
   bucket="$1"
@@ -361,17 +374,21 @@ customize_apply() {
     sourcepath="customizer"
   fi
 
-  echo "Retrieving customization from: ${bucket}/${sourcepath}/$name"
-  customize_fetch_profile "${s3cfg}" "${bucket}/${sourcepath}/$name" \
-                          "${cw_CLUSTER_CUSTOMIZER_path}/${type}-${name}"
+  if customize_profile_can_be_installed "$s3cfg" "${bucket}/${sourcepath}/$name"; then
 
-  if [[ $? -eq 0 ]]; then
-    sed -i "s/$varname=.*/$varname=\"${!varname} $name\"/" "$cw_ROOT"/etc/cluster-customizer.rc
-    chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}/${type}-${name}"
-    echo "Running initialize, configure for $name"
-    customize_run_hooks "initialize:$type-$name"
-    customize_run_hooks "configure:$type-$name"
-    member_each _run_member_hooks "${members}" "member-join:$type-$name"
+    echo "Retrieving customization from: ${bucket}/${sourcepath}/$name"
+    customize_fetch_profile "${s3cfg}" "${bucket}/${sourcepath}/$name" \
+                            "${cw_CLUSTER_CUSTOMIZER_path}/${type}-${name}"
+
+    if [[ $? -eq 0 ]]; then
+      sed -i "s/$varname=.*/$varname=\"${!varname} $name\"/" "$cw_ROOT"/etc/cluster-customizer.rc
+      chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}/${type}-${name}"
+      echo "Running initialize, configure for $name"
+      customize_run_hooks "initialize:$type-$name"
+      customize_run_hooks "configure:$type-$name"
+      member_each _run_member_hooks "${members}" "member-join:$type-$name"
+      return 0
+    fi
   else
     echo "Applying profile failed."
     return 1
