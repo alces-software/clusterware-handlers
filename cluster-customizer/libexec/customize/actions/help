@@ -55,9 +55,9 @@ help_for_apply() {
     A list of available customization profiles can be shown by
     running "alces customize avail".
 
-    Once downloaded, the customization will have its initialize and
-    configure events triggered, along with a member-join event for
-    each current member of the cluster.
+    Once downloaded, the customization will have its configure event
+    triggered, along with a member-join event for each current member
+    of the cluster.
 
   OPTIONS:
 

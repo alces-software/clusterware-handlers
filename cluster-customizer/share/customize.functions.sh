@@ -383,8 +383,7 @@ customize_apply() {
     if [[ $? -eq 0 ]]; then
       sed -i "s/$varname=.*/$varname=\"${!varname} $name\"/" "$cw_ROOT"/etc/cluster-customizer.rc
       chmod -R a+x "${cw_CLUSTER_CUSTOMIZER_path}/${type}-${name}"
-      echo "Running initialize, configure for $name"
-      customize_run_hooks "initialize:$type-$name"
+      echo "Running configure for $name"
       customize_run_hooks "configure:$type-$name"
       member_each _run_member_hooks "${members}" "member-join:$type-$name"
       return 0
