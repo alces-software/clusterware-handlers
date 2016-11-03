@@ -410,7 +410,7 @@ customize_apply_profile() {
       bucket="${cw_CLUSTER_CUSTOMIZER_bucket#s3://}"
   fi
 
-  echo "Requested apply profile $profile_name"
+  echo "Applying profile $profile_name..."
 
   customize_apply "$bucket" "$profile_name" "profile"
 
@@ -425,7 +425,7 @@ customize_apply_feature() {
 
   bucket="alces-flight-profiles-${_REGION}"
 
-  echo "Requested apply feature $feature_name"
+  echo "Applying feature $feature_name..."
 
   customize_apply "$bucket" "$feature_name" "feature"
 
