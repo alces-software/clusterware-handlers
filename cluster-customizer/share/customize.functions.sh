@@ -388,10 +388,9 @@ customize_apply() {
       member_each _run_member_hooks "${members}" "member-join:$type-$name"
       return 0
     fi
-  else
-    echo "Applying profile failed."
-    return 1
   fi
+  echo "Applying profile failed."
+  return 1
 }
 
 customize_apply_profile() {
