@@ -55,6 +55,7 @@ Customize your compute environment.
 
 Commands:
 EOF
+printf "    %-28s  %s\n" "$cw_BINNAME apply" "Download and install a customization profile."
 printf "    %-28s  %s\n" "$cw_BINNAME avail" "List available customization profiles."
 printf "    %-28s  %s\n" "$cw_BINNAME help" "More help about this command."
 printf "    %-28s  %s\n" "$cw_BINNAME list" "List installed customization profiles."
