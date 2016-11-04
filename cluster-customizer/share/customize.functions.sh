@@ -346,7 +346,17 @@ customize_profile_can_be_installed() {
   local initCount s3cfg source
   s3cfg="$1"
   source="$2"
-  initCount=$("${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} ls "s3://${source}"/initialize.d 2>/dev/null | wc -l)
+  if [ "$s3cfg" ]; then
+    initCount=$("${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} ls "s3://${source}"/initialize.d 2>/dev/null | wc -l)
+  else
+    if [ "${_REGION:-${cw_CLUSTER_CUSTOMIZER_region:-eu-west-1}}" == "us-east-1" ]; then
+        host=s3.amazonaws.com
+    else
+        host=s3-${_REGION:-${cw_CLUSTER_CUSTOMIZER_region:-eu-west-1}}.amazonaws.com
+    fi
+    initCount=$(curl -s -f https://${host}/${source}/manifest.txt | grep "initialize.d" | wc -l)
+  fi
+
   if [[ $initCount == 0 ]]; then
     return 0
   else
