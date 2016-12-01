@@ -228,14 +228,19 @@ customize_fetch() {
 }
 
 customize_list_from_s3() {
-  local s3cfg url
+  local all avail prohibited s3cfg url
   s3cfg=$1
   url=$2
-  "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "${url}" | cut -f5 -d'/' | uniq | grep -v '^$'
+  all=$("${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "${url}")
+
+  prohibited=$(echo "$all" | grep -E "(initialize|preconfigure)\.d" | cut -f5 -d'/' | uniq | grep -v '^$')
+  avail=$(echo "$all" | cut -f5 -d'/' | uniq | grep -v '^$')
+
+  customize_print_list_excluding "$avail" "$prohibited" ""
 }
 
 customize_list_from_http() {
-  local host source prefix index
+  local all host prohibited source prefix index
   source="$1"
   prefix="$2"
   if [ "${_REGION:-${cw_CLUSTER_CUSTOMIZER_region:-eu-west-1}}" == "us-east-1" ]; then
@@ -245,7 +250,9 @@ customize_list_from_http() {
   fi
   index=$(curl -s -f https://${host}/${source}/)
   if [[ $? -eq 0 ]]; then
-    echo "$index" | grep -oP '(?<=\<Key>'$prefix'\/)[^\<]+?(?=\/manifest.txt\<\/Key\>)'
+    all=$(echo "$index" | grep -oP '(?<=\<Key>'$prefix'\/)[^\<]+?(?=\/manifest.txt\<\/Key\>)')
+    prohibited=$(echo "$index" | grep -oP '(?<=\<Key>'$prefix'\/)[^\<]+?(?=\/(initialize|preconfigure)\.d.*\<\/Key\>)')
+    customize_print_list_excluding "$all" "$prohibited" ""
   else
     echo "HTTPS call failed, customization listing unavailable."
     return 1
@@ -266,7 +273,7 @@ customize_print_list_excluding() {
       fi
     done
     if [[ "$found" == false ]]; then
-      echo " - $prefix/$av"
+      echo "$prefix$av"
     fi
   done
 }
@@ -291,7 +298,7 @@ customize_list_profiles() {
   else
     avail=$(customize_list_from_s3 "$s3cfg" "s3://${bucket}/customizer")
   fi
-  customize_print_list_excluding "$avail" "$existing" "profile"
+  customize_print_list_excluding "$avail" "$existing" " - profile/"
 }
 
 customize_list_features() {
@@ -308,7 +315,7 @@ customize_list_features() {
   else
     avail=$(customize_list_from_s3 "$s3cfg" "s3://${bucket}/features")
   fi
-  customize_print_list_excluding "$avail" "$existing" "feature"
+  customize_print_list_excluding "$avail" "$existing" " - feature/"
 }
 
 customize_list() {
