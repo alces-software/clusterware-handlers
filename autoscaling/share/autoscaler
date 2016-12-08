@@ -206,7 +206,7 @@ _scale_in() {
         if [ "${group}" ]; then
             log "[autoscaler:scale-in] Disabling queues on ${node} (in group: ${group})"
             # disable for each scheduler
-            for scheduler in "${_SCHEDULER[@]}"; do
+            for scheduler in "${_SCHEDULERS[@]}"; do
                 ${scheduler}_disable_node "${node}"
             done
         fi
@@ -220,7 +220,7 @@ _scale_in() {
                 # this node is not exhausted, reenable the queue
                 log "[autoscaler:scale-in] Enabling queues on ${node} (not exhausted)"
                 # enable for each scheduler
-                for scheduler in "${_SCHEDULER[@]}"; do
+                for scheduler in "${_SCHEDULERS[@]}"; do
                     ${scheduler}_enable_node "${node}"
                 done
             else
@@ -228,7 +228,7 @@ _scale_in() {
                 if ! _shoot_node "${node}" "${group}"; then
                     log "[autoscaler:scale-in] Unable to shoot node, re-enabling queues"
                     # enable for each scheduler
-                    for scheduler in "${_SCHEDULER[@]}"; do
+                    for scheduler in "${_SCHEDULERS[@]}"; do
                         ${scheduler}_enable_node "${node}"
                     done
                 fi
