@@ -38,16 +38,16 @@ main() {
         if [[ "${scheduler_roles}" == *":compute:"* ]]; then
             aws_group=$(member_find_tag "aws_group" "${cw_MEMBER_tags}")
             if [ "${aws_group}" ]; then
-                # Bail out if we've already performed the event for this group.
-                if [ -d "${cw_ROOT}/etc/config/autoscaling/${aws_group}" ]; then
-                    exit 0
-                fi
-                mkdir -p "${cw_ROOT}/etc/config/autoscaling/${aws_group}"
+              # Bail out if we've already performed the event for this group.
+              if [ -d "${cw_ROOT}/etc/config/autoscaling/${aws_group}" ]; then
+                  exit 0
+              fi
+              mkdir -p "${cw_ROOT}/etc/config/autoscaling/${aws_group}"
 
-                aws_group_cores=$(member_find_tag "aws_group_cores" "${cw_MEMBER_tags}")
-                aws_group_maxsize=$(_get_aws_group_maxsize "${aws_group}")
-                log "Triggering local 'autoscaling-deferred-config' event with: ${aws_group} ${aws_group_maxsize} ${aws_group_cores}"
-                "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-deferred-config "${aws_group}" "${aws_group_maxsize}" "${aws_group_cores}"
+              aws_group_cores=$(member_find_tag "aws_group_cores" "${cw_MEMBER_tags}")
+              aws_group_maxsize=$(_get_aws_group_maxsize "${aws_group}")
+              log "Triggering local 'autoscaling-deferred-config' event with: ${aws_group} ${aws_group_maxsize} ${aws_group_cores}"
+              "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-deferred-config "${aws_group}" "${aws_group_maxsize}" "${aws_group_cores}"
             fi
         fi
     fi
