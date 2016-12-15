@@ -27,7 +27,7 @@ _detect_autoscaling() {
 }
 
 _configure_aws_autoscaling() {
-    local group group_prefix tags
+    local group tags
 
     # Determine if we're running on EC2.
     if files_load_config --optional instance-aws config/cluster; then
@@ -53,21 +53,12 @@ _configure_aws_autoscaling() {
         #  - instance creation time
         #  - autoscaling group name (if available)
         tags=(tags[aws_ctime]=${cw_INSTANCE_aws_ctime})
-        group_prefix=$(ruby_run <<RUBY
-begin
-  require 'yaml'
-  print YAML.load_file('${cw_ROOT}/etc/config.yml')['cluster']['identity'].split('/')[1]
-rescue
-  print '${cw_CLUSTER_name}'
-end
-RUBY
-                    )
+
         group=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-                          autoscaling describe-auto-scaling-groups | \
-                       grep AutoScalingGroupName | \
-                       grep "\"${group_prefix}-" | \
-                       awk '{print $2}' | \
-                       tr -d '",')
+                          ec2 describe-tags \
+                          --filters Name=resource-id,Values=${cw_INSTANCE_aws_instanceid} Name=key,Values=aws:autoscaling:groupName | \
+                          grep -Po "(?<=Value\": \")[a-zA-Z0-9\-]+"
+                       )
         if [ "$group" ]; then
             tags+=(tags[aws_group]=${group})
             tags+=(tags[aws_group_cores]=\"$(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo)\")
