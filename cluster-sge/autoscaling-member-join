@@ -28,7 +28,7 @@ add_to_hostgroup() {
   cores_per_node="$3"
   tmpfile="$(mktemp /tmp/sge-autoscaling-member-join.XXXXXXXX)"
 
-  create_hostgroup_if_not_exists groupname cores_per_node
+  create_hostgroup_if_not_exists "$groupname" "$cores_per_node"
 
   qconf -shgrp "@${groupname}" | \
       sed -e "s/^hostlist NONE/hostlist /g" \
@@ -48,7 +48,7 @@ create_hostgroup_if_not_exists() {
 
     # Template contains a named hostgroup with hostlist NONE
     # The @ of hostgroup name is included in the template
-    sed "s/_GROUP_NAME_/$groupname/" templates/hostgroup.tpl > "$tmpfile"
+    sed "s/_GROUP_NAME_/$groupname/" share/templates/hostgroup.tpl > "$tmpfile"
 
     qconf -Ahgrp "$tmpfile"
 
@@ -65,7 +65,7 @@ main() {
   group_max_size="$4"
   cores_per_node="$5"
 
-  add_to_hostgroup hostname groupname cores_per_node
+  add_to_hostgroup "$hostname" "$groupname" "$cores_per_node"
 }
 
 setup
