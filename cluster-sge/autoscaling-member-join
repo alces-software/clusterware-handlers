@@ -21,8 +21,51 @@ setup() {
     kernel_load
 }
 
+add_to_hostgroup() {
+  local hostname groupname cores_per_node tmpfile
+  hostname="$1"
+  groupname="$2"
+  cores_per_node="$3"
+  tmpfile="$(mktemp /tmp/sge-autoscaling-member-join.XXXXXXXX)"
+
+  create_hostgroup_if_not_exists groupname cores_per_node
+
+  qconf -shgrp "@${groupname}" | \
+      sed -e "s/^hostlist NONE/hostlist /g" \
+          -e "s/^hostlist \(.*\)/hostlist ${hostname} \1/g" > "${tmpfile}" && \
+      qconf -Mhgrp "${tmpfile}"
+
+  rm -f "${tmpfile}"
+}
+
+create_hostgroup_if_not_exists() {
+  local groupname tmpfile
+  groupname="$1"
+
+  if ! qconf -shgrp "@${groupname}" 2&>1 > /dev/null; then
+    echo "Creating new hostgroup $groupname"
+    tmpfile="$(mktemp /tmp/sge-autoscaling-member-join.XXXXXXXX)"
+
+    # Template contains a named hostgroup with hostlist NONE
+    # The @ of hostgroup name is included in the template
+    sed "s/_GROUP_NAME_/$groupname/" templates/hostgroup.tpl > "$tmpfile"
+
+    qconf -Ahgrp "$tmpfile"
+
+    rm -f "${tmpfile}"
+  fi
+}
+
 main() {
+  local hostname ip groupname group_max_size cores_per_node
   echo "Received autoscaling-member-join with args ${*}"
+  hostname="$1"
+  ip="$2"
+  groupname="$3"
+  group_max_size="$4"
+  cores_per_node="$5"
+
+  add_to_hostgroup hostname groupname cores_per_node
 }
 
 setup
