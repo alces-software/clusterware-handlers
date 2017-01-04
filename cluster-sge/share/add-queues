@@ -33,6 +33,7 @@ if _lock; then
     qconf -sq "byslot.q" | \
       sed -e "s/qname.*/qname ${queuename}.byslot.q/" \
           -e "s/hostlist.*/hostlist @${hostgroup}/" \
+          -e "s/subordinate_list.*/subordinate_list NONE/" \
     > "$tmpfile"
 
     qconf -Aq "$tmpfile"
@@ -40,6 +41,7 @@ if _lock; then
     qconf -sq "bynode.q" | \
       sed -e "s/qname.*/qname ${queuename}.bynode.q/" \
           -e "s/hostlist.*/hostlist @${hostgroup}/" \
+          -e "s/subordinate_list.*/subordinate_list NONE/" \
     > "$tmpfile"
 
     qconf -Aq "$tmpfile"
