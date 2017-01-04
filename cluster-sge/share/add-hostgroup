@@ -22,7 +22,7 @@ fi
 if _lock; then
   groupname="$1"
 
-  if ! qconf -shgrp "@${groupname}" 2&>1 > /dev/null; then
+  if ! qconf -shgrp "@${groupname}" > /dev/null 2>&1; then
     echo "Creating new hostgroup $groupname"
     tmpfile="$(mktemp /tmp/sge-add-hostgroup.XXXXXXXX)"
 

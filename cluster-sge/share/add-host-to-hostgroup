@@ -24,7 +24,7 @@ if _lock; then
   groupname="$2"
 
   # Act iff hostgroup already exists
-  if qconf -shgrp "@${groupname}" 2&>1 > /dev/null; then
+  if qconf -shgrp "@${groupname}" > /dev/null 2>&1; then
     tmpfile="$(mktemp /tmp/sge-add-host-to-hostgroup.XXXXXXXX)"
 
     qconf -shgrp "@${groupname}" | \
