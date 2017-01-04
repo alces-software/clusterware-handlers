@@ -42,6 +42,9 @@ main() {
   cores_per_node="$5"
 
   add_to_hostgroup "$hostname" "$groupname" "$cores_per_node"
+
+  handler_run_helper share/add-queues "${groupname}" "$groupname"
+  # Adding the node into these possibly-new queues is handled by hostgroups
 }
 
 setup
