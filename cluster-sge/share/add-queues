@@ -26,7 +26,7 @@ if _lock; then
   queuename="$1"
   hostgroup="$2"
 
-  if ! qconf -sq "${queuename}" > /dev/null 2>&1; then
+  if ! qconf -sq "${queuename}.byslot.q" > /dev/null 2>&1; then
     echo "Creating new queues for $queuename"
     tmpfile="$(mktemp /tmp/sge-add-queue.XXXXXXXX)"
 
