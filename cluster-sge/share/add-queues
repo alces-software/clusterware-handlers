@@ -31,16 +31,16 @@ if _lock; then
     tmpfile="$(mktemp /tmp/sge-add-queue.XXXXXXXX)"
 
     qconf -sq "byslot.q" | \
-      sed -e "s/qname.*/qname ${queuename}.byslot.q" \
-          -e "s/hostlist.*/hostlist @${hostgroup}"
-      > "$tmpfile"
+      sed -e "s/qname.*/qname ${queuename}.byslot.q/" \
+          -e "s/hostlist.*/hostlist @${hostgroup}/" \
+    > "$tmpfile"
 
     qconf -Aq "$tmpfile"
 
     qconf -sq "bynode.q" | \
-      sed -e "s/qname.*/qname ${queuename}.bynode.q" \
-          -e "s/hostlist.*/hostlist @${hostgroup}"
-      > "$tmpfile"
+      sed -e "s/qname.*/qname ${queuename}.bynode.q/" \
+          -e "s/hostlist.*/hostlist @${hostgroup}/" \
+    > "$tmpfile"
 
     qconf -Aq "$tmpfile"
 
