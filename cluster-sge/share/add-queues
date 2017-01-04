@@ -27,7 +27,7 @@ if _lock; then
   hostgroup="$2"
 
   if ! qconf -sq "${queuename}" > /dev/null 2>&1; then
-    echo "Creating new queue $queuename"
+    echo "Creating new queues for $queuename"
     tmpfile="$(mktemp /tmp/sge-add-queue.XXXXXXXX)"
 
     qconf -sq "byslot.q" | \
@@ -47,5 +47,5 @@ if _lock; then
     rm -f "${tmpfile}"
   fi
 else
-    echo "Locking failed; unable to add queue"
+    echo "Locking failed; unable to add queues"
 fi
