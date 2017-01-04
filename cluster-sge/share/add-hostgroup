@@ -28,7 +28,10 @@ if _lock; then
 
     # Template contains a named hostgroup with hostlist NONE
     # The @ of hostgroup name is included in the template
-    sed "s/_GROUP_NAME_/$groupname/" templates/hostgroup.tpl > "$tmpfile"
+    cat <<EOF > "$tmpfile"
+group_name @$groupname
+hostlist NONE
+EOF
 
     qconf -Ahgrp "$tmpfile"
 
