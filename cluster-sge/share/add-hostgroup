@@ -26,8 +26,6 @@ if _lock; then
     echo "Creating new hostgroup $groupname"
     tmpfile="$(mktemp /tmp/sge-add-hostgroup.XXXXXXXX)"
 
-    # Template contains a named hostgroup with hostlist NONE
-    # The @ of hostgroup name is included in the template
     cat <<EOF > "$tmpfile"
 group_name @$groupname
 hostlist NONE
