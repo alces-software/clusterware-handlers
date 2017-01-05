@@ -35,16 +35,19 @@ add_to_hostgroup() {
 main() {
   local hostname ip groupname group_max_size cores_per_node
   echo "Received autoscaling-member-join with args ${*}"
-  hostname="$1"
-  ip="$2"
-  groupname="$3"
-  group_max_size="$4"
-  cores_per_node="$5"
 
-  add_to_hostgroup "$hostname" "$groupname" "$cores_per_node"
+  if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
+    hostname="$1"
+    ip="$2"
+    groupname="$3"
+    group_max_size="$4"
+    cores_per_node="$5"
 
-  handler_run_helper share/add-queues "${groupname}" "$groupname"
-  # Adding the node into these possibly-new queues is handled by hostgroups
+    add_to_hostgroup "$hostname" "$groupname" "$cores_per_node"
+
+    handler_run_helper share/add-queues "${groupname}" "$groupname"
+    # Adding the node into these possibly-new queues is handled by hostgroups
+  fi
 }
 
 setup
@@ -55,5 +58,6 @@ require log
 require files
 
 files_load_config --optional cluster-sge
+files_load_config instance config/cluster
 log_set_default "${cw_CLUSTER_SGE_log:-/var/log/clusterware/cluster-sge.log}"
 handler_tee main "$@"
