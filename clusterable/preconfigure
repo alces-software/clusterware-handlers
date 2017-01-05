@@ -71,6 +71,11 @@ cw_INSTANCE_aws_autoscaling="${autoscaling}"
 cw_INSTANCE_aws_machinetype="${machine_type}"
 cw_INSTANCE_aws_account_hash="$(network_ec2_hashed_account)"
 EOF
+        # Set autoscaling type to AWS. If $cw_INSTANCE_aws_autoscaling is "disabled"
+        # (or is detected as such) then that is dealt with in autoscaling/configure
+        cat <<EOF >> "${cw_ROOT}"/etc/config/cluster/instance.rc
+cw_INSTANCE_autoscaling=aws
+EOF
         _write_iam_role_credentials
 
         cp "$(handler_dir)"/etc/meta.aws.rc "${cw_ROOT}"/etc/meta.d/aws.rc

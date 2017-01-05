@@ -43,6 +43,8 @@ _configure_aws_autoscaling() {
             echo "Autoscaling detected as disabled"
             sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=disabled/' \
                 "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
+            sed -i -e 's/^cw_INSTANCE_autoscaling=.*/cw_INSTANCE_autoscaling=disabled/' \
+                "${cw_ROOT}"/etc/config/cluster/instance.rc
         fi
     fi
 
@@ -65,6 +67,7 @@ _configure_aws_autoscaling() {
 }
 
 configure_autoscaling() {
+  echo "Preconfigured autoscaling type is ${cw_INSTANCE_autoscaling}"
   if files_load_config --optional instance-aws config/cluster; then
     echo "Instance is running on EC2; configuring for autoscaling"
     _configure_aws_autoscaling
