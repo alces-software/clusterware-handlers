@@ -74,6 +74,7 @@ EOF
         # Set autoscaling type to AWS. If $cw_INSTANCE_aws_autoscaling is "disabled"
         # (or is detected as such) then that is dealt with in autoscaling/configure
         cat <<EOF >> "${cw_ROOT}"/etc/config/cluster/instance.rc
+
 cw_INSTANCE_autoscaling=aws
 EOF
         _write_iam_role_credentials
