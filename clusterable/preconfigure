@@ -77,6 +77,10 @@ EOF
 
 cw_INSTANCE_autoscaling=aws
 EOF
+cat <<EOF >> "${cw_ROOT}"/etc/config/cluster/instance.vars.sh
+
+cw_INSTANCE_autoscaling=aws
+EOF
         _write_iam_role_credentials
 
         cp "$(handler_dir)"/etc/meta.aws.rc "${cw_ROOT}"/etc/meta.d/aws.rc

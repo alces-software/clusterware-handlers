@@ -43,8 +43,12 @@ _configure_aws_autoscaling() {
             echo "Autoscaling detected as disabled"
             sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=disabled/' \
                 "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
+
+            # We need to make the following change in both files
             sed -i -e 's/^cw_INSTANCE_autoscaling=.*/cw_INSTANCE_autoscaling=disabled/' \
                 "${cw_ROOT}"/etc/config/cluster/instance.rc
+            sed -i -e 's/^cw_INSTANCE_autoscaling=.*/cw_INSTANCE_autoscaling=disabled/' \
+                "${cw_ROOT}"/etc/config/cluster/instance.vars.sh
         fi
     fi
 
