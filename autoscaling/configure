@@ -66,7 +66,7 @@ _configure_aws_autoscaling() {
     "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-autoscaling.json
 }
 
-configure_autoscaling() {
+_configure_autoscaling() {
   echo "Preconfigured autoscaling type is ${cw_INSTANCE_autoscaling}"
   if files_load_config --optional instance-aws config/cluster; then
     echo "Instance is running on EC2; configuring for autoscaling"
