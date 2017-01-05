@@ -29,43 +29,46 @@ _detect_autoscaling() {
 _configure_aws_autoscaling() {
     local group tags
 
-    # Determine if we're running on EC2.
-    if files_load_config --optional instance-aws config/cluster; then
-        echo "Instance is running on EC2; configuring for autoscaling"
-        files_load_config config config/cluster
+    files_load_config config config/cluster
 
-        # We are; ensure aws serviceware is installed.
-        "${_ALCES}" service install aws
+    # Ensure aws serviceware is installed.
+    "${_ALCES}" service install aws
 
-        if [ "${cw_INSTANCE_aws_autoscaling}" == "autodetect" ]; then
-            if _detect_autoscaling; then
-                echo "Autoscaling detected as enabled"
-                sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=enabled/' \
-                    "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
-            else
-                echo "Autoscaling detected as disabled"
-                sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=disabled/' \
-                    "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
-            fi
+    if [ "${cw_INSTANCE_aws_autoscaling}" == "autodetect" ]; then
+        if _detect_autoscaling; then
+            echo "Autoscaling detected as enabled"
+            sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=enabled/' \
+                "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
+        else
+            echo "Autoscaling detected as disabled"
+            sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=disabled/' \
+                "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
         fi
-
-        # Set serf tags containing:
-        #  - instance creation time
-        #  - autoscaling group name (if available)
-        tags=(tags[aws_ctime]=${cw_INSTANCE_aws_ctime})
-
-        group=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-                          ec2 describe-tags \
-                          --filters Name=resource-id,Values=${cw_INSTANCE_aws_instanceid} Name=key,Values=aws:autoscaling:groupName | \
-                          grep -Po "(?<=Value\": \")[a-zA-Z0-9\-]+"
-                       )
-        if [ "$group" ]; then
-            tags+=(tags[aws_group]=${group})
-            tags+=(tags[aws_group_cores]=\"$(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo)\")
-        fi
-        echo "Setting autoscaling tags: ${tags[@]}"
-        "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-autoscaling.json
     fi
+
+    # Set serf tags containing:
+    #  - instance creation time
+    #  - autoscaling group name (if available)
+    tags=(tags[aws_ctime]=${cw_INSTANCE_aws_ctime})
+
+    group=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
+                      ec2 describe-tags \
+                      --filters Name=resource-id,Values=${cw_INSTANCE_aws_instanceid} Name=key,Values=aws:autoscaling:groupName | \
+                      grep -Po "(?<=Value\": \")[a-zA-Z0-9\-]+"
+                   )
+    if [ "$group" ]; then
+        tags+=(tags[aws_group]=${group})
+        tags+=(tags[aws_group_cores]=\"$(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo)\")
+    fi
+    echo "Setting autoscaling tags: ${tags[@]}"
+    "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-autoscaling.json
+}
+
+configure_autoscaling() {
+  if files_load_config --optional instance-aws config/cluster; then
+    echo "Instance is running on EC2; configuring for autoscaling"
+    _configure_aws_autoscaling
+  fi
 }
 
 main() {
@@ -78,7 +81,7 @@ main() {
 
     files_load_config instance config/cluster
 
-    _configure_aws_autoscaling
+    _configure_autoscaling
 }
 
 setup
