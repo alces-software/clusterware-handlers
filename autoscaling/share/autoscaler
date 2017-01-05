@@ -189,6 +189,7 @@ _log_blob() {
 }
 
 _scale_in() {
+    log "[autoscaler] Performing scale-in check"
     # determine which nodes are viable to reap
     # algorithm is:
     #  - nodes that are currently empty
@@ -253,19 +254,21 @@ _setup_schedulers() {
     log "[autoscaler:setup_schedulers] Found autoscaling-capable scheduler(s): ${_SCHEDULERS[*]}"
 }
 
+_scale_out() {
+  if [ ! -f "${cw_ROOT}"/var/lib/db/autoscaler/disable-set_job_metrics ]; then
+      log "[autoscaler] Performing job metric scan"
+      _set_job_metrics
+  else
+      log "[autoscaler] Skipping metric scan (currently disabled)"
+  fi
+}
+
 main() {
     if files_load_config --optional instance-aws config/cluster; then
-        _setup_schedulers
-        if [ ! -f "${cw_ROOT}"/var/lib/db/autoscaler/disable-set_job_metrics ]; then
-            log "[autoscaler] Performing job metric scan"
-            _set_job_metrics
-        else
-            log "[autoscaler] Skipping metric scan (currently disabled)"
-        fi
-
         if [ "${cw_INSTANCE_aws_autoscaling}" == "enabled" ]; then
-            log "[autoscaler] Performing scale-in check"
-            _scale_in
+          _setup_schedulers
+          _scale_out
+          _scale_in
         else
             log "[autoscaler] Autoscaling is disabled"
         fi
