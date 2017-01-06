@@ -9,7 +9,7 @@
 # This file contains autoscaling functions for AWS. Function names should all
 # begin with 'aws-' and provide the required interface:
 # - aws-configure
-# - aws-scale-in
+# - aws-shoot-node
 # - aws-scale-out
 
 setup() {
@@ -85,8 +85,8 @@ aws-configure() {
   fi
 }
 
-aws-scale-in() {
-  echo "aws-scale-in: stub"
+aws-shoot-node() {
+  echo "aws-shoot-node: stub"
 }
 
 aws-scale-out() {
