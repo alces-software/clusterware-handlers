@@ -1,0 +1,43 @@
+#!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler support script
+## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+
+# This file contains autoscaling functions for AWS. Function names should all
+# begin with 'aws-' and provide the required interface:
+# - aws-configure
+# - aws-scale-in
+# - aws-scale-out
+
+setup() {
+  local a xdg_config
+  IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+  for a in "${xdg_config[@]}"; do
+    if [ -e "${a}"/clusterware/config.vars.sh ]; then
+      source "${a}"/clusterware/config.vars.sh
+      break
+    fi
+  done
+  if [ -z "${cw_ROOT}" ]; then
+    echo "$0: unable to locate clusterware configuration"
+    exit 1
+  fi
+  kernel_load
+}
+
+aws-configure() {
+  echo "aws-configure: stub"
+}
+
+aws-scale-in() {
+  echo "aws-scale-in: stub"
+}
+
+aws-scale-out() {
+  echo "aws-scale-out: stub"
+}
+
+setup

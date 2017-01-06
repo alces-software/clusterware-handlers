@@ -30,51 +30,61 @@ _configure_aws_autoscaling() {
     local group tags
 
     files_load_config config config/cluster
+    if files_load_config --optional instance-aws config/cluster; then
 
-    # Ensure aws serviceware is installed.
-    "${_ALCES}" service install aws
+      echo "Instance is running on EC2; configuring for autoscaling"
 
-    if [ "${cw_INSTANCE_aws_autoscaling}" == "autodetect" ]; then
-        if _detect_autoscaling; then
-            echo "Autoscaling detected as enabled"
-            sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=enabled/' \
-                "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
-        else
-            echo "Autoscaling detected as disabled"
-            sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=disabled/' \
-                "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
+      # Ensure aws serviceware is installed.
+      "${_ALCES}" service install aws
 
-            # We need to make the following change in both files
-            sed -i -e 's/^cw_INSTANCE_autoscaling=.*/cw_INSTANCE_autoscaling=disabled/' \
-                "${cw_ROOT}"/etc/config/cluster/instance.rc
-            sed -i -e 's/^cw_INSTANCE_autoscaling=.*/cw_INSTANCE_autoscaling=disabled/' \
-                "${cw_ROOT}"/etc/config/cluster/instance.vars.sh
-        fi
+      if [ "${cw_INSTANCE_aws_autoscaling}" == "autodetect" ]; then
+          if _detect_autoscaling; then
+              echo "Autoscaling detected as enabled"
+              sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=enabled/' \
+                  "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
+          else
+              echo "Autoscaling detected as disabled"
+              sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=disabled/' \
+                  "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
+
+              # We need to make the following change in both files
+              sed -i -e 's/^cw_INSTANCE_autoscaling=.*/cw_INSTANCE_autoscaling=disabled/' \
+                  "${cw_ROOT}"/etc/config/cluster/instance.rc
+              sed -i -e 's/^cw_INSTANCE_autoscaling=.*/cw_INSTANCE_autoscaling=disabled/' \
+                  "${cw_ROOT}"/etc/config/cluster/instance.vars.sh
+          fi
+      fi
+
+      # Set serf tags containing:
+      #  - instance creation time
+      #  - autoscaling group name (if available)
+      tags=(tags[aws_ctime]=${cw_INSTANCE_aws_ctime})
+
+      group=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
+                        ec2 describe-tags \
+                        --filters Name=resource-id,Values=${cw_INSTANCE_aws_instanceid} Name=key,Values=aws:autoscaling:groupName | \
+                        grep -Po "(?<=Value\": \")[a-zA-Z0-9\-]+"
+                     )
+      if [ "$group" ]; then
+          tags+=(tags[aws_group]=${group})
+          tags+=(tags[aws_group_cores]=\"$(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo)\")
+      fi
+      echo "Setting autoscaling tags: ${tags[@]}"
+      "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-autoscaling.json
     fi
-
-    # Set serf tags containing:
-    #  - instance creation time
-    #  - autoscaling group name (if available)
-    tags=(tags[aws_ctime]=${cw_INSTANCE_aws_ctime})
-
-    group=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-                      ec2 describe-tags \
-                      --filters Name=resource-id,Values=${cw_INSTANCE_aws_instanceid} Name=key,Values=aws:autoscaling:groupName | \
-                      grep -Po "(?<=Value\": \")[a-zA-Z0-9\-]+"
-                   )
-    if [ "$group" ]; then
-        tags+=(tags[aws_group]=${group})
-        tags+=(tags[aws_group_cores]=\"$(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo)\")
-    fi
-    echo "Setting autoscaling tags: ${tags[@]}"
-    "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-autoscaling.json
 }
 
 _configure_autoscaling() {
+  local autoscaling_provider_file
   echo "Preconfigured autoscaling type is ${cw_INSTANCE_autoscaling}"
-  if files_load_config --optional instance-aws config/cluster; then
-    echo "Instance is running on EC2; configuring for autoscaling"
-    _configure_aws_autoscaling
+  autoscaling_provider_file="${cw_HANDLER_PLUGINDIR}/autoscaling/share/providers/${cw_INSTANCE_autoscaling}"
+
+  if [ -f "$autoscaling_provider_file" ]; then
+    . "$autoscaling_provider_file"
+    _configure_aws_autoscaling  # TODO move this functionality into provider file
+    ${cw_INSTANCE_autoscaling}-configure
+  else
+    echo "Provider file ${autoscaling_provider_file} not found, cannot configure autoscaling."
   fi
 }
 
