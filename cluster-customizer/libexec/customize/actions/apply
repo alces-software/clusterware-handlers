@@ -26,6 +26,8 @@ require process
 require member
 require network
 
+process_reexec_sudo "$@"
+
 main() {
   local type profile_name nodes
 
@@ -65,8 +67,6 @@ if [ -d "${cw_ROOT}"/etc/handlers/cluster-customizer/share ]; then
         files_load_config cluster-customizer
         cw_CLUSTER_CUSTOMIZER_path="${cw_CLUSTER_CUSTOMIZER_path:-${cw_ROOT}/var/lib/customizer}"
         cw_CLUSTER_CUSTOMIZER_profiles="${cw_CLUSTER_CUSTOMIZER_profiles:-default}"
-
-        process_reexec_sudo "$@"
 
         main "$@"
     else
