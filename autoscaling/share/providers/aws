@@ -90,8 +90,126 @@ aws-scale-in() {
 }
 
 aws-scale-out() {
-  echo "aws-scale-out: stub"
+  if [ ! -f "${cw_ROOT}"/var/lib/db/autoscaler/disable-set_job_metrics ]; then
+    log "[autoscaler] Performing job metric scan"
+    _set_job_metrics
+  else
+    log "[autoscaler] Skipping metric scan (currently disabled)"
+  fi
+}
+
+_set_job_metrics() {
+  # for all known scaling groups, set job metrics
+  local dims tmpfile scheduler cores_per_node job_total_var job_total
+  local job_queue_var job_queue job_run_var job_run
+  local cores_req_var cores_req nodes_req_var nodes_req
+
+  dims="$(_collate_group_dimensions)"
+  tmpfile="$(mktemp /tmp/autoscaler.XXXXXXXX)"
+  cores_per_node="$(_cores_for_group)"
+
+  for scheduler in "${_SCHEDULERS[@]}"; do
+    log "[autoscaler:metrics] Retrieving job state data for scheduler: ${scheduler}"
+    ${scheduler}_parse_job_states "${tmpfile}" "${cores_per_node}"
+    cat "${tmpfile}" | _log_blob "metrics"
+    . "${tmpfile}"
+    job_total_var="${scheduler}_job_total"
+    job_total=$((${job_total:-0}+${!job_total_var:-0}))
+    job_run_var="${scheduler}_job_run"
+    job_run=$((${job_run:-0}+${!job_run_var:-0}))
+    job_queue_var="${scheduler}_job_queue"
+    job_queue=$((${job_queue:-0}+${!job_queue_var:-0}))
+    cores_req_var="${scheduler}_cores_req"
+    cores_req=$((${cores_req:-0}+${!cores_req_var:-0}))
+    nodes_req_var="${scheduler}_nodes_req"
+    nodes_req=$((${nodes_req:-0}+${!nodes_req_var:-0}))
+  done
+
+  metrics=()
+  metrics+=($("${_JO}" MetricName=JobTotal Value=${job_total:-0} Unit=Count "Dimensions=${dims}"))
+  metrics+=($("${_JO}" MetricName=JobRun Value=${job_run:-0} Unit=Count "Dimensions=${dims}"))
+  metrics+=($("${_JO}" MetricName=JobQueue Value=${job_queue:-0} Unit=Count "Dimensions=${dims}"))
+  metrics+=($("${_JO}" MetricName=CoresReq Value=${cores_req:-0} Unit=Count "Dimensions=${dims}"))
+  metrics+=($("${_JO}" MetricName=NodesReq Value=${nodes_req:-0} Unit=Count "Dimensions=${dims}"))
+  "${_JO}" -a "${metrics[@]}" > "${tmpfile}"
+
+  # Send: JobTotal, JobRun, JobPending, CoresRequired, NodesRequired
+  log "[autoscaler:metrics] Sending metric data to cloudwatch"
+  cat "${tmpfile}" | _log_blob "metrics"
+
+  result=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
+  cloudwatch put-metric-data \
+  --namespace "ALCES-SCHEDULING" \
+  --metric-data file://${tmpfile} 2>&1)
+  if echo "${result}" | grep -q AccessDenied; then
+    log "[autoscaler:metrics:aws] Access denied for PutMetricData; disabling."
+    mkdir -p "${cw_ROOT}"/var/lib/db/autoscaler
+    echo "disabled" > "${cw_ROOT}"/var/lib/db/autoscaler/disable-set_job_metrics
+  else
+    echo "${result}" | _log_blob "metrics:aws"
+  fi
+
+  rm -f "${tmpfile}"
+}
+
+_collate_group_dimensions() {
+  local dims groups g
+
+  groups=()
+  _gather_groups() {
+    while [ "$1" != "--" ]; do shift; done
+    groups+=($(member_find_tag "aws_group" "$5"))
+  }
+  member_each _gather_groups
+  groups=($(printf "%s\n" "${groups[@]}" | sort -u | tr '\n' ' '))
+  log "[autoscaler:groups] Found groups: ${groups[*]}"
+
+  dims=()
+  for g in "${groups[@]}"; do
+    dims+=("$("${cw_ROOT}"/opt/jo/bin/jo Name=AutoScalingGroupName Value=${g})")
+  done
+  if [ "${#dims}" -gt 0 ]; then
+    "${cw_ROOT}"/opt/jo/bin/jo -a "${dims[@]}"
+  fi
+}
+
+_cores_for_group() {
+  local group_cores groups_cores g
+  group="$1"
+
+  groups_cores=()
+  _gather_group_cores() {
+    local group
+    while [ "$1" != "--" ]; do shift; done
+    group=$(member_find_tag "aws_group" "$5")
+    if [ "${group}" ]; then
+      groups_cores+=(${group}:$(member_find_tag "aws_group_cores" "$5"))
+    fi
+  }
+  member_each _gather_group_cores
+  groups_cores=($(printf "%s\n" "${groups_cores[@]}" | sort -u | tr '\n' ' '))
+  log "[autoscaler:cores_for_group] Found cores for groups: ${groups_cores[*]}"
+
+  if [ ${#group_cores[@]} -gt 1 -a -n "${group}" ]; then
+    log "[autoscaler:cores_for_group] Looking for group: ${group}"
+    for g in "${groups_cores[@]}"; do
+      if [[ $g == ${group}:* ]]; then
+        group_cores=$(echo "${g}" | cut -f2 -d":")
+        log "[autoscaler:cores_for_group] Found group '${group}' has cores: ${group_cores}"
+      fi
+    done
+  else
+    group_cores=$(echo "${groups_cores[0]}" | cut -f2 -d":")
+    log "[autoscaler:cores_for_group] Selecting first group '${groups_cores[0]}' with cores: ${group_cores}"
+  fi
+
+  if [ "${group_cores}" ]; then
+    echo "${group_cores}"
+  else
+    return 1
+  fi
 }
 
 setup
 require files
+require member
