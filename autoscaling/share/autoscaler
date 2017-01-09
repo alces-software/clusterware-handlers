@@ -42,21 +42,10 @@ RUBY
 
 
 _shoot_node() {
-  local aws_exit_code node instanceid group
-  node="$1"
-  group="$2"
-  instanceid=$(member_get_member_tag "${node}" "aws_instanceid")
-
-  # scale in the capacity
-  log "[autoscaler:shoot] Shooting node ${instanceid} in group ${group}"
-  set -o pipefail
-  "${cw_ROOT}"/opt/aws/bin/aws --region "${cw_INSTANCE_aws_region}" \
-  autoscaling terminate-instance-in-auto-scaling-group \
-  --instance-id ${instanceid} \
-  --should-decrement-desired-capacity 2>&1 | _log_blob "autoscaling:aws"
-  aws_exit_code=$?
-  set +o pipefail
-  return ${aws_exit_code}
+  local exit_code
+  ${cw_INSTANCE_autoscaling}-shoot-node "$1" "$2"
+  exit_code=$?
+  return ${exit_code}
 }
 
 
