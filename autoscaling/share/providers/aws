@@ -9,6 +9,7 @@
 # This file contains autoscaling functions for AWS. Function names should all
 # begin with 'aws-' and provide the required interface:
 # - aws-configure
+# - aws-unexhausted-nodes
 # - aws-shoot-node
 # - aws-scale-out
 
@@ -83,6 +84,26 @@ aws-configure() {
     echo "Setting autoscaling tags: ${tags[@]}"
     "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-autoscaling.json
   fi
+}
+
+aws-unexhausted-nodes() {
+  # An AWS node is "exhausted" if we've used up more than 53 minutes of its
+  # billing hour.
+  local node nodelist ctime
+  nodelist="$*"
+  for node in ${nodelist}; do
+    ctime=$(member_get_member_tag "${node}" "aws_ctime")
+    if [ "${ctime}" ]; then
+      ruby_run <<RUBY
+      require 'time'
+      delta = Time.now - Time.parse('${ctime}')
+      print "${node} " if delta % 3600 <= 3180
+RUBY
+    else
+      # unable to find ctime, assume unexhausted
+      echo -n "${node} "
+    fi
+  done
 }
 
 aws-shoot-node() {
@@ -227,3 +248,4 @@ _cores_for_group() {
 setup
 require files
 require member
+require ruby
