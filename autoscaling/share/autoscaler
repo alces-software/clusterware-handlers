@@ -84,7 +84,7 @@ _scale_in() {
   # for each empty node, disable the queues while we're deciding
   # whether we're going to shoot them or not.
   for node in "${empty_nodes[@]}"; do
-    group=$(member_get_member_tag "${node}" "aws_group")
+    group=$(member_get_member_tag "${node}" "autoscaling_group")
     if [ "${group}" ]; then
       log "[autoscaler:scale-in] Disabling queues on ${node} (in group: ${group})"
       # disable for each scheduler
@@ -96,7 +96,7 @@ _scale_in() {
 
   unexhausted_nodes=" $(_unexhausted_nodes ${empty_nodes[@]}) "
   for node in "${empty_nodes[@]}"; do
-    group=$(member_get_member_tag "${node}" "aws_group")
+    group=$(member_get_member_tag "${node}" "autoscaling_group")
     if [ "${group}" ]; then
       if [[ "$unexhausted_nodes" == *" $node "* ]]; then
         # this node is not exhausted, reenable the queue

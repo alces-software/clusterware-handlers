@@ -22,7 +22,7 @@ setup() {
 }
 
 
-_get_aws_group_maxsize() {
+_get_autoscaling_group_maxsize() {
     local group
     group="$1"
     "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
@@ -36,23 +36,23 @@ main() {
         log "Member data parsed: ${cw_MEMBER_name} (${cw_MEMBER_ip}) -- ${cw_MEMBER_tags}"
         scheduler_roles=$(member_find_tag "scheduler_roles" "${cw_MEMBER_tags}")
         if [[ "${scheduler_roles}" == *":compute:"* ]]; then
-            aws_group=$(member_find_tag "aws_group" "${cw_MEMBER_tags}")
-            if [ "${aws_group}" ]; then
+            autoscaling_group=$(member_find_tag "autoscaling_group" "${cw_MEMBER_tags}")
+            if [ "${autoscaling_group}" ]; then
 
-              aws_group_cores=$(member_find_tag "aws_group_cores" "${cw_MEMBER_tags}")
-              aws_group_maxsize=$(_get_aws_group_maxsize "${aws_group}")
+              autoscaling_group_cores=$(member_find_tag "autoscaling_group_cores" "${cw_MEMBER_tags}")
+              autoscaling_group_maxsize=$(_get_autoscaling_group_maxsize "${autoscaling_group}")
 
-              log "Triggering local 'autoscaling-member-join' event with: ${cw_MEMBER_name} ${cw_MEMBER_ip} ${aws_group} ${aws_group_maxsize} ${aws_group_cores}"
-              "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-member-join "${cw_MEMBER_name}" "${cw_MEMBER_ip}" "${aws_group}" "${aws_group_maxsize}" "${aws_group_cores}"
+              log "Triggering local 'autoscaling-member-join' event with: ${cw_MEMBER_name} ${cw_MEMBER_ip} ${autoscaling_group} ${autoscaling_group_maxsize} ${autoscaling_group_cores}"
+              "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-member-join "${cw_MEMBER_name}" "${cw_MEMBER_ip}" "${autoscaling_group}" "${autoscaling_group_maxsize}" "${autoscaling_group_cores}"
 
               # Bail out if we've already performed the deferred-config event for this group.
-              if [ -d "${cw_ROOT}/etc/config/autoscaling/${aws_group}" ]; then
+              if [ -d "${cw_ROOT}/etc/config/autoscaling/${autoscaling_group}" ]; then
                   exit 0
               fi
-              mkdir -p "${cw_ROOT}/etc/config/autoscaling/${aws_group}"
+              mkdir -p "${cw_ROOT}/etc/config/autoscaling/${autoscaling_group}"
 
-              log "Triggering local 'autoscaling-deferred-config' event with: ${aws_group} ${aws_group_maxsize} ${aws_group_cores}"
-              "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-deferred-config "${aws_group}" "${aws_group_maxsize}" "${aws_group_cores}"
+              log "Triggering local 'autoscaling-deferred-config' event with: ${autoscaling_group} ${autoscaling_group_maxsize} ${autoscaling_group_cores}"
+              "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-deferred-config "${autoscaling_group}" "${autoscaling_group_maxsize}" "${autoscaling_group_cores}"
             fi
         fi
     fi

@@ -77,8 +77,8 @@ aws-configure() {
                       grep -Po "(?<=Value\": \")[a-zA-Z0-9\-]+"
                    )
     if [ "$group" ]; then
-        tags+=(tags[aws_group]=${group})
-        tags+=(tags[aws_group_cores]=\"$(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo)\")
+        tags+=(tags[autoscaling_group]=${group})
+        tags+=(tags[autoscaling_group_cores]=\"$(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo)\")
     fi
     echo "Setting autoscaling tags: ${tags[@]}"
     "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-autoscaling.json
@@ -172,7 +172,7 @@ _collate_group_dimensions() {
   groups=()
   _gather_groups() {
     while [ "$1" != "--" ]; do shift; done
-    groups+=($(member_find_tag "aws_group" "$5"))
+    groups+=($(member_find_tag "autoscaling_group" "$5"))
   }
   member_each _gather_groups
   groups=($(printf "%s\n" "${groups[@]}" | sort -u | tr '\n' ' '))
@@ -195,9 +195,9 @@ _cores_for_group() {
   _gather_group_cores() {
     local group
     while [ "$1" != "--" ]; do shift; done
-    group=$(member_find_tag "aws_group" "$5")
+    group=$(member_find_tag "autoscaling_group" "$5")
     if [ "${group}" ]; then
-      groups_cores+=(${group}:$(member_find_tag "aws_group_cores" "$5"))
+      groups_cores+=(${group}:$(member_find_tag "autoscaling_group_cores" "$5"))
     fi
   }
   member_each _gather_group_cores
