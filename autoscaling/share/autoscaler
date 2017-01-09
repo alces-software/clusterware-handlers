@@ -61,9 +61,7 @@ _scale_in() {
   # determine which nodes are viable to reap
   # algorithm is:
   #  - nodes that are currently empty
-  #  - nodes that are within last 10 minutes of current hour
-  #    (i.e. those that may incur additional cost between now and
-  #    the next run)
+  #  - nodes that have exhausted any paid-for runtime
   empty_nodes="$(_empty_nodes)"
   empty_nodes=($(echo "${empty_nodes}" | tr '\n' ' '))
   log "[autoscaler:scale-in] Found empty nodes: ${empty_nodes[*]}"
