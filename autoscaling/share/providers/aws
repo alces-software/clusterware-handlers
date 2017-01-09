@@ -42,48 +42,46 @@ aws-configure() {
   local group tags
 
   files_load_config config config/cluster
-  if files_load_config --optional instance-aws config/cluster; then
 
-    echo "Instance is running on EC2; configuring for autoscaling"
+  echo "Instance is running on EC2; configuring for autoscaling"
 
-    # Ensure aws serviceware is installed.
-    "${_ALCES}" service install aws
+  # Ensure aws serviceware is installed.
+  "${_ALCES}" service install aws
 
-    if [ "${cw_INSTANCE_aws_autoscaling}" == "autodetect" ]; then
-        if _detect_autoscaling; then
-            echo "Autoscaling detected as enabled"
-            sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=enabled/' \
-                "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
-        else
-            echo "Autoscaling detected as disabled"
-            sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=disabled/' \
-                "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
+  if [ "${cw_INSTANCE_aws_autoscaling}" == "autodetect" ]; then
+      if _detect_autoscaling; then
+          echo "Autoscaling detected as enabled"
+          sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=enabled/' \
+              "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
+      else
+          echo "Autoscaling detected as disabled"
+          sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=disabled/' \
+              "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
 
-            # We need to make the following change in both files
-            sed -i -e 's/^cw_INSTANCE_autoscaling=.*/cw_INSTANCE_autoscaling=disabled/' \
-                "${cw_ROOT}"/etc/config/cluster/instance.rc
-            sed -i -e 's/^cw_INSTANCE_autoscaling=.*/cw_INSTANCE_autoscaling=disabled/' \
-                "${cw_ROOT}"/etc/config/cluster/instance.vars.sh
-        fi
-    fi
-
-    # Set serf tags containing:
-    #  - instance creation time
-    #  - autoscaling group name (if available)
-    tags=(tags[aws_ctime]=${cw_INSTANCE_aws_ctime})
-
-    group=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-                      ec2 describe-tags \
-                      --filters Name=resource-id,Values=${cw_INSTANCE_aws_instanceid} Name=key,Values=aws:autoscaling:groupName | \
-                      grep -Po "(?<=Value\": \")[a-zA-Z0-9\-]+"
-                   )
-    if [ "$group" ]; then
-        tags+=(tags[autoscaling_group]=${group})
-        tags+=(tags[autoscaling_group_cores]=\"$(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo)\")
-    fi
-    echo "Setting autoscaling tags: ${tags[@]}"
-    "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-autoscaling.json
+          # We need to make the following change in both files
+          sed -i -e 's/^cw_INSTANCE_autoscaling=.*/cw_INSTANCE_autoscaling=disabled/' \
+              "${cw_ROOT}"/etc/config/cluster/instance.rc
+          sed -i -e 's/^cw_INSTANCE_autoscaling=.*/cw_INSTANCE_autoscaling=disabled/' \
+              "${cw_ROOT}"/etc/config/cluster/instance.vars.sh
+      fi
   fi
+
+  # Set serf tags containing:
+  #  - instance creation time
+  #  - autoscaling group name (if available)
+  tags=(tags[aws_ctime]=${cw_INSTANCE_aws_ctime})
+
+  group=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
+                    ec2 describe-tags \
+                    --filters Name=resource-id,Values=${cw_INSTANCE_aws_instanceid} Name=key,Values=aws:autoscaling:groupName | \
+                    grep -Po "(?<=Value\": \")[a-zA-Z0-9\-]+"
+                 )
+  if [ "$group" ]; then
+      tags+=(tags[autoscaling_group]=${group})
+      tags+=(tags[autoscaling_group_cores]=\"$(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo)\")
+  fi
+  echo "Setting autoscaling tags: ${tags[@]}"
+  "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-autoscaling.json
 }
 
 aws-unexhausted-nodes() {
@@ -249,3 +247,7 @@ setup
 require files
 require member
 require ruby
+
+# If the instance-aws file doesn't exist, we're not on AWS so we should error
+# (hence the lack of --optional flag)
+files_load_config instance-aws config/cluster
