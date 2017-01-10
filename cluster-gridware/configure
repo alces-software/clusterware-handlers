@@ -46,7 +46,7 @@ end
 gridware_vars << ('cw_GRIDWARE_trigger="' << (config['trigger'] || 'immediate') << '"')
 region = '${cw_INSTANCE_aws_region}'
 if region != ''
-  region_map = (YAML.load_file('${cw_ROOT}/etc/gridware/global/region_map.yml') rescue {})
+  region_map = (YAML.load_file('${cw_ROOT}/etc/gridware/region_map.yml') rescue {})
   region = region_map.nil? ? region : (region_map[region] || 'eu-west-1')
   host = (region == 'us-east-1' ? 's3.amazonaws.com' : "s3-#{region}.amazonaws.com")
   gridware_vars << ('cw_GRIDWARE_s3_host="' << host << '"')
