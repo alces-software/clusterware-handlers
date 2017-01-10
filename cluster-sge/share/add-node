@@ -77,7 +77,7 @@ if [ "${cw_CLUSTER_SGE_hostgroup_strategy}" != "skip" ]; then
             full)
                 # Remove any existing record from all hostgroups (except Flight autoscaling groups)
                 for a in $(qconf -shgrpl); do
-                    if qconf -shgrp ${a} | grep -q "${name}" && [[ "$a" == *"FlightComputeGroup"* ]]; then
+                    if [[ "$a" != *"FlightComputeGroup"* ]] && qconf -shgrp ${a} | grep -q "${name}"; then
                         qconf -shgrp ${a} | sed -e "s/^\(.*\) ${name}\(.*\)/\1\2/g" \
                                                 -e "s/hostlist\s*$/hostlist NONE/g" > "${tmpfile}" && \
                             qconf -Mhgrp "${tmpfile}"
