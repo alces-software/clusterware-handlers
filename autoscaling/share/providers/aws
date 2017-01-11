@@ -185,9 +185,8 @@ _set_job_metrics() {
   rm -f "${tmpfile}"
 }
 
-_collate_group_dimensions() {
-  local dims groups g
-
+_list_autoscaling_groups() {
+  local groups
   groups=()
   _gather_groups() {
     while [ "$1" != "--" ]; do shift; done
@@ -196,6 +195,13 @@ _collate_group_dimensions() {
   member_each _gather_groups
   groups=($(printf "%s\n" "${groups[@]}" | sort -u | tr '\n' ' '))
   log "[autoscaler:groups] Found groups: ${groups[*]}"
+  echo "${groups[*]}"
+}
+
+_collate_group_dimensions() {
+  local dims groups g
+
+  groups="$(_list_autoscaling_groups)"
 
   dims=()
   for g in "${groups[@]}"; do
