@@ -123,16 +123,6 @@ aws-shoot-node() {
 }
 
 aws-scale-out() {
-  _calculate_queue_loads
-  if [ ! -f "${cw_ROOT}"/var/lib/db/autoscaler/disable-set_job_metrics ]; then
-    log "[autoscaler] Performing job metric scan"
-    _set_job_metrics
-  else
-    log "[autoscaler] Skipping metric scan (currently disabled)"
-  fi
-}
-
-_calculate_queue_loads() {
   local cores_per_node groups g tmpfile
   local nodes_req_var nodes_req
 
@@ -158,60 +148,6 @@ _calculate_queue_loads() {
   done
 }
 
-_set_job_metrics() {
-  # for all known scaling groups, set job metrics
-  local dims tmpfile scheduler cores_per_node job_total_var job_total
-  local job_queue_var job_queue job_run_var job_run
-  local cores_req_var cores_req nodes_req_var nodes_req
-
-  dims="$(_collate_group_dimensions)"
-  tmpfile="$(mktemp /tmp/autoscaler.XXXXXXXX)"
-  cores_per_node="$(_cores_for_group)"
-
-  for scheduler in "${_SCHEDULERS[@]}"; do
-    log "[autoscaler:metrics] Retrieving job state data for scheduler: ${scheduler}"
-    ${scheduler}_parse_job_states "${tmpfile}" "${cores_per_node}"
-    cat "${tmpfile}" | _log_blob "metrics"
-    . "${tmpfile}"
-    job_total_var="${scheduler}_job_total"
-    job_total=$((${job_total:-0}+${!job_total_var:-0}))
-    job_run_var="${scheduler}_job_run"
-    job_run=$((${job_run:-0}+${!job_run_var:-0}))
-    job_queue_var="${scheduler}_job_queue"
-    job_queue=$((${job_queue:-0}+${!job_queue_var:-0}))
-    cores_req_var="${scheduler}_cores_req"
-    cores_req=$((${cores_req:-0}+${!cores_req_var:-0}))
-    nodes_req_var="${scheduler}_nodes_req"
-    nodes_req=$((${nodes_req:-0}+${!nodes_req_var:-0}))
-  done
-
-  metrics=()
-  metrics+=($("${_JO}" MetricName=JobTotal Value=${job_total:-0} Unit=Count "Dimensions=${dims}"))
-  metrics+=($("${_JO}" MetricName=JobRun Value=${job_run:-0} Unit=Count "Dimensions=${dims}"))
-  metrics+=($("${_JO}" MetricName=JobQueue Value=${job_queue:-0} Unit=Count "Dimensions=${dims}"))
-  metrics+=($("${_JO}" MetricName=CoresReq Value=${cores_req:-0} Unit=Count "Dimensions=${dims}"))
-  metrics+=($("${_JO}" MetricName=NodesReq Value=${nodes_req:-0} Unit=Count "Dimensions=${dims}"))
-  "${_JO}" -a "${metrics[@]}" > "${tmpfile}"
-
-  # Send: JobTotal, JobRun, JobPending, CoresRequired, NodesRequired
-  log "[autoscaler:metrics] Sending metric data to cloudwatch"
-  cat "${tmpfile}" | _log_blob "metrics"
-
-  result=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-  cloudwatch put-metric-data \
-  --namespace "ALCES-SCHEDULING" \
-  --metric-data file://${tmpfile} 2>&1)
-  if echo "${result}" | grep -q AccessDenied; then
-    log "[autoscaler:metrics:aws] Access denied for PutMetricData; disabling."
-    mkdir -p "${cw_ROOT}"/var/lib/db/autoscaler
-    echo "disabled" > "${cw_ROOT}"/var/lib/db/autoscaler/disable-set_job_metrics
-  else
-    echo "${result}" | _log_blob "metrics:aws"
-  fi
-
-  rm -f "${tmpfile}"
-}
-
 _list_autoscaling_groups() {
   local groups
   groups=()
@@ -223,20 +159,6 @@ _list_autoscaling_groups() {
   groups=($(printf "%s\n" "${groups[@]}" | sort -u | tr '\n' ' '))
   log "[autoscaler:groups] Found groups: ${groups[*]}"
   echo "${groups[*]}"
-}
-
-_collate_group_dimensions() {
-  local dims groups g
-
-  groups="$(_list_autoscaling_groups)"
-
-  dims=()
-  for g in "${groups[@]}"; do
-    dims+=("$("${cw_ROOT}"/opt/jo/bin/jo Name=AutoScalingGroupName Value=${g})")
-  done
-  if [ "${#dims}" -gt 0 ]; then
-    "${cw_ROOT}"/opt/jo/bin/jo -a "${dims[@]}"
-  fi
 }
 
 _cores_for_group() {
