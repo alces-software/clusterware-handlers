@@ -134,6 +134,7 @@ aws-scale-out() {
 
 _calculate_queue_loads() {
   local cores_per_node groups g tmpfile
+  local nodes_req_var nodes_req generic_nodes_req_var generic_nodes_req
 
   groups="$(_list_autoscaling_groups)"
   tmpfile="$(mktemp /tmp/autoscaler.XXXXXXXX)"
@@ -146,11 +147,14 @@ _calculate_queue_loads() {
       cat "${tmpfile}" | _log_blob "metrics"
       . "${tmpfile}"
 
-      nodes_req_var="${scheduler}_nodes_req"
+      generic_nodes_req_var="${scheduler}_nodes_req"
+      generic_nodes_req=$((${generic_nodes_req:-0}+${!generic_nodes_req_var:-0}))
+      nodes_req_var="${scheduler}_queue_${g}_nodes_req"
       nodes_req=$((${nodes_req:-0}+${!nodes_req_var:-0}))
     done
     log "[autoscaler:metrics] Autoscaling group $g has demand for $nodes_req nodes"
   done
+  log "[autoscaler:metrics] Ungrouped demand for $generic_nodes_req nodes"
 }
 
 _set_job_metrics() {
