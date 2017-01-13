@@ -105,7 +105,7 @@ RUBY
 }
 
 aws-shoot-node() {
-  local aws_exit_code node instanceid group
+  local aws_exit_code node instanceid group g gg
   node="$1"
   group="$2"
   instanceid=$(member_get_member_tag "${node}" "aws_instanceid")
@@ -130,6 +130,7 @@ aws-scale-out() {
   tmpfile="$(mktemp /tmp/autoscaler.XXXXXXXX)"
 
   for g in "${groups[@]}"; do
+    gg=$(echo $g | sed -e "s/-/_/g")
     cores_per_node="$(_cores_for_group $g)"
     for scheduler in "${_SCHEDULERS[@]}"; do
       log "[autoscaler:metrics] Retrieving job state data for scheduler ${scheduler} in queues for $g"
@@ -137,8 +138,8 @@ aws-scale-out() {
       cat "${tmpfile}" | _log_blob "metrics"
       . "${tmpfile}"
 
-      bynode_nodes_req_var="${scheduler}_queue_${g}.bynode.q_nodes_req"
-      byslot_nodes_req_var="${scheduler}_queue_${g}.byslot.q_nodes_req"
+      bynode_nodes_req_var="${scheduler}_queue_${gg}.bynode.q_nodes_req"
+      byslot_nodes_req_var="${scheduler}_queue_${gg}.byslot.q_nodes_req"
       nodes_req=$((${nodes_req:-0}+${!byslot_nodes_req_var:-0}+${!bynode_nodes_req_var:-0}))
     done
     log "[autoscaler:metrics] Autoscaling group $g has demand for $nodes_req nodes"
