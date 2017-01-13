@@ -124,7 +124,7 @@ aws-shoot-node() {
 
 aws-scale-out() {
   local cores_per_node groups g tmpfile
-  local nodes_req_var nodes_req
+  local byslot_nodes_req_var bynode_nodes_req_var nodes_req
 
   groups="$(_list_autoscaling_groups)"
   tmpfile="$(mktemp /tmp/autoscaler.XXXXXXXX)"
@@ -137,8 +137,9 @@ aws-scale-out() {
       cat "${tmpfile}" | _log_blob "metrics"
       . "${tmpfile}"
 
-      nodes_req_var="${scheduler}_queue_${g}_nodes_req"
-      nodes_req=$((${nodes_req:-0}+${!nodes_req_var:-0}))
+      bynode_nodes_req_var="${scheduler}_queue_${g}.bynode.q_nodes_req"
+      byslot_nodes_req_var="${scheduler}_queue_${g}.byslot.q_nodes_req"
+      nodes_req=$((${nodes_req:-0}+${!byslot_nodes_req_var:-0}+${!bynode_nodes_req_var:-0}))
     done
     log "[autoscaler:metrics] Autoscaling group $g has demand for $nodes_req nodes"
     "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
