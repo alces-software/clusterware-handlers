@@ -130,7 +130,7 @@ aws-scale-out() {
   tmpfile="$(mktemp /tmp/autoscaler.XXXXXXXX)"
 
   for g in "${groups[@]}"; do
-    gg=$(echo $g | sed -e "s/-/_/g")
+    gg=$(echo $g | sed -e "s/[-\.]/_/g")
     cores_per_node="$(_cores_for_group $g)"
     for scheduler in "${_SCHEDULERS[@]}"; do
       log "[autoscaler:metrics] Retrieving job state data for scheduler ${scheduler} in queues for $g"
