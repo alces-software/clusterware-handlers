@@ -134,7 +134,7 @@ aws-scale-out() {
     gg=$(echo $g | sed -e "s/[-\.]/_/g")
     cores_per_node="$(_cores_for_group $g)"
     for scheduler in "${_SCHEDULERS[@]}"; do
-      log "[autoscaler:metrics] Retrieving job state data for scheduler ${scheduler} in queues for $g"
+      log "[autoscaler:aws-scale-out] Retrieving job state data for scheduler ${scheduler} in queues for $g"
       ${scheduler}_parse_job_states "${tmpfile}" "${cores_per_node}" "$g*"
       cat "${tmpfile}" | _log_blob "metrics"
       . "${tmpfile}"
@@ -143,13 +143,13 @@ aws-scale-out() {
       byslot_nodes_req_var="${scheduler}_queue_${gg}_byslot_q_nodes_req"
       nodes_req=$((${nodes_req:-0}+${!byslot_nodes_req_var:-0}+${!bynode_nodes_req_var:-0}))
     done
-    log "[autoscaler:metrics] Autoscaling group $g has demand for $nodes_req nodes"
+    log "[autoscaler:aws-scale-out] Autoscaling group $g has demand for $nodes_req nodes"
 
     if [[ "$nodes_req" -gt 0 ]]; then
 
       current=$(
         "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-          autoscaling describe-auto-scaling-groups
+          autoscaling describe-auto-scaling-groups \
           --query 'AutoScalingGroups[*].{MinSize:MinSize,MaxSize:MaxSize,Desired:DesiredCapacity}' \
           --auto-scaling-group-name "$g"
       )
@@ -157,7 +157,7 @@ aws-scale-out() {
       current_max=$(echo "$current" | grep -Po "(?<=MaxSize\": )[0-9]+")
       current_desired=$(echo "$current" | grep -Po "(?<=Desired\": )[0-9]+")
 
-      if [[ $nodes_req -gt $current_desired ]]; then
+      if [[ "$nodes_req" -gt "$current_desired" ]]; then
         # Only ever *increase* the desired size here. Decreasing the group size
         # is handled by terminating nodes on scale-in (which maximises runtime
         # within AWS accounting hours).
@@ -166,11 +166,12 @@ aws-scale-out() {
         # group. We might want to make this configurable later e.g. just increment
         # desired capacity by 1 to be more conservative.
 
-        if [[ $nodes_req -gt $current_max ]]; then
-          log "[autoscaler:metrics] Demand exceeds maximum group size, limiting to $current_max"
+        if [[ "$nodes_req" -gt "$current_max" ]]; then
+          log "[autoscaler:aws-scale-out] Demand exceeds maximum group size, limiting to ${current_max}"
           $nodes_req=$current_max
         fi
 
+        log "[autoscaler:aws-scale-out] Changing desired capacity from ${current_desired} to ${nodes_req}"
         "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
           autoscaling set-desired-capacity \
           --auto-scaling-group-name $g \
