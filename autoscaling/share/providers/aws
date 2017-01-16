@@ -138,8 +138,8 @@ aws-scale-out() {
       cat "${tmpfile}" | _log_blob "metrics"
       . "${tmpfile}"
 
-      bynode_nodes_req_var="${scheduler}_queue_${gg}.bynode.q_nodes_req"
-      byslot_nodes_req_var="${scheduler}_queue_${gg}.byslot.q_nodes_req"
+      bynode_nodes_req_var="${scheduler}_queue_${gg}_bynode_q_nodes_req"
+      byslot_nodes_req_var="${scheduler}_queue_${gg}_byslot_q_nodes_req"
       nodes_req=$((${nodes_req:-0}+${!byslot_nodes_req_var:-0}+${!bynode_nodes_req_var:-0}))
     done
     log "[autoscaler:metrics] Autoscaling group $g has demand for $nodes_req nodes"
