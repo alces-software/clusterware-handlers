@@ -143,10 +143,13 @@ aws-scale-out() {
       nodes_req=$((${nodes_req:-0}+${!byslot_nodes_req_var:-0}+${!bynode_nodes_req_var:-0}))
     done
     log "[autoscaler:metrics] Autoscaling group $g has demand for $nodes_req nodes"
-    "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-      autoscaling set-desired-capacity \
-      --auto-scaling-group-name $g \
-      --desired-capacity $nodes_req
+
+    if [[ "$nodes_req" -gt 0 ]]; then
+      "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
+        autoscaling set-desired-capacity \
+        --auto-scaling-group-name $g \
+        --desired-capacity $nodes_req
+    fi
   done
 }
 
