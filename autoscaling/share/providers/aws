@@ -125,6 +125,7 @@ aws-shoot-node() {
 aws-scale-out() {
   local cores_per_node groups g tmpfile
   local byslot_nodes_req_var bynode_nodes_req_var nodes_req
+  local current current_max current_desired
 
   groups="$(_list_autoscaling_groups)"
   tmpfile="$(mktemp /tmp/autoscaler.XXXXXXXX)"
@@ -145,10 +146,36 @@ aws-scale-out() {
     log "[autoscaler:metrics] Autoscaling group $g has demand for $nodes_req nodes"
 
     if [[ "$nodes_req" -gt 0 ]]; then
-      "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-        autoscaling set-desired-capacity \
-        --auto-scaling-group-name $g \
-        --desired-capacity $nodes_req
+
+      current=$(
+        "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
+          autoscaling describe-auto-scaling-groups
+          --query 'AutoScalingGroups[*].{MinSize:MinSize,MaxSize:MaxSize,Desired:DesiredCapacity}' \
+          --auto-scaling-group-name "$g"
+      )
+
+      current_max=$(echo "$current" | grep -Po "(?<=MaxSize\": )[0-9]+")
+      current_desired=$(echo "$current" | grep -Po "(?<=Desired\": )[0-9]+")
+
+      if [[ $nodes_req -gt $current_desired ]]; then
+        # Only ever *increase* the desired size here. Decreasing the group size
+        # is handled by terminating nodes on scale-in (which maximises runtime
+        # within AWS accounting hours).
+
+        # We launch as many nodes as needed to meet demand, up to the max for the
+        # group. We might want to make this configurable later e.g. just increment
+        # desired capacity by 1 to be more conservative.
+
+        if [[ $nodes_req -gt $current_max ]]; then
+          log "[autoscaler:metrics] Demand exceeds maximum group size, limiting to $current_max"
+          $nodes_req=$current_max
+        fi
+
+        "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
+          autoscaling set-desired-capacity \
+          --auto-scaling-group-name $g \
+          --desired-capacity $nodes_req
+      fi
     fi
   done
 }
