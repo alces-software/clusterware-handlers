@@ -142,7 +142,7 @@ aws-scale-out() {
     $nodes_req=0
     for scheduler in "${_SCHEDULERS[@]}"; do
       log "[autoscaler:aws-scale-out] Retrieving job state data for scheduler ${scheduler} in queues for $g"
-      ${scheduler}_parse_job_states "${tmpfile}" "${cores_per_node}" "$g*"
+      ${scheduler}_parse_job_states "${tmpfile}" "${cores_per_node}"
       cat "${tmpfile}" | _log_blob "metrics"
       . "${tmpfile}"
 
