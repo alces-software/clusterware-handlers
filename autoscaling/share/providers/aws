@@ -143,7 +143,7 @@ aws-scale-out() {
     for scheduler in "${_SCHEDULERS[@]}"; do
       log "[autoscaler:aws-scale-out] Retrieving job state data for scheduler ${scheduler} in queues for $g"
       ${scheduler}_parse_job_states "${tmpfile}" "${cores_per_node}"
-      cat "${tmpfile}" | _log_blob "metrics"
+      # cat "${tmpfile}" | _log_blob "metrics" # This makes logs very noisy but is useful for development/debugging
       . "${tmpfile}"
 
       bynode_nodes_req_var="${scheduler}_queue_${gg}_bynode_q_nodes_req"
