@@ -260,6 +260,9 @@ scheduler_vars = (config['scheduler'] || {}).map do |k,v|
   %(cw_SCHEDULER_#{k.to_s}="#{v}")
 end
 write_file('scheduler.rc', scheduler_vars.join("\n"))
+if config['role'] == 'master'
+  write_file('../../signal.rc', %(cw_SIGNAL_data="UUID=#{config['uuid']};Token=#{config['token']}"), perm: 0600)
+end
 RUBY
 }
 
