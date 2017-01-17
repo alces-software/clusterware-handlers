@@ -136,9 +136,10 @@ aws-scale-out() {
   groups="$(_list_autoscaling_groups)"
   tmpfile="$(mktemp /tmp/autoscaler.XXXXXXXX)"
 
-  for g in "${groups[@]}"; do
+  for g in $groups; do
     gg=$(echo $g | sed -e "s/[-\.]/_/g")
     cores_per_node="$(_cores_for_group $g)"
+    $nodes_req=0
     for scheduler in "${_SCHEDULERS[@]}"; do
       log "[autoscaler:aws-scale-out] Retrieving job state data for scheduler ${scheduler} in queues for $g"
       ${scheduler}_parse_job_states "${tmpfile}" "${cores_per_node}" "$g*"
@@ -217,7 +218,7 @@ _cores_for_group() {
   groups_cores=($(printf "%s\n" "${groups_cores[@]}" | sort -u | tr '\n' ' '))
   log "[autoscaler:cores_for_group] Found cores for groups: ${groups_cores[*]}"
 
-  if [ ${#group_cores[@]} -gt 1 -a -n "${group}" ]; then
+  if [ ${#groups_cores[@]} -gt 1 -a -n "${group}" ]; then
     log "[autoscaler:cores_for_group] Looking for group: ${group}"
     for g in "${groups_cores[@]}"; do
       if [[ $g == ${group}:* ]]; then
