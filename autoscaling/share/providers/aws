@@ -105,7 +105,7 @@ RUBY
 }
 
 aws-shoot-node() {
-  local aws_exit_code node instanceid group g gg
+  local aws_exit_code node instanceid group
   node="$1"
   group="$2"
   instanceid=$(member_get_member_tag "${node}" "aws_instanceid")
@@ -118,6 +118,12 @@ aws-shoot-node() {
   --instance-id ${instanceid} \
   --should-decrement-desired-capacity 2>&1 | _log_blob "autoscaling:aws"
   aws_exit_code=$?
+  # This will fail if we try and take the group below its minimum capacity.
+  # We could try to detect that scenario in advance and not try to terminate the
+  # node but we'd need to make an AWS API call to do so e.g. we don't win, and
+  # in many cases we'd make one more call than is needed now.
+  # The drawback to this approach is that logs from unloaded clusters will
+  # record AWS errors every time scale-in is run.
   set +o pipefail
   return ${aws_exit_code}
 }
