@@ -1,0 +1,245 @@
+#!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler hook
+## Copyright (C) 2017 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+setup() {
+    local a xdg_config
+    IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
+    for a in "${xdg_config[@]}"; do
+        if [ -e "${a}"/clusterware/config.rc ]; then
+            source "${a}"/clusterware/config.rc
+            break
+        fi
+    done
+    if [ -z "${cw_ROOT}" ]; then
+        echo "$0: unable to locate clusterware configuration"
+        exit 1
+    fi
+    kernel_load
+}
+
+bucket_path() {
+  local relative_path
+  relative_path="$1"
+
+  if [ "${relative_path}" == "" ] ; then
+    echo "${BUCKET}"/customizer/"${JQ_CUSTOMIZER}"/job-queue.d/"${cw_CLUSTER_name}"
+  else
+    echo "${BUCKET}"/customizer/"${JQ_CUSTOMIZER}"/job-queue.d/"${cw_CLUSTER_name}"/"${relative_path}"
+  fi
+}
+
+work_dir_path() {
+  local relative_path
+  relative_path="$1"
+
+  if [ "${relative_path}" == "" ] ; then
+    echo "${WORK_DIR}"/"${JQ_CUSTOMIZER}"
+  else
+    echo "${WORK_DIR}"/"${JQ_CUSTOMIZER}"/"${relative_path}"
+  fi
+}
+
+validate_job_file() {
+  local job_file rejected_dir rejected_file custom_validation_file exit_code errors
+  job_file=$1
+  rejected_dir=$2
+  rejected_file=$3
+  custom_validation_file="${WORK_DIR}"/customizer/"${JQ_CUSTOMIZER}"/share/validate-job
+
+  if [ -f "${custom_validation_file}" ] ; then
+    chmod +x "${custom_validation_file}"
+    errors=$( "${custom_validation_file}" "${job_file}" "${rejected_dir}" )
+    exit_code=$?
+    if [ $exit_code -ne 0 ] ; then
+        mkdir -p $( dirname "${rejected_file}" )
+        echo "${errors}" > "${rejected_file}"
+    fi
+    return $exit_code
+  else
+    # Job files are valid by default.
+    return 0
+  fi
+}
+
+
+execute_job() {
+  local job_file status_file output_dir custom_job_runner exit_code
+  job_file=$1
+  status_file=$2
+  output_dir=$3
+  custom_job_runner="${WORK_DIR}"/customizer/"${JQ_CUSTOMIZER}"/share/process-job
+  
+  if [ -f "${custom_job_runner}" ] ; then
+    # If there is a custom job runner, use it to run the job file. 
+    chmod +x "${custom_job_runner}"
+    "${custom_job_runner}" "${job_file}" "${output_dir}" ${ARGS}
+    exit_code=$?
+  else
+    # If there is not a custom job runner, try executing the job file.
+    chmod +x "${job_file}"
+    "${job_file}" ${ARGS}
+    exit_code=$?
+  fi
+  echo $exit_code > "${status_file}"
+  return $exit_code
+}
+
+mark_job_file_as_in_progress() {
+  :
+}
+
+save_job_output() {
+  local output_dir job_id
+  job_id=$1
+  output_dir=$2
+
+  "${_S3CMD}" sync \
+      $(work_dir_path "${output_dir}"/"${job_id}") \
+      $(bucket_path "${output_dir}")/
+}
+
+delete_job_file() {
+  local job_id
+  job_id=$1
+
+  "${_S3CMD}" rm $(bucket_path "pending/${job_id}")
+}
+
+# If there are any objects already stored with job_id, the job is invalid.  We
+# don't want to overwrite any previous output.
+validate_job_id() {
+  local job_id rejected_file existing
+  job_id=$1
+  rejected_file=$2
+
+  existing=$( "${_S3CMD}" ls \
+      $(bucket_path completed/"${job_id}") \
+      | wc -l
+  )
+
+  if [ $existing -ne 0 ] ; then
+    mkdir -p $(dirname $rejected_file)
+    echo "Job id ${job_id} previously used" > $rejected_file
+    return 1
+  fi
+}
+
+process_pending_jobs() {
+  local job_file job_id exit_code
+  local output_dir log_file status_file
+  local rejected_dir rejected_file
+
+  echo "$( ls "$(work_dir_path pending)" | wc -l ) pending job(s) found"
+  for job_id in $( ls -tr "$(work_dir_path pending)" ) ; do
+    echo "Processing job ${job_id}"
+    job_file="$(work_dir_path pending/${job_id})"
+
+    output_dir="$(work_dir_path completed/${job_id})"
+    log_file="${output_dir}"/logs
+    status_file="${output_dir}"/status
+
+    rejected_dir="$(work_dir_path rejected/${job_id})"
+    rejected_file="${rejected_dir}"/reason
+
+    mark_job_file_as_in_progress
+
+    echo "Validating job ${job_id}"
+    validate_job_id "${job_id}" $rejected_file
+    exit_code=$?
+    if [ $exit_code -eq 0 ] ; then
+      validate_job_file $job_file $rejected_dir $rejected_file
+      exit_code=$?
+    fi
+    if [ $exit_code -ne 0 ] ; then
+        echo "Rejected job ${job_id}"
+        save_job_output "${job_id}" rejected
+	delete_job_file "${job_id}"
+    else
+        mkdir -p $(dirname $log_file)
+        execute_job $job_file $status_file $output_dir >"${log_file}" 2>&1
+        exit_code=$?
+        if [ $exit_code -ne 0 ] ; then
+            echo "Error during execution of ${job_id}"
+        else
+            echo "Successfully executed job ${job_id}"
+        fi
+        save_job_output "${job_id}" completed
+        delete_job_file "${job_id}"
+    fi
+  done
+}
+
+# Download any custom job handling script for the current customizer.
+get_job_handling_customizations() {
+    local s3_pending_dir local_pending_dir
+    s3_pending_dir="${BUCKET}"/customizer/"${JQ_CUSTOMIZER}"/share/
+    local_pending_dir="${WORK_DIR}"/customizer/"${JQ_CUSTOMIZER}"/share/
+
+    echo "Getting customizer scripts for ${JQ_CUSTOMIZER} (${s3_pending_dir})"
+    mkdir -p "${local_pending_dir}"
+    "${_S3CMD}" get --recursive ${s3_pending_dir} ${local_pending_dir}
+}
+
+get_pending_jobs() {
+    local s3_pending_dir local_pending_dir
+    s3_pending_dir="$(bucket_path pending/)"
+    local_pending_dir="$(work_dir_path pending/)"
+
+    echo "Getting pending jobs for ${cw_CLUSTER_name} (${s3_pending_dir})"
+    mkdir -p "${local_pending_dir}"
+    "${_S3CMD}" get --recursive ${s3_pending_dir} ${local_pending_dir}
+}
+
+# Adds job queue customizers to the `jq_customizers` array.
+get_job_queue_customizers() {
+    local customizer all_customizers
+
+    all_customizers=$( s3cmd ls "${BUCKET}/customizer/" | awk '{ print $2 }' )
+    for customizer in ${all_customizers} ; do 
+      if [ $( s3cmd ls ${customizer}job-queue.d | wc -l ) -ne 0 ] ; then
+          jq_customizers+=($(echo ${customizer} | cut -f5 -d/))
+      fi
+    done
+}
+
+main() {
+    local BUCKET WORK_DIR JQ_CUSTOMIZER ARGS jq_customizers
+    ARGS="$@"
+    jq_customizers=()
+
+    BUCKET="${cw_CLUSTER_CUSTOMIZER_bucket:-s3://alces-flight-$(network_ec2_hashed_account)}"
+    export AWS_ACCESS_KEY_ID="${cw_CLUSTER_CUSTOMIZER_access_key_id}"
+    export AWS_SECRET_ACCESS_KEY="${cw_CLUSTER_CUSTOMIZER_secret_access_key}"
+    WORK_DIR=$( mktemp -d -p /tmp cluster-job-queue.XXXXXXXXXXXX )
+
+    echo "Getting job queue customizers"
+    get_job_queue_customizers
+    echo "Found ${#jq_customizers[@]} job queue customizers"
+
+    for JQ_CUSTOMIZER in ${jq_customizers[@]}; do
+      echo "Processing cluster job queue customizer ${JQ_CUSTOMIZER}"
+      get_job_handling_customizations
+      get_pending_jobs
+      process_pending_jobs
+    done
+
+    rm -rf "${WORK_DIR}"
+}
+
+setup
+require handler
+require network
+require files
+require ruby
+
+_S3CMD="${cw_ROOT}"/opt/s3cmd/s3cmd
+_ALCES="${cw_ROOT}"/bin/alces
+
+files_load_config cluster-customizer
+files_load_config config config/cluster
+
+handler_tee main "$@"
