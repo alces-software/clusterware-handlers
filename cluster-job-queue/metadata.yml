@@ -1,0 +1,22 @@
+################################################################################
+##
+## Alces Clusterware - Handler metadata
+## Copyright (C) 2017 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+---
+install:
+  _: |
+    require files
+    files_load_config clusterware
+    case "${cw_VERSION:-1.0.0}" in
+      1.[012345].*)
+          echo "This handler cannot be enabled as Alces Clusterware v${cw_VERSION} is too old."
+          echo "Please upgrade to Alces Clusterware v1.6.0 or higher."
+          exit 1
+          ;;
+    esac
+
+    cp -p libexec/actions/job-queue "${cw_ROOT}"/libexec/actions
+    cp -pR libexec/job-queue "${cw_ROOT}"/libexec
+
