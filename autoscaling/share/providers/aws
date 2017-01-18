@@ -139,7 +139,7 @@ aws-scale-out() {
   for g in $groups; do
     gg=$(echo $g | sed -e "s/[-\.]/_/g")
     cores_per_node="$(_cores_for_group $g)"
-    $nodes_req=0
+    nodes_req=0
     for scheduler in "${_SCHEDULERS[@]}"; do
       log "[autoscaler:aws-scale-out] Retrieving job state data for scheduler ${scheduler} in queues for $g"
       ${scheduler}_parse_job_states "${tmpfile}" "${cores_per_node}"
