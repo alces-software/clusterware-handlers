@@ -28,7 +28,7 @@ _configure_autoscaling() {
 
   if [ -f "$autoscaling_provider_file" ]; then
     . "$autoscaling_provider_file"
-    ${cw_INSTANCE_autoscaling}-configure
+    ${cw_INSTANCE_autoscaling}_configure
   else
     echo "Provider file ${autoscaling_provider_file} not found, cannot configure autoscaling."
   fi

@@ -25,12 +25,12 @@ _unexhausted_nodes() {
   # An "unexhausted" node will be spared from shooting, e.g. if it still has
   # remaining billed-for runtime.
   # We defer the identification of such nodes to a provider-specific method.
-  ${cw_INSTANCE_autoscaling}-unexhausted-nodes "$*"
+  ${cw_INSTANCE_autoscaling}_unexhausted_nodes "$*"
 }
 
 _shoot_node() {
   local exit_code
-  ${cw_INSTANCE_autoscaling}-shoot-node "$1" "$2"
+  ${cw_INSTANCE_autoscaling}_shoot_node "$1" "$2"
   exit_code=$?
   return ${exit_code}
 }
@@ -135,7 +135,7 @@ _setup_autoscaling() {
 }
 
 _scale_out() {
-  ${cw_INSTANCE_autoscaling}-scale-out
+  ${cw_INSTANCE_autoscaling}_scale_out
 }
 
 main() {

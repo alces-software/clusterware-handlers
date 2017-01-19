@@ -8,10 +8,10 @@
 
 # This file contains autoscaling functions for AWS. Function names should all
 # begin with 'aws-' and provide the required interface:
-# - aws-configure
-# - aws-unexhausted-nodes
-# - aws-shoot-node
-# - aws-scale-out
+# - aws_configure
+# - aws_unexhausted_nodes
+# - aws_shoot_node
+# - aws_scale_out
 
 setup() {
   local a xdg_config
@@ -38,7 +38,7 @@ _detect_autoscaling() {
               autoscaling describe-auto-scaling-groups &>/dev/null
 }
 
-aws-configure() {
+aws_configure() {
   local group tags
 
   files_load_config config config/cluster
@@ -84,7 +84,7 @@ aws-configure() {
   "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-autoscaling.json
 }
 
-aws-unexhausted-nodes() {
+aws_unexhausted_nodes() {
   # An AWS node is "exhausted" if we've used up more than 53 minutes of its
   # billing hour.
   local node nodelist ctime
@@ -104,7 +104,7 @@ RUBY
   done
 }
 
-aws-shoot-node() {
+aws_shoot_node() {
   local aws_exit_code node instanceid group
   node="$1"
   group="$2"
@@ -128,7 +128,7 @@ aws-shoot-node() {
   return ${aws_exit_code}
 }
 
-aws-scale-out() {
+aws_scale_out() {
   local cores_per_node groups g tmpfile
   local byslot_nodes_req_var bynode_nodes_req_var nodes_req
   local current current_max current_desired
