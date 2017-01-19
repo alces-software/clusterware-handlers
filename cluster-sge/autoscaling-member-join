@@ -21,7 +21,7 @@ setup() {
     kernel_load
 }
 
-add_to_hostgroup() {
+_add_to_hostgroup() {
   local hostname groupname cores_per_node
   hostname="$1"
   groupname="$2"
@@ -43,7 +43,7 @@ main() {
     group_max_size="$4"
     cores_per_node="$5"
 
-    add_to_hostgroup "$hostname" "$groupname" "$cores_per_node"
+    _add_to_hostgroup "$hostname" "$groupname" "$cores_per_node"
 
     handler_run_helper share/add-queues "${groupname}" "$groupname"
     # Adding the node into these possibly-new queues is handled by hostgroups
