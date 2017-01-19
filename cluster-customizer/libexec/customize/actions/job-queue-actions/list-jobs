@@ -34,11 +34,11 @@ main() {
     job_queue_list_jobs_in_queue "${queue}" "pending"
 }
 
-if [ -d "${cw_ROOT}"/etc/handlers/cluster-job-queue/share ]; then
-    handler_add_libdir "${cw_ROOT}"/etc/handlers/cluster-job-queue/share
+if [ -d "${cw_ROOT}"/etc/handlers/cluster-customizer/share ]; then
+    handler_add_libdir "${cw_ROOT}"/etc/handlers/cluster-customizer/share
     require job-queue
 
     main "$@"
 else
-    action_die 'cluster-job-queue handler is not enabled'
+    action_die 'cluster-customizer handler is not enabled'
 fi

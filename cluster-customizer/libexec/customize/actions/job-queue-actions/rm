@@ -35,11 +35,11 @@ main() {
     job_queue_delete_job "${queue}" "${job_id}"
 }
 
-if [ -d "${cw_ROOT}"/etc/handlers/cluster-job-queue/share ]; then
-    handler_add_libdir "${cw_ROOT}"/etc/handlers/cluster-job-queue/share
+if [ -d "${cw_ROOT}"/etc/handlers/cluster-customizer/share ]; then
+    handler_add_libdir "${cw_ROOT}"/etc/handlers/cluster-customizer/share
     require job-queue
 
     main "$@"
 else
-    action_die 'cluster-job-queue handler is not enabled'
+    action_die 'cluster-customizer handler is not enabled'
 fi

@@ -24,30 +24,23 @@ require action
 require handler
 
 main() {
-    local queue job_file job_id
+    local queue job_id
     queue="$1"
-    job_file="$2"
-    job_id="$3"
+    job_id="$2"
 
-    if [ -z "${queue}" -o -z "${job_file}" ] ; then
-        action_die "usage: ${cw_BINNAME} <queue> <FILE>"
-    fi
-    if [ ! -r "${job_file}" ] ; then
-        action_die "${cw_BINNAME} cannot access ${job_file}: No such file"
-    fi
-    if [ -z "${job_id}" ] ; then
-        job_id="$(uuidgen)"
+    if [ -z "${queue}" -o -z "${job_id}" ] ; then
+        action_die "usage: ${cw_BINNAME} <queue> <job_id>"
     fi
 
-    job_queue_put "${queue}" "${job_file}" "${job_id}"
-    echo "${job_id}"
+    job_queue_get_job_status "${queue}" "${job_id}"
 }
 
-if [ -d "${cw_ROOT}"/etc/handlers/cluster-job-queue/share ]; then
-    handler_add_libdir "${cw_ROOT}"/etc/handlers/cluster-job-queue/share
+if [ -d "${cw_ROOT}"/etc/handlers/cluster-customizer/share ]; then
+    handler_add_libdir "${cw_ROOT}"/etc/handlers/cluster-customizer/share
     require job-queue
 
     main "$@"
 else
-    action_die 'cluster-job-queue handler is not enabled'
+    action_die 'cluster-customizer handler is not enabled'
 fi
+

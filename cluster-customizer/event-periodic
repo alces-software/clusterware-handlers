@@ -38,11 +38,13 @@ setup() {
 
 main() {
     customize_run_hooks event-periodic
+    job_queue_process_queues "$@"
 }
 
 setup
 require handler
 handler_add_libdir share
 require customize
+require job-queue
 
 handler_tee main "$@"

@@ -23,12 +23,24 @@
 require action
 require handler
 
-if [ -d "${cw_ROOT}"/etc/handlers/cluster-job-queue/share ]; then
-    handler_add_libdir "${cw_ROOT}"/etc/handlers/cluster-job-queue/share
+main() {
+    local queue job_file job_id output_file
+    queue="$1"
+    job_id="$2"
+    output_file="$3"
+
+    if [ -z "${queue}" -o -z "${job_id}" -o -z "${output_file}" ] ; then
+        action_die "usage: ${cw_BINNAME} [OPTIONS] <queue> <job_id> <output_file>"
+    fi
+
+    job_queue_get_output_file "${queue}" "${job_id}" "${output_file}"
+}
+
+if [ -d "${cw_ROOT}"/etc/handlers/cluster-customizer/share ]; then
+    handler_add_libdir "${cw_ROOT}"/etc/handlers/cluster-customizer/share
     require job-queue
 
-    job_queue_list_queues "$@"
+    main "$@"
 else
-    action_die 'cluster-job-queue handler is not enabled'
+    action_die 'cluster-customizer handler is not enabled'
 fi
-

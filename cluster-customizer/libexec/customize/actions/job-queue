@@ -31,28 +31,28 @@ cw_BINNAME="${cw_BINNAME} $(basename "$0")"
 
 case $action in
     h|he|hel|help)
-        exec /bin/bash "${cw_ROOT}"/libexec/job-queue/actions/help "$@"
+        exec /bin/bash "${cw_ROOT}"/libexec/customize/actions/job-queue-actions/help "$@"
         ;;
     lj|listjobs|list-jobs|ls-jobs|lsjobs)
-        exec /bin/bash "${cw_ROOT}"/libexec/job-queue/actions/list-jobs "$@"
+        exec /bin/bash "${cw_ROOT}"/libexec/customize/actions/job-queue-actions/list-jobs "$@"
         ;;
     lo|listoutput|list-output|ls-output|lsoutput)
-        exec /bin/bash "${cw_ROOT}"/libexec/job-queue/actions/list-output "$@"
+        exec /bin/bash "${cw_ROOT}"/libexec/customize/actions/job-queue-actions/list-output "$@"
         ;;
     lq|listqueues|list-queues|ls-queues|lsqueues)
-        exec /bin/bash "${cw_ROOT}"/libexec/job-queue/actions/list-queues "$@"
+        exec /bin/bash "${cw_ROOT}"/libexec/customize/actions/job-queue-actions/list-queues "$@"
         ;;
     p|pu|put)
-        exec /bin/bash "${cw_ROOT}"/libexec/job-queue/actions/put "$@"
+        exec /bin/bash "${cw_ROOT}"/libexec/customize/actions/job-queue-actions/put "$@"
         ;;
     go|goutput|getoutput|get-output)
-        exec /bin/bash "${cw_ROOT}"/libexec/job-queue/actions/get-output "$@"
+        exec /bin/bash "${cw_ROOT}"/libexec/customize/actions/job-queue-actions/get-output "$@"
         ;;
     rm|remove)
-        exec /bin/bash "${cw_ROOT}"/libexec/job-queue/actions/rm "$@"
+        exec /bin/bash "${cw_ROOT}"/libexec/customize/actions/job-queue-actions/rm "$@"
         ;;
     s|st|sta|stat|statu|status)
-        exec /bin/bash "${cw_ROOT}"/libexec/job-queue/actions/status "$@"
+        exec /bin/bash "${cw_ROOT}"/libexec/customize/actions/job-queue-actions/status "$@"
         ;;
     *)
         cat <<EOF
