@@ -48,14 +48,17 @@ job_queue_work_dir_path() {
 
 # Adds job queue customizers to the `job_queues` array.
 job_queue_get_job_queues() {
-    local customizer all_customizers
+    local customizer all_customizers queue_customizers
     job_queue_s3cmd_setup
 
-    all_customizers=$( "${cw_ROOT}"/opt/s3cmd/s3cmd ls "${BUCKET}/customizer/" | awk '{ print $2 }' )
-    for customizer in ${all_customizers} ; do 
-        if [ $( "${cw_ROOT}"/opt/s3cmd/s3cmd ls ${customizer}job-queue.d | wc -l ) -ne 0 ] ; then
-            job_queues+=($(echo ${customizer} | cut -f5 -d/))
-        fi
+    all_customizers=$( "${cw_ROOT}"/opt/s3cmd/s3cmd ls --recursive "${BUCKET}/customizer/" )
+    queue_customizers=$( echo "${all_customizers}" \
+        | grep "${BUCKET}/customizer/[^/]*/job-queue.d/" \
+        | cut -d/ -f5 \
+        | uniq
+    )
+    for customizer in ${queue_customizers} ; do 
+        job_queues+=("${customizer}")
     done
 }
 
