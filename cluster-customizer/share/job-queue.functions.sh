@@ -154,16 +154,22 @@ job_queue_execute_job() {
     status_file=$3
     output_dir=$4
     custom_job_runner="${WORK_DIR}"/customizer/"${queue}"/share/process-job
+    files_load_config instance config/cluster
 
     if [ -f "${custom_job_runner}" ] ; then
         # If there is a custom job runner, use it to run the job file. 
         chmod +x "${custom_job_runner}"
-        "${custom_job_runner}" "${job_file}" "${output_dir}" ${ARGS}
+        "${custom_job_runner}" \
+            "${job_file}" \
+            "${output_dir}" \
+            "${cw_INSTANCE_role}" \
+            "${cw_CLUSTER_name}" \
+            ${ARGS}
         exit_code=$?
     else
         # If there is not a custom job runner, try executing the job file.
         chmod +x "${job_file}"
-        "${job_file}" ${ARGS}
+        "${job_file}" "${cw_INSTANCE_role}" "${cw_CLUSTER_name}" ${ARGS}
         exit_code=$?
     fi
     echo $exit_code > "${status_file}"
