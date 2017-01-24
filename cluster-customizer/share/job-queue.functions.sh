@@ -98,7 +98,7 @@ job_queue_save_job_output() {
     job_id=$2
     output_dir=$3
 
-    "${cw_ROOT}"/opt/s3cmd/s3cmd sync --quiet \
+    "${cw_ROOT}"/opt/s3cmd/s3cmd put --quiet --recursive \
         $(job_queue_work_dir_path "${queue}" "${output_dir}"/"${job_id}") \
         $(job_queue_bucket_path "${queue}" "${output_dir}")/
 }
