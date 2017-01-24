@@ -8,10 +8,15 @@ file and executed.  It will be called with two arguments:
  1. the role of the instance executing the job
  2. the cluster's name.
 
+As the Clusterware periodic cronjob is only installed on the master node, the
+jobs will only be run on the master node.  If the Clusterware periodic cronjob
+is installed on multiple nodes, a single node in the cluster will execute the
+job.
+
 The results of running the job are stored on s3 with the following prefix:
-s3://${customizer_bucket}/customizer/${customizer_name}/job-queue.d/${cluster_name}.
-Specifically, output will be available at ${prefix}/completed/${job_id}/logs
-and its exit code will be available at ${prefix}/completed/${job_id}/status.
+`s3://${customizer_bucket}/customizer/${customizer_name}/job-queue.d/${cluster_name}`.
+Specifically, output will be available at `${prefix}/completed/${job_id}/logs`
+and its exit code will be available at `${prefix}/completed/${job_id}/status.`
 
 ## Custom job runners
 
@@ -35,7 +40,7 @@ job script in a non-standard location.
 An example job runner which creates some additional output files and runs the
 job file in the standard manner is shown below.
 
-```
+```bash
 main () {
   local job_file output_dir instance_role cluster_name exit_code
   job_file="$1"
@@ -67,7 +72,7 @@ For this job script, the job runner should use a package manager to install
 the package ffmpeg.  The following, is a simple custom job runner which would
 do just that.
 
-```
+```bash
 main () {
   local job_file
   job_file="$1"
@@ -106,7 +111,7 @@ be saved to s3.
 An example custom job validator, which is designed to work with the custom job
 runner developed earlier is given below.
 
-```
+```bash
 main () {
   local job_file
   job_file="$1"
