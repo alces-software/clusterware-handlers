@@ -293,9 +293,7 @@ job_queue_list_output_files() {
 
     "${cw_ROOT}"/opt/s3cmd/s3cmd ls --recursive ${s3_key} \
         | awk '{print $4}' \
-        | rev \
-        | cut -d/ -f1 \
-        | rev
+        | sed "s ${s3_key}  g"
 }
 
 job_queue_get_output_file() {
