@@ -20,6 +20,7 @@ maxsize="$2"
 
 if ! sinfo -o "%R" -a | grep "$name"; then
   if _lock; then
+    echo "[debug] about to run: scontrol create PartitionName=\"$name\""
     scontrol create PartitionName="$name"
     _rewrite_config
     _unlock

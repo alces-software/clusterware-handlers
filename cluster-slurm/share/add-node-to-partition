@@ -20,6 +20,7 @@ group="$2"
 
 if _lock; then
   nodeline=$(scontrol show PartitionName="$group" | grep -e " Nodes=.*" | sed -e "s/Nodes=\(.*\)/Nodes=$hostname,\1/" -e "s/,(null)//")
+  echo "[debug] About to run: scontrol update PartitionName=\"$group\" ${nodeline}"
   scontrol update PartitionName="$group" ${nodeline}
   _rewrite_config
   _unlock
