@@ -45,6 +45,7 @@ main() {
     handler_add_libdir share
     require slurm-handler
 
+    files_load_config instance config/cluster
     files_load_config --optional cluster-slurm
     export cw_CLUSTER_SLURM_config="${cw_CLUSTER_SLURM_config:-"${cw_ROOT}"/opt/slurm/etc/slurm.conf}"
     handler_tee main "$@"
