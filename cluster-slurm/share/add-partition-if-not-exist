@@ -12,15 +12,7 @@ module purge
 module use "${cw_ROOT}"/etc/modules
 module load services/slurm
 
-_lock() {
-    mkdir -p "${cw_ROOT}"/var/lock
-    exec 9> "${cw_ROOT}"/var/lock/cluster-slurm.lock && flock -w30 9
-}
-
-_unlock() {
-    exec 9>&-
-}
-
+. common
 
 name="$1"
 maxsize="$2"
@@ -29,7 +21,9 @@ maxsize="$2"
 if ! sinfo -o "%R" -a | grep "$name"; then
   if _lock; then
     scontrol create PartitionName="$name"
+    _rewrite_config
+    _unlock
+  else
+    echo "Could not obtain lock; can't add partition"
   fi
-_unlock
-
 fi
