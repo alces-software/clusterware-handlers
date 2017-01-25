@@ -12,7 +12,7 @@ module purge
 module use "${cw_ROOT}"/etc/modules
 module load services/slurm
 
-. common
+. $(dirname ${BASH_SOURCE[-1]})/common
 
 name="$1"
 maxsize="$2"

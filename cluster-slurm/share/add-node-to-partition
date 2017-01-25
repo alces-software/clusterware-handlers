@@ -12,7 +12,7 @@ module purge
 module use "${cw_ROOT}"/etc/modules
 module load services/slurm
 
-. common
+. $(dirname ${BASH_SOURCE[-1]})/common
 
 hostname="$(echo "$1" | cut -f1 -d.)"
 group="$2"
