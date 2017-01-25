@@ -22,5 +22,5 @@ _rewrite_config() {
   # overwrite the on-disk config file.
   local tempconfig
   tempconfig=$(scontrol write config | cut -f5 -d' ')
-  cp "$tempconfig" "${cw_CLUSTER_SLURM_config}"
+  cat "$tempconfig" | sed -e "/CpuFreqDef=Unknown/d" > "${cw_CLUSTER_SLURM_config}"
 }
