@@ -145,7 +145,7 @@ customize_fetch_machine_type() {
         echo "S3 access to '${bucket}' is not available.  Falling back to HTTP manifests."
         s3cfg=""
     fi
-    prefix="machines/${_MACHINE_TYPE}"
+    prefix="${_SET_PREFIX}machines/${_MACHINE_TYPE}"
     echo "Retrieving machine type customizations from: ${bucket}/${prefix}"
     customize_fetch_profile "${s3cfg}" "${bucket}/${prefix}" \
                             "${cw_CLUSTER_CUSTOMIZER_path}"/machine-${_MACHINE_TYPE}
@@ -160,8 +160,8 @@ customize_fetch_features() {
         s3cfg=""
     fi
     for feature in ${cw_CLUSTER_CUSTOMIZER_features}; do
-        echo "Retrieving feature customizations from: ${bucket}/features/$feature"
-        customize_fetch_profile "${s3cfg}" "${bucket}"/features/"${feature}" \
+        echo "Retrieving feature customizations from: ${bucket}/${_SET_PREFIX}features/$feature"
+        customize_fetch_profile "${s3cfg}" "${bucket}"/${_SET_PREFIX}features/"${feature}" \
                                 "${cw_CLUSTER_CUSTOMIZER_path}"/feature-${feature}
     done
 }
@@ -196,6 +196,12 @@ customize_is_s3_access_available() {
     "${cw_ROOT}"/opt/s3cmd/s3cmd -q -c ${s3cfg} ls "s3://${bucket}" 2>/dev/null
 }
 
+customize_set_feature_set() {
+    if [ "${cw_CLUSTER_CUSTOMIZER_feature_set}" ]; then
+        _SET_PREFIX="${cw_CLUSTER_CUSTOMIZER_feature_set}/"
+    fi
+}
+
 customize_set_s3_config() {
   customize_set_region
   s3cfg="$(mktemp /tmp/cluster-customizer.s3cfg.XXXXXXXX)"
@@ -216,6 +222,7 @@ customize_clear_s3_config() {
 
 customize_fetch() {
     customize_set_s3_config
+    customize_set_feature_set
     mkdir -p "${cw_CLUSTER_CUSTOMIZER_path}"
     customize_set_machine_type
     if [ "${_MACHINE_TYPE}" ]; then
@@ -311,15 +318,16 @@ customize_list_features() {
   if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
       echo "S3 access to '${bucket}' is not available.  Falling back to HTTP manifests."
       s3cfg=""
-      avail=$(customize_list_from_http "$bucket" "features")
+      avail=$(customize_list_from_http "$bucket" "${_SET_PREFIX}features")
   else
-    avail=$(customize_list_from_s3 "$s3cfg" "s3://${bucket}/features")
+    avail=$(customize_list_from_s3 "$s3cfg" "s3://${bucket}/${_SET_PREFIX}features")
   fi
   customize_print_list_excluding "$avail" "$existing" " - feature/"
 }
 
 customize_list() {
   customize_set_s3_config
+  customize_set_feature_set
   customize_list_profiles "${s3cfg}"
   customize_list_features "${s3cfg}"
   customize_clear_s3_config
@@ -379,7 +387,7 @@ customize_apply() {
 
   if [[ "$type" == "feature" ]] ; then
     varname="cw_CLUSTER_CUSTOMIZER_features"
-    sourcepath="features"
+    sourcepath="${_SET_PREFIX}features"
   else
     varname="cw_CLUSTER_CUSTOMIZER_profiles"
     sourcepath="customizer"
@@ -409,6 +417,7 @@ customize_apply_profile() {
   profile_name="$1"
 
   customize_set_s3_config
+  customize_set_feature_set
 
   if [ -z "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
       if network_is_ec2; then
@@ -433,6 +442,7 @@ customize_apply_feature() {
   feature_name="$1"
 
   customize_set_s3_config
+  customize_set_feature_set
 
   bucket="alces-flight-profiles-${_REGION}"
 

@@ -63,17 +63,33 @@ _run_initialize_hooks() {
 }
 
 _setup_features() {
-    local o_features feature_data
+    local o_features feature_data o_set feature_set
     feature_data="$1"
 
     o_features="${cw_CLUSTER_CUSTOMIZER_features}"
+    o_set="${cw_CLUSTER_CUSTOMIZER_feature_set}"
 
-    cw_CLUSTER_CUSTOMIZER_features=$(echo "${feature_data}" | cut -f2- -d' ')
+    feature_set=$(echo "${feature_data}" | cut -f2 -d' ')
+    if [[ "${feature_set}" == "("*")" ]]; then
+        feature_set="${feature_set%)}"
+        feature_set="${feature_set#(}"
+        cw_CLUSTER_CUSTOMIZER_features=$(echo "${feature_data}" | cut -f3- -d' ')
+    else
+        cw_CLUSTER_CUSTOMIZER_features=$(echo "${feature_data}" | cut -f2- -d' ')
+    fi
+    cw_CLUSTER_CUSTOMIZER_feature_set="${feature_set}"
+
     if [ "${cw_CLUSTER_CUSTOMIZER_features}" ]; then
         sed -i -e "s,^#\?cw_CLUSTER_CUSTOMIZER_features=.*,cw_CLUSTER_CUSTOMIZER_features=\"${cw_CLUSTER_CUSTOMIZER_features}\",g" \
             "${cw_ROOT}"/etc/cluster-customizer.rc
     else
         cw_CLUSTER_CUSTOMIZER_features="${o_features}"
+    fi
+    if [ "${cw_CLUSTER_CUSTOMIZER_feature_set}" ]; then
+        sed -i -e "s,^#\?cw_CLUSTER_CUSTOMIZER_feature_set=.*,cw_CLUSTER_CUSTOMIZER_feature_set=\"${cw_CLUSTER_CUSTOMIZER_feature_set}\",g" \
+            "${cw_ROOT}"/etc/cluster-customizer.rc
+    else
+        cw_CLUSTER_CUSTOMIZER_feature_set="${o_set}"
     fi
 }
 
