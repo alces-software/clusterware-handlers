@@ -16,14 +16,17 @@ module load services/slurm
 
 hostname="$(echo "$1" | cut -f1 -d.)"
 group="$2"
+tmpfile="$(mktemp /tmp/cluster-slurm.add-node-to-partition.XXXXXXXX)"
 
 
 if _lock; then
-  nodeline=$(scontrol show PartitionName="$group" | grep -e " Nodes=.*" | sed -e "s/Nodes=\(.*\)/Nodes=$hostname,\1/" -e "s/,(null)//")
-  echo "[debug] About to run: scontrol update PartitionName=\"$group\" ${nodeline}"
-  scontrol update PartitionName="$group" ${nodeline}
-  _rewrite_config
+  log "Adding node $hostname to partition $group"
+  sed -i -e "s/\(PartitionName=$group .*\)Nodes=\([^ ]*\) \(.*\)/\1 Nodes=$hostname,\2 \3" \
+         -e "s/,(null)//" \
+         "${cw_CLUSTER_SLURM_config}"
   _unlock
 else
-  echo "Could not obtain lock; can't update partition"
+  log "Could not obtain lock; can't update partition"
 fi
+
+rm -f "$tmpfile"

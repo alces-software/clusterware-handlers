@@ -14,13 +14,3 @@ _lock() {
 _unlock() {
     exec 9>&-
 }
-
-_rewrite_config() {
-  # Other parts of processing directly modify the Slurm config file and trigger
-  # a reload of slurmctld. In order that our changes here not be overwritten,
-  # we ask Slurm to write a copy of its (in-memory) config and then use that to
-  # overwrite the on-disk config file.
-  local tempconfig
-  tempconfig=$(scontrol write config | cut -f5 -d' ')
-  cat "$tempconfig" | sed -e "/CpuFreqDef=Unknown/d" > "${cw_CLUSTER_SLURM_config}"
-}
