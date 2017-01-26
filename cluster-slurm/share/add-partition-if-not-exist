@@ -20,10 +20,10 @@ maxsize="$2"
 
 if ! sinfo -o "%R" -a | grep "$name"; then
   if _lock; then
-    log "Creating new partition $name"
+    echo "Creating new partition $name"
     echo "PartitionName=$name Nodes=" >> "${cw_CLUSTER_SLURM_config}"
     _unlock
   else
-    log "Could not obtain lock; can't add partition"
+    echo "Could not obtain lock; can't add partition"
   fi
 fi

@@ -20,13 +20,13 @@ tmpfile="$(mktemp /tmp/cluster-slurm.add-node-to-partition.XXXXXXXX)"
 
 
 if _lock; then
-  log "Adding node $hostname to partition $group"
+  echo "Adding node $hostname to partition $group"
   sed -i -e "s/\(PartitionName=$group .*\)Nodes=\([^ ]*\) \(.*\)/\1 Nodes=$hostname,\2 \3" \
          -e "s/,(null)//" \
          "${cw_CLUSTER_SLURM_config}"
   _unlock
 else
-  log "Could not obtain lock; can't update partition"
+  echo "Could not obtain lock; can't update partition"
 fi
 
 rm -f "$tmpfile"
