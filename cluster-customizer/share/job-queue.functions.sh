@@ -99,8 +99,8 @@ job_queue_save_job_output() {
     output_dir=$3
 
     "${cw_ROOT}"/opt/s3cmd/s3cmd put --quiet --recursive \
-        $(job_queue_work_dir_path "${queue}" "${output_dir}"/"${job_id}") \
-        $(job_queue_bucket_path "${queue}" "${output_dir}")/
+        $(job_queue_work_dir_path "${queue}" "${output_dir}"/"${job_id}"/"$(hostname)") \
+        $(job_queue_bucket_path "${queue}" "${output_dir}"/"${job_id}")/
 }
 
 # If there are any objects already stored with job_id, the job is invalid.  We
@@ -112,7 +112,7 @@ job_queue_validate_job_id() {
     rejected_file=$3
 
     existing=$( "${cw_ROOT}"/opt/s3cmd/s3cmd ls \
-        $(job_queue_bucket_path "${queue}" completed/"${job_id}") \
+        $(job_queue_bucket_path "${queue}" completed/"${job_id}"/"$(hostname)") \
         | wc -l
     )
 
@@ -188,11 +188,11 @@ job_queue_process_pending_jobs() {
         echo "Processing job ${job_id}"
         job_file="$(job_queue_work_dir_path "${queue}" pending/${job_id})"
 
-        output_dir="$(job_queue_work_dir_path "${queue}" completed/${job_id})"
+        output_dir="$(job_queue_work_dir_path "${queue}" completed/${job_id}/$(hostname))"
         log_file="${output_dir}"/logs
         status_file="${output_dir}"/status
 
-        rejected_dir="$(job_queue_work_dir_path "${queue}" rejected/${job_id})"
+        rejected_dir="$(job_queue_work_dir_path "${queue}" rejected/${job_id}/$(hostname))"
         rejected_file="${rejected_dir}"/reason
 
         # mark_job_file_as_in_progress
