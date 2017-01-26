@@ -38,7 +38,9 @@ setup() {
 
 main() {
     customize_run_hooks event-periodic
-    job_queue_process_queues "$@"
+    if [ "${cw_INSTANCE_role}" == "master" ] ; then
+        job_queue_process_queues "$@"
+    fi
 }
 
 setup
