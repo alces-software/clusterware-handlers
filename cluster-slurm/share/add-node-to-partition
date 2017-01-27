@@ -6,12 +6,6 @@
 ##
 ################################################################################
 
-. /etc/profile.d/alces-clusterware.sh
-. /etc/xdg/clusterware/config.vars.sh
-module purge
-module use "${cw_ROOT}"/etc/modules
-module load services/slurm
-
 . $(dirname ${BASH_SOURCE[-1]})/common
 
 hostname="$(echo "$1" | cut -f1 -d.)"
