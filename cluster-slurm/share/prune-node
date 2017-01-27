@@ -10,7 +10,13 @@ tmpfile="$(mktemp /tmp/cluster-slurm.add-node.XXXXXXXX)"
 
 mkdir -p "${cw_ROOT}"/var/lock
 exec 9> "${cw_ROOT}"/var/lock/cluster-slurm.lock && flock -w30 9
+
+# Remove the node's entry line
 grep -v "^NodeName=${name} " "${cw_CLUSTER_SLURM_config}" > "${tmpfile}"
+
+# Remove from any partitions' node lists too
+sed -i -r -e "s/(Nodes.*)([=,])${name}(,)?/\1\2/" "$tmpfile"
+
 cat "${tmpfile}" > "${cw_CLUSTER_SLURM_config}"
 exec 9>&-
 
