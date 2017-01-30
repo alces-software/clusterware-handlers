@@ -5,6 +5,9 @@
 ## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
 ##
 ################################################################################
+
+. $(dirname ${BASH_SOURCE[-1]})/common
+
 name="$(echo "$1" | cut -f1 -d.)"
 slots="$2"
 state="$3"
@@ -12,20 +15,21 @@ state="$3"
 tmpfile1="$(mktemp /tmp/cluster-slurm.add-node.XXXXXXXX)"
 tmpfile2="$(mktemp /tmp/cluster-slurm.add-node.XXXXXXXX)"
 
-mkdir -p "${cw_ROOT}"/var/lock
-exec 9> "${cw_ROOT}"/var/lock/cluster-slurm.lock && flock -w30 9
-grep -v "^NodeName=" "${cw_CLUSTER_SLURM_config}" > "${tmpfile1}"
-# if NodeName line already exists for this node, remove it first
-grep "^NodeName=" "${cw_CLUSTER_SLURM_config}" | grep -v "^NodeName=${name} " > "${tmpfile2}"
-if [ "$state" ]; then
-    echo "NodeName=${name} CPUs=${slots} State=${state}" >> "${tmpfile2}"
-else
-    echo "NodeName=${name} CPUs=${slots}" >> "${tmpfile2}"
+if _lock; then
+  echo "Adding node ${name} with ${slots} CPUs"
+  grep -v "^NodeName=" "${cw_CLUSTER_SLURM_config}" > "${tmpfile1}"
+  # if NodeName line already exists for this node, remove it first
+  grep "^NodeName=" "${cw_CLUSTER_SLURM_config}" | grep -v "^NodeName=${name} " > "${tmpfile2}"
+  if [ "$state" ]; then
+      echo "NodeName=${name} CPUs=${slots} State=${state}" >> "${tmpfile2}"
+  else
+      echo "NodeName=${name} CPUs=${slots}" >> "${tmpfile2}"
+  fi
+  # sort list
+  sort "${tmpfile2}" >> "${tmpfile1}"
+  # recreate slurm.conf
+  cat "${tmpfile1}" > "${cw_CLUSTER_SLURM_config}"
+  _unlock
 fi
-# sort list
-sort "${tmpfile2}" >> "${tmpfile1}"
-# recreate slurm.conf
-cat "${tmpfile1}" > "${cw_CLUSTER_SLURM_config}"
-exec 9>&-
 
 rm -f "${tmpfile1}" "${tmpfile2}"
