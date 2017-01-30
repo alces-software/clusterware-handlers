@@ -235,15 +235,22 @@ customize_fetch() {
 }
 
 customize_list_from_s3() {
-  local all avail prohibited s3cfg url
-  s3cfg=$1
-  url=$2
-  all=$("${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "${url}")
+    local all avail prohibited profile_type s3cfg url f
+    s3cfg=$1
+    url=$2
+    profile_type=$3
+    all=$("${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --recursive ls "${url}")
 
-  prohibited=$(echo "$all" | grep -E "(initialize|preconfigure)\.d" | cut -f5 -d'/' | uniq | grep -v '^$')
-  avail=$(echo "$all" | cut -f5 -d'/' | uniq | grep -v '^$')
+    if [ "$profile_type" == "features" -a -n "${_SET_PREFIX}" ]; then
+        f=6
+    else
+        f=5
+    fi
 
-  customize_print_list_excluding "$avail" "$prohibited" ""
+    prohibited=$(echo "$all" | grep -E "(initialize|preconfigure)\.d" | cut -f$f -d'/' | uniq | grep -v '^$')
+    avail=$(echo "$all" | cut -f$f -d'/' | uniq | grep -v '^$')
+
+    customize_print_list_excluding "$avail" "$prohibited" ""
 }
 
 customize_list_from_http() {
@@ -303,7 +310,7 @@ customize_list_profiles() {
       s3cfg=""
       avail=$(customize_list_from_http "$bucket" "customizer")
   else
-    avail=$(customize_list_from_s3 "$s3cfg" "s3://${bucket}/customizer")
+    avail=$(customize_list_from_s3 "$s3cfg" "s3://${bucket}/customizer" account)
   fi
   customize_print_list_excluding "$avail" "$existing" " - profile/"
 }
@@ -320,7 +327,7 @@ customize_list_features() {
       s3cfg=""
       avail=$(customize_list_from_http "$bucket" "${_SET_PREFIX}features")
   else
-    avail=$(customize_list_from_s3 "$s3cfg" "s3://${bucket}/${_SET_PREFIX}features")
+    avail=$(customize_list_from_s3 "$s3cfg" "s3://${bucket}/${_SET_PREFIX}features" features)
   fi
   customize_print_list_excluding "$avail" "$existing" " - feature/"
 }
