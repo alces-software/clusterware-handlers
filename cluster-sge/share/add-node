@@ -97,8 +97,10 @@ if [ "${cw_CLUSTER_SGE_hostgroup_strategy}" != "skip" ]; then
                 fi
 
                 # Workaround to make qmaster pay attention to hostgroup slots
-                qconf -sq byslot.q > "${tmpfile}" && \
-                    qconf -Mq "${tmpfile}"
+                for q in $(qconf -sql | grep byslot.q); do
+                  qconf -sq "${q}" > "${tmpfile}" && \
+                      qconf -Mq "${tmpfile}"
+                done
                 ;;
             allhosts)
                 if ! qconf -shgrp @allhosts | grep -q "${name}"; then
