@@ -5,13 +5,23 @@
 ## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
 ##
 ################################################################################
-name="$(echo "$1" | cut -f1 -d.)"
-tmpfile="$(mktemp /tmp/cluster-slurm.add-node.XXXXXXXX)"
 
-mkdir -p "${cw_ROOT}"/var/lock
-exec 9> "${cw_ROOT}"/var/lock/cluster-slurm.lock && flock -w30 9
-grep -v "^NodeName=${name} " "${cw_CLUSTER_SLURM_config}" > "${tmpfile}"
-cat "${tmpfile}" > "${cw_CLUSTER_SLURM_config}"
-exec 9>&-
+. $(dirname ${BASH_SOURCE[-1]})/common
 
-rm -f "${tmpfile}"
+if _lock; then
+  name="$(echo "$1" | cut -f1 -d.)"
+  tmpfile="$(mktemp /tmp/cluster-slurm.add-node.XXXXXXXX)"
+
+  # Remove the node's entry line
+  grep -v "^NodeName=${name} " "${cw_CLUSTER_SLURM_config}" > "${tmpfile}"
+
+  # Remove from any partitions' node lists too
+  sed -i -r -e "s/(Nodes.*)([=,])${name}(,)?/\1\2/" -e "s/(Nodes.*),,[[:space:]]*/\1/" "$tmpfile"
+
+  cat "${tmpfile}" > "${cw_CLUSTER_SLURM_config}"
+  rm -f "${tmpfile}"
+
+  _unlock
+else
+  echo "Locking failed; unable to prune node"
+fi
