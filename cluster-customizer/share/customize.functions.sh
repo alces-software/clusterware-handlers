@@ -98,15 +98,22 @@ customize_set_machine_type() {
 }
 
 customize_fetch_profile() {
-    local s3cfg source target host manifest f s3cmd
+    local s3cfg source target host manifest f s3cmd excludes
     s3cfg="$1"
     source="$2"
     target="$3"
+    excludes="$4"
     mkdir -p "${target}"
     if [ "${s3cfg}" ]; then
         # Create bucket if it does not already exist
         "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} mb "s3://${source%%/*}" &>/dev/null
-        "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} --force -r get "s3://${source}"/ "${target}"
+        local args
+        args=(--force -r)
+        if [ -n "${excludes}" ] ; then
+            args+=(--exclude)
+            args+=(${excludes})
+        fi
+        "${cw_ROOT}"/opt/s3cmd/s3cmd -c ${s3cfg} ${args[@]} get "s3://${source}"/ "${target}"
         if rmdir "${target}" 2>/dev/null; then
             echo "No profile found for: ${source}"
             return 1
@@ -185,7 +192,8 @@ customize_fetch_profiles() {
     for profile in ${cw_CLUSTER_CUSTOMIZER_profiles}; do
         echo "Retrieving customizations from: ${bucket}/customizer/$profile"
         customize_fetch_profile "${s3cfg}" "${bucket}"/customizer/"${profile}" \
-                                "${cw_CLUSTER_CUSTOMIZER_path}"/profile-${profile}
+                                "${cw_CLUSTER_CUSTOMIZER_path}"/profile-${profile} \
+                                "*job-queue.d/*"
     done
 }
 
@@ -382,10 +390,11 @@ customize_profile_can_be_installed() {
 }
 
 customize_apply() {
-  local bucket name type varname sourcepath
+  local bucket name type varname sourcepath excludes
   bucket="$1"
   name="$2"
   type="$3"
+  excludes="$4"
 
   if ! customize_is_s3_access_available "${s3cfg}" "${bucket}"; then
       echo "S3 access to '${bucket}' is not available.  Falling back to HTTP manifests."
@@ -404,7 +413,8 @@ customize_apply() {
 
     echo "Retrieving customization from: ${bucket}/${sourcepath}/$name"
     customize_fetch_profile "${s3cfg}" "${bucket}/${sourcepath}/$name" \
-                            "${cw_CLUSTER_CUSTOMIZER_path}/${type}-${name}"
+                            "${cw_CLUSTER_CUSTOMIZER_path}/${type}-${name}" \
+                            "${excludes}"
 
     if [[ $? -eq 0 ]]; then
       sed -i "s/$varname=.*/$varname=\"${!varname} $name\"/" "$cw_ROOT"/etc/cluster-customizer.rc
@@ -439,7 +449,7 @@ customize_apply_profile() {
 
   echo "Applying profile $profile_name..."
 
-  customize_apply "$bucket" "$profile_name" "profile"
+  customize_apply "$bucket" "$profile_name" "profile" "job-queue.d/*"
 
   customize_clear_s3_config
 }

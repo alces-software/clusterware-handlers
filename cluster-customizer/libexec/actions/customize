@@ -48,6 +48,9 @@ case $action in
     ap|app|appl|apply)
         exec /bin/bash "${cw_ROOT}"/libexec/customize/actions/apply "$@"
         ;;
+    jq|jobq|jobqu|jobque|jobqueu|jobqueue|job-q|job-qu|job-que|job-queu|job-queue)
+        exec /bin/bash "${cw_ROOT}"/libexec/customize/actions/job-queue "$@"
+        ;;
     *)
         cat <<EOF
 Usage: $cw_BINNAME COMMAND [[OPTION]... [ARGS]]
@@ -58,6 +61,7 @@ EOF
 printf "    %-28s  %s\n" "$cw_BINNAME apply" "Download and install a customization profile."
 printf "    %-28s  %s\n" "$cw_BINNAME avail" "List available customization profiles."
 printf "    %-28s  %s\n" "$cw_BINNAME help" "More help about this command."
+printf "    %-28s  %s\n" "$cw_BINNAME job-queue" "Manage the cluster job queues"
 printf "    %-28s  %s\n" "$cw_BINNAME list" "List installed customization profiles."
 printf "    %-28s  %s\n" "$cw_BINNAME pull" "Pull updated customization actions from upstream."
 printf "    %-28s  %s\n" "$cw_BINNAME trigger" "Manually trigger customization actions."

@@ -27,7 +27,7 @@ main() {
     shift
 
     case $action in
-        apply|avail|help|list|trigger|pull)
+        apply|avail|help|job-queue|list|trigger|pull)
             help_for_${action}
             ;;
         ?*)
@@ -95,6 +95,10 @@ help_for_help() {
     show some general help.
 
 EOF
+}
+
+help_for_job-queue() {
+    exec "${cw_ROOT}"/bin/alces customize job-queue help
 }
 
 help_for_list() {
@@ -166,6 +170,7 @@ EOF
 printf "    %-28s  %s\n" "$cw_BINNAME apply" "Download and install a customization profile."
 printf "    %-28s  %s\n" "$cw_BINNAME avail" "List available customization profiles."
 printf "    %-28s  %s\n" "$cw_BINNAME help" "More help about this command."
+printf "    %-28s  %s\n" "$cw_BINNAME job-queue" "Manage the Alces cluster job queue"
 printf "    %-28s  %s\n" "$cw_BINNAME list" "List installed customization profiles."
 printf "    %-28s  %s\n" "$cw_BINNAME pull" "Pull updated customization actions from upstream."
 printf "    %-28s  %s\n" "$cw_BINNAME trigger" "Manually trigger customization actions."
