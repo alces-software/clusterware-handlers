@@ -33,7 +33,7 @@ if _lock; then
     qconf -sq "byslot.q" | \
       sed -e "s/qname.*/qname ${queuename}.byslot.q/" \
           -e "s/hostlist.*/hostlist @${hostgroup}/" \
-          -e "s/subordinate_list.*/subordinate_list ${queuename}.bynode.q=1,bynode.q=1,byslot.q/" \
+           -e "s/subordinate_list.*/subordinate_list NONE/"
     > "$tmpfile"
 
     qconf -Aq "$tmpfile"
@@ -41,10 +41,21 @@ if _lock; then
     qconf -sq "bynode.q" | \
       sed -e "s/qname.*/qname ${queuename}.bynode.q/" \
           -e "s/hostlist.*/hostlist @${hostgroup}/" \
-          -e "s/subordinate_list.*/subordinate_list ${queuename}.byslot.q=1,byslot.q=1,bynode.q/" \
+          -e "s/subordinate_list.*/subordinate_list NONE/"
     > "$tmpfile"
 
     qconf -Aq "$tmpfile"
+
+    # Now that they exist, we can properly configure subordination of new queues
+    qconf -sq "${queuename}.byslot.q" |
+      sed -e "s/subordinate_list.*/subordinate_list ${queuename}.bynode.q=1,bynode.q=1,byslot.q/" \
+    > "$tmpfile"
+    qconf -Mq "$tmpfile"
+
+    qconf -sq "${queuename}.bynode.q" |
+      sed -e "s/subordinate_list.*/subordinate_list ${queuename}.byslot.q=1,byslot.q=1,bynode.q/" \
+    > "$tmpfile"
+    qconf -Mq "$tmpfile"
 
     # Also configure subordination of main byslot.q and bynode.q wrt our new queues
     qconf -sq "byslot.q" | \
