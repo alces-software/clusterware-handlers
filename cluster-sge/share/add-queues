@@ -48,11 +48,11 @@ if _lock; then
 
     # Also configure subordination of main byslot.q and bynode.q wrt our new queues
     qconf -sq "byslot.q" | \
-      sed -r -e "s/subordinate_list (.*)/subordinate_list \1,${queuename}.bynode.q=1,${queuename}.byslot.q" \
+      sed -r -e "s/subordinate_list (.*)/subordinate_list \1,${queuename}.bynode.q=1,${queuename}.byslot.q/" \
     > "$tmpfile" && qconf -Mq "$tmpfile"
 
     qconf -sq "bynode.q" | \
-      sed -r -e "s/subordinate_list (.*)/subordinate_list \1,${queuename}.bynode.q,${queuename}.byslot.q=1" \
+      sed -r -e "s/subordinate_list (.*)/subordinate_list \1,${queuename}.bynode.q,${queuename}.byslot.q=1/" \
     > "$tmpfile" && qconf -Mq "$tmpfile"
 
     rm -f "${tmpfile}"
