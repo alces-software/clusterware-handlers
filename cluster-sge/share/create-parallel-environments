@@ -38,11 +38,11 @@ if _lock; then
 
     qconf -sp "mpinodes" | \
       sed -e "s/pe_name.*/pe_name ${groupname}-mpinodes/" > "${tmpfile}"
-    qconf -Mp "${tmpfile}"
+    qconf -Ap "${tmpfile}"
 
     qconf -sp "mpinodes-verbose" | \
       sed -e "s/pe_name.*/pe_name ${groupname}-mpinodes-verbose/" > "${tmpfile}"
-    qconf -Mp "${tmpfile}"
+    qconf -Ap "${tmpfile}"
 
     # Add to queue's pe_list
     qconf -sq "${groupname}.bynode.q" | \
@@ -53,19 +53,19 @@ if _lock; then
 
     qconf -sp "mpislots" | \
       sed -e "s/pe_name.*/pe_name ${groupname}-mpislots/" > "${tmpfile}"
-    qconf -Mp "${tmpfile}"
+    qconf -Ap "${tmpfile}"
 
     qconf -sp "mpislots-verbose" | \
       sed -e "s/pe_name.*/pe_name ${groupname}-mpislots-verbose/" > "${tmpfile}"
-    qconf -Mp "${tmpfile}"
+    qconf -Ap "${tmpfile}"
 
     qconf -sp "smp" | \
       sed -e "s/pe_name.*/pe_name ${groupname}-smp/" > "${tmpfile}"
-    qconf -Mp "${tmpfile}"
+    qconf -Ap "${tmpfile}"
 
     qconf -sp "smp-verbose" | \
       sed -e "s/pe_name.*/pe_name ${groupname}-smp-verbose/" > "${tmpfile}"
-    qconf -Mp "${tmpfile}"
+    qconf -Ap "${tmpfile}"
 
     # Add to queue's pe_list
     qconf -sq "${groupname}.byslot.q" | \
