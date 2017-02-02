@@ -51,6 +51,10 @@ main() {
               fi
               mkdir -p "${cw_ROOT}/etc/config/autoscaling/${autoscaling_group}"
 
+              if [ ! -e "${cw_ROOT}/etc/config/autoscaling/default" ]; then
+                ln -s "${cw_ROOT}/etc/config/autoscaling/${autoscaling_group}" "${cw_ROOT}/etc/config/autoscaling/default"
+              fi
+
               log "Triggering local 'autoscaling-deferred-config' event with: ${autoscaling_group} ${autoscaling_group_maxsize} ${autoscaling_group_cores}"
               "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-deferred-config "${autoscaling_group}" "${autoscaling_group_maxsize}" "${autoscaling_group_cores}"
             fi

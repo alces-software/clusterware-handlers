@@ -135,6 +135,9 @@ _setup_autoscaling() {
 }
 
 _scale_out() {
+  if [ -h "${cw_ROOT}/etc/config/autoscaling/default" ]; then
+    default_queue=$(basename "`readlink '${cw_ROOT}/etc/config/autoscaling/default'`")
+  fi
   ${cw_INSTANCE_autoscaling}_scale_out
 }
 
