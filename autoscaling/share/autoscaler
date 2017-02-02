@@ -135,8 +135,10 @@ _setup_autoscaling() {
 }
 
 _scale_out() {
+  local default_queue
   if [ -h "${cw_ROOT}/etc/config/autoscaling/default" ]; then
-    default_queue=$(basename "`readlink '${cw_ROOT}/etc/config/autoscaling/default'`")
+    default_queue=$(basename `readlink "${cw_ROOT}/etc/config/autoscaling/default"`)
+    log "[autoscaler:scale-out] Default autoscaling group is ${default_queue}"
   fi
   ${cw_INSTANCE_autoscaling}_scale_out
 }
