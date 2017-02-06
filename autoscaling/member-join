@@ -52,20 +52,25 @@ main() {
               autoscaling_group_label=$(member_find_tag "autoscaling_group_label" "${cw_MEMBER_tags}")
 
               mkdir -p "${cw_ROOT}/etc/config/autoscaling/by-label"
+
+              existing_group_with_our_label=$(_dereference_group_label "${autoscaling_group_label}")
+              if [[ "$existing_group_with_our_label" != "" && "$existing_group_with_our_label" != "$autoscaling_group" ]]; then
+                log "Conflicting autoscaling group label ${autoscaling_group_label}, deduplicating."
+                dedupe_attempt=2
+                while true; do
+                  existing_group_with_our_label=$(_dereference_group_label "${autoscaling_group_label}${dedupe_attempt}")
+                  if [[ "$existing_group_with_our_label" == "" || "$existing_group_with_our_label" == "$autoscaling_group" ]]; then
+                    # We've either found an unused label or we've found our actual group
+                    break
+                  fi
+                  let dedupe_attempt=dedupe_attempt+1
+                done
+                autoscaling_group_label=${autoscaling_group_label}${dedupe_attempt}
+
+              fi
               if [ ! -e "${cw_ROOT}/etc/config/autoscaling/by-label/${autoscaling_group_label}" ]; then
                 log "New autoscaling group: ${autoscaling_group_label} => $autoscaling_group"
                 ln -s "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}" "${cw_ROOT}/etc/config/autoscaling/by-label/${autoscaling_group_label}"
-              else
-                existing_group_with_our_label=$(_dereference_group_label "${autoscaling_group_label}")
-                if [[ "$existing_group_with_our_label" != "$autoscaling_group" ]]; then
-                  log "Conflicting autoscaling group label ${autoscaling_group_label}, deduplicating."
-                  while [[ "$existing_group_with_our_label" !=  "${autoscaling_group}" ]]; do
-                    dedupe_attempt=$((${dedupe_attempt:-1}+1))  # Our first attempt will append a "2"
-                    existing_group_with_our_label=$(_dereference_group_label "${autoscaling_group_label}${dedupe_attempt}")
-                  done
-                  ln -s "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}" "${cw_ROOT}/etc/config/autoscaling/by-label/${autoscaling_group_label}${dedupe_attempt}"
-                  log "New autoscaling group: ${autoscaling_group_label}${dedupe_attempt} => $autoscaling_group"
-                fi
               fi
 
               log "Triggering local 'autoscaling-member-join' event with: ${cw_MEMBER_name} ${cw_MEMBER_ip} ${autoscaling_group} ${autoscaling_group_maxsize} ${autoscaling_group_cores}"
