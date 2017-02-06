@@ -39,7 +39,7 @@ _detect_autoscaling() {
 }
 
 aws_configure() {
-  local group tags
+  local aws_tags tags tmpfile
 
   files_load_config config config/cluster
 
@@ -71,15 +71,42 @@ aws_configure() {
   #  - autoscaling group name (if available)
   tags=(tags[aws_ctime]=${cw_INSTANCE_aws_ctime})
 
-  group=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
+  tmpfile="$(mktemp /tmp/autoscaling-aws-configure.XXXXXXXX)"
+
+  aws_tags=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
                     ec2 describe-tags \
-                    --filters Name=resource-id,Values=${cw_INSTANCE_aws_instanceid} Name=key,Values=aws:autoscaling:groupName | \
-                    grep -Po "(?<=Value\": \")[a-zA-Z0-9\-]+"
+                    --filters Name=resource-id,Values=${cw_INSTANCE_aws_instanceid}
                  )
+
+  ruby_run <<RUBY > "$tmpfile"
+require 'json'
+
+def getValue(blob, key)
+  tag = blob.find { |a| a["Key"] == key }
+  if tag
+    tag["Value"]
+  else
+    nil
+  end
+end
+
+aws_tags = JSON.parse('${aws_tags}')['Tags']
+
+puts "group=#{getValue(aws_tags, 'aws:autoscaling:groupName')}"
+puts "label=#{getValue(aws_tags, 'AutoscalingGroupLabel')}"
+
+RUBY
+
+  . "$tmpfile"
+
   if [ "$group" ]; then
       tags+=(tags[autoscaling_group]=${group})
+      tags+=(tags[autoscaling_group_label]=${label})
       tags+=(tags[autoscaling_group_cores]=\"$(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo)\")
   fi
+
+  rm -f "$tmpfile"
+
   echo "Setting autoscaling tags: ${tags[@]}"
   "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-autoscaling.json
 }
