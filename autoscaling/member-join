@@ -73,8 +73,8 @@ main() {
                 ln -s "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}" "${cw_ROOT}/etc/config/autoscaling/by-label/${autoscaling_group_label}"
               fi
 
-              log "Triggering local 'autoscaling-member-join' event with: ${cw_MEMBER_name} ${cw_MEMBER_ip} ${autoscaling_group} ${autoscaling_group_maxsize} ${autoscaling_group_cores}"
-              "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-member-join "${cw_MEMBER_name}" "${cw_MEMBER_ip}" "${autoscaling_group}" "${autoscaling_group_maxsize}" "${autoscaling_group_cores}"
+              log "Triggering local 'autoscaling-member-join' event with: ${cw_MEMBER_name} ${cw_MEMBER_ip} ${autoscaling_group_label} ${autoscaling_group_maxsize} ${autoscaling_group_cores}"
+              "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-member-join "${cw_MEMBER_name}" "${cw_MEMBER_ip}" "${autoscaling_group_label}" "${autoscaling_group_maxsize}" "${autoscaling_group_cores}"
 
               # Bail out if we've already performed the deferred-config event for this group.
               if [ -d "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}" ]; then
@@ -86,8 +86,8 @@ main() {
                 ln -s "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}" "${cw_ROOT}/etc/config/autoscaling/default"
               fi
 
-              log "Triggering local 'autoscaling-deferred-config' event with: ${autoscaling_group} ${autoscaling_group_maxsize} ${autoscaling_group_cores}"
-              "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-deferred-config "${autoscaling_group}" "${autoscaling_group_maxsize}" "${autoscaling_group_cores}"
+              log "Triggering local 'autoscaling-deferred-config' event with: ${autoscaling_group_label} ${autoscaling_group_maxsize} ${autoscaling_group_cores}"
+              "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-deferred-config "${autoscaling_group_label}" "${autoscaling_group_maxsize}" "${autoscaling_group_cores}"
             fi
         fi
     fi

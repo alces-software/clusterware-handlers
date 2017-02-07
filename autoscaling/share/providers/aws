@@ -156,19 +156,24 @@ aws_shoot_node() {
 }
 
 aws_scale_out() {
-  local cores_per_node groups g tmpfile
+  local cores_per_node group_name group_label tmpfile
   local nodes_req_var nodes_req
   local current current_max current_desired
 
-  groups="$(_list_autoscaling_groups)"
   tmpfile="$(mktemp /tmp/autoscaler.XXXXXXXX)"
 
-  for g in $groups; do
-    gg=$(echo $g | sed -e "s/[-\.]/_/g")
-    cores_per_node="$(_cores_for_group $g)"
+  if [ ! -d  ${cw_ROOT}/etc/config/autoscaling/by_label ]; then
+    log "[autoscaler:aws-scale-out] No autoscaling groups to scale out."
+    return 0
+  fi
+
+  for group_label in ${cw_ROOT}/etc/config/autoscaling/by_label; do
+    gg=$(echo $group_label | sed -e "s/[-\.]/_/g")
+    group_name=$(dereference_group_label "$group_label")
+    cores_per_node="$(_cores_for_group $group_name)"
     nodes_req=0
     for scheduler in "${_SCHEDULERS[@]}"; do
-      log "[autoscaler:aws-scale-out] Retrieving job state data for scheduler ${scheduler} in queues for $g"
+      log "[autoscaler:aws-scale-out] Retrieving job state data for scheduler ${scheduler} in queues for $group_label"
       ${scheduler}_parse_job_states "${tmpfile}" "${cores_per_node}"
       # cat "${tmpfile}" | _log_blob "metrics" # This makes logs very noisy but is useful for development/debugging
       . "${tmpfile}"
@@ -176,7 +181,7 @@ aws_scale_out() {
       nodes_req_var="${scheduler}_queue_${gg}_nodes_req"
       nodes_req=$((${nodes_req:-0}+${!nodes_req_var:-0}))
     done
-    log "[autoscaler:aws-scale-out] Autoscaling group $g has demand for $nodes_req nodes"
+    log "[autoscaler:aws-scale-out] Autoscaling group $group_label ($group_name) has demand for $nodes_req nodes"
 
     if [[ "$nodes_req" -gt 0 ]]; then
 
@@ -184,7 +189,7 @@ aws_scale_out() {
         "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
           autoscaling describe-auto-scaling-groups \
           --query 'AutoScalingGroups[*].{MinSize:MinSize,MaxSize:MaxSize,Desired:DesiredCapacity}' \
-          --auto-scaling-group-name "$g"
+          --auto-scaling-group-name "$group_name"
       )
 
       current_max=$(echo "$current" | grep -Po "(?<=MaxSize\": )[0-9]+")
@@ -207,24 +212,11 @@ aws_scale_out() {
         log "[autoscaler:aws-scale-out] Changing desired capacity from ${current_desired} to ${nodes_req}"
         "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
           autoscaling set-desired-capacity \
-          --auto-scaling-group-name $g \
+          --auto-scaling-group-name $group_name \
           --desired-capacity $nodes_req
       fi
     fi
   done
-}
-
-_list_autoscaling_groups() {
-  local groups
-  groups=()
-  _gather_groups() {
-    while [ "$1" != "--" ]; do shift; done
-    groups+=($(member_find_tag "autoscaling_group" "$5"))
-  }
-  member_each _gather_groups
-  groups=($(printf "%s\n" "${groups[@]}" | sort -u | tr '\n' ' '))
-  log "[autoscaler:groups] Found groups: ${groups[*]}"
-  echo "${groups[*]}"
 }
 
 _cores_for_group() {
