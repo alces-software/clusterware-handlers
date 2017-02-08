@@ -89,7 +89,7 @@ main() {
               mkdir -p "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}"
 
               if [ ! -e "${cw_ROOT}/etc/config/autoscaling/default" ]; then
-                ln -s "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}" "${cw_ROOT}/etc/config/autoscaling/default"
+                ln -s "${cw_ROOT}/etc/config/autoscaling/by-label/${autoscaling_group_label}" "${cw_ROOT}/etc/config/autoscaling/default"
               fi
 
               log "Triggering local 'autoscaling-deferred-config' event with: ${autoscaling_group_label} ${autoscaling_group_maxsize} ${autoscaling_group_cores}"
