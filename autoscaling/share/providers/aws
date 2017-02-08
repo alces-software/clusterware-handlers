@@ -156,18 +156,19 @@ aws_shoot_node() {
 }
 
 aws_scale_out() {
-  local cores_per_node group_name group_label tmpfile
+  local cores_per_node group_name group_entry group_label tmpfile
   local nodes_req_var nodes_req
   local current current_max current_desired
 
   tmpfile="$(mktemp /tmp/autoscaler.XXXXXXXX)"
 
-  if [ ! -d  ${cw_ROOT}/etc/config/autoscaling/by_label ]; then
+  if [ ! -d  ${cw_ROOT}/etc/config/autoscaling/by-label ]; then
     log "[autoscaler:aws-scale-out] No autoscaling groups to scale out."
     return 0
   fi
 
-  for group_label in ${cw_ROOT}/etc/config/autoscaling/by_label; do
+  for group_entry in ${cw_ROOT}/etc/config/autoscaling/by-label/*; do
+    group_label=$(basename $group_entry)
     gg=$(echo $group_label | sed -e "s/[-\.]/_/g")
     group_name=$(dereference_group_label "$group_label")
     cores_per_node="$(_cores_for_group $group_name)"
