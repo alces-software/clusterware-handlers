@@ -101,7 +101,7 @@ RUBY
 
   if [ "$group" ]; then
       tags+=(tags[autoscaling_group]=${group})
-      tags+=(tags[autoscaling_group_label]=${label})
+      tags+=(tags[autoscaling_group_label]=${label:-$cw_INSTANCE_aws_machinetype})
       tags+=(tags[autoscaling_group_cores]=\"$(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo)\")
   fi
 
