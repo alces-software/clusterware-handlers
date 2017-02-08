@@ -68,6 +68,12 @@ main() {
                 autoscaling_group_label=${autoscaling_group_label}${dedupe_attempt}
 
               fi
+
+              if [[ "$autoscaling_group_label" == "" ]]; then
+                log "Autoscaling group has no label, using group name instead"
+                autoscaling_group_label=$autoscaling_group
+              fi
+
               if [ ! -e "${cw_ROOT}/etc/config/autoscaling/by-label/${autoscaling_group_label}" ]; then
                 log "New autoscaling group: ${autoscaling_group_label} => $autoscaling_group"
                 ln -s "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}" "${cw_ROOT}/etc/config/autoscaling/by-label/${autoscaling_group_label}"
