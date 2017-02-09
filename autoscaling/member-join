@@ -75,7 +75,7 @@ main() {
               fi
 
               if [ ! -e "${cw_ROOT}/etc/config/autoscaling/by-label/${autoscaling_group_label}" ]; then
-                log "New autoscaling group: ${autoscaling_group_label} => $autoscaling_group"
+                log "New autoscaling group: ${autoscaling_group_label} => ${autoscaling_group}"
                 ln -s "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}" "${cw_ROOT}/etc/config/autoscaling/by-label/${autoscaling_group_label}"
               fi
 
