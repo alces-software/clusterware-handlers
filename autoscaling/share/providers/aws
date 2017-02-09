@@ -156,7 +156,7 @@ aws_shoot_node() {
 }
 
 aws_scale_out() {
-  local cores_per_node group_name group_entry group_label tmpfile
+  local cores_per_node group_name group_entry group_label group_label_as_env_var tmpfile
   local nodes_req_var nodes_req
   local current current_max current_desired
 
@@ -169,7 +169,7 @@ aws_scale_out() {
 
   for group_entry in ${cw_ROOT}/etc/config/autoscaling/by-label/*; do
     group_label=$(basename $group_entry)
-    gg=$(echo $group_label | sed -e "s/[-\.]/_/g")
+    group_label_as_env_var=$(echo $group_label | sed -e "s/[-\.]/_/g")
     group_name=$(dereference_group_label "$group_label")
     cores_per_node="$(_cores_for_group $group_name)"
     nodes_req=0
@@ -179,7 +179,7 @@ aws_scale_out() {
       # cat "${tmpfile}" | _log_blob "metrics" # This makes logs very noisy but is useful for development/debugging
       . "${tmpfile}"
 
-      nodes_req_var="${scheduler}_queue_${gg}_nodes_req"
+      nodes_req_var="${scheduler}_queue_${group_label_as_env_var}_nodes_req"
       nodes_req=$((${nodes_req:-0}+${!nodes_req_var:-0}))
     done
     log "[autoscaler:aws-scale-out] Autoscaling group $group_label ($group_name) has demand for $nodes_req nodes"
