@@ -207,7 +207,7 @@ aws_scale_out() {
 
         if [[ "$nodes_req" -gt "$current_max" ]]; then
           log "[autoscaler:aws-scale-out] Demand exceeds maximum group size, limiting to ${current_max}"
-          $nodes_req=$current_max
+          nodes_req=$current_max
         fi
 
         log "[autoscaler:aws-scale-out] Changing desired capacity from ${current_desired} to ${nodes_req}"
