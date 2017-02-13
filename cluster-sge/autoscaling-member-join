@@ -47,6 +47,8 @@ main() {
 
     handler_run_helper share/add-queues "${groupname}" "$groupname"
     # Adding the node into these possibly-new queues is handled by hostgroups
+
+    handler_run_helper share/create-parallel-environments "${groupname}"
   fi
 }
 

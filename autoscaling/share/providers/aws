@@ -39,7 +39,7 @@ _detect_autoscaling() {
 }
 
 aws_configure() {
-  local group tags
+  local aws_tags tags tmpfile
 
   files_load_config config config/cluster
 
@@ -71,15 +71,42 @@ aws_configure() {
   #  - autoscaling group name (if available)
   tags=(tags[aws_ctime]=${cw_INSTANCE_aws_ctime})
 
-  group=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
+  tmpfile="$(mktemp /tmp/autoscaling-aws-configure.XXXXXXXX)"
+
+  aws_tags=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
                     ec2 describe-tags \
-                    --filters Name=resource-id,Values=${cw_INSTANCE_aws_instanceid} Name=key,Values=aws:autoscaling:groupName | \
-                    grep -Po "(?<=Value\": \")[a-zA-Z0-9\-]+"
+                    --filters Name=resource-id,Values=${cw_INSTANCE_aws_instanceid}
                  )
+
+  ruby_run <<RUBY > "$tmpfile"
+require 'json'
+
+def getValue(blob, key)
+  tag = blob.find { |a| a["Key"] == key }
+  if tag
+    tag["Value"]
+  else
+    nil
+  end
+end
+
+aws_tags = JSON.parse('${aws_tags}')['Tags']
+
+puts "group=#{getValue(aws_tags, 'aws:autoscaling:groupName')}"
+puts "label=#{getValue(aws_tags, 'AutoscalingGroupLabel')}"
+
+RUBY
+
+  . "$tmpfile"
+
   if [ "$group" ]; then
       tags+=(tags[autoscaling_group]=${group})
+      tags+=(tags[autoscaling_group_label]=${label:-$cw_INSTANCE_aws_machinetype})
       tags+=(tags[autoscaling_group_cores]=\"$(grep -c '^processor\s*: [0-9]*$' /proc/cpuinfo)\")
   fi
+
+  rm -f "$tmpfile"
+
   echo "Setting autoscaling tags: ${tags[@]}"
   "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-autoscaling.json
 }
@@ -129,27 +156,33 @@ aws_shoot_node() {
 }
 
 aws_scale_out() {
-  local cores_per_node groups g tmpfile
+  local cores_per_node group_name group_entry group_label group_label_as_env_var tmpfile
   local nodes_req_var nodes_req
   local current current_max current_desired
 
-  groups="$(_list_autoscaling_groups)"
   tmpfile="$(mktemp /tmp/autoscaler.XXXXXXXX)"
 
-  for g in $groups; do
-    gg=$(echo $g | sed -e "s/[-\.]/_/g")
-    cores_per_node="$(_cores_for_group $g)"
+  if [ ! -d  ${cw_ROOT}/etc/config/autoscaling/by-label ]; then
+    log "[autoscaler:aws-scale-out] No autoscaling groups to scale out."
+    return 0
+  fi
+
+  for group_entry in ${cw_ROOT}/etc/config/autoscaling/by-label/*; do
+    group_label=$(basename $group_entry)
+    group_label_as_env_var=$(echo $group_label | sed -e "s/[-\.]/_/g")
+    group_name=$(dereference_group_label "$group_label")
+    cores_per_node="$(_cores_for_group $group_name)"
     nodes_req=0
     for scheduler in "${_SCHEDULERS[@]}"; do
-      log "[autoscaler:aws-scale-out] Retrieving job state data for scheduler ${scheduler} in queues for $g"
+      log "[autoscaler:aws-scale-out] Retrieving job state data for scheduler ${scheduler} in queues for $group_label"
       ${scheduler}_parse_job_states "${tmpfile}" "${cores_per_node}"
       # cat "${tmpfile}" | _log_blob "metrics" # This makes logs very noisy but is useful for development/debugging
       . "${tmpfile}"
 
-      nodes_req_var="${scheduler}_queue_${gg}_nodes_req"
+      nodes_req_var="${scheduler}_queue_${group_label_as_env_var}_nodes_req"
       nodes_req=$((${nodes_req:-0}+${!nodes_req_var:-0}))
     done
-    log "[autoscaler:aws-scale-out] Autoscaling group $g has demand for $nodes_req nodes"
+    log "[autoscaler:aws-scale-out] Autoscaling group $group_label ($group_name) has demand for $nodes_req nodes"
 
     if [[ "$nodes_req" -gt 0 ]]; then
 
@@ -157,7 +190,7 @@ aws_scale_out() {
         "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
           autoscaling describe-auto-scaling-groups \
           --query 'AutoScalingGroups[*].{MinSize:MinSize,MaxSize:MaxSize,Desired:DesiredCapacity}' \
-          --auto-scaling-group-name "$g"
+          --auto-scaling-group-name "$group_name"
       )
 
       current_max=$(echo "$current" | grep -Po "(?<=MaxSize\": )[0-9]+")
@@ -174,30 +207,17 @@ aws_scale_out() {
 
         if [[ "$nodes_req" -gt "$current_max" ]]; then
           log "[autoscaler:aws-scale-out] Demand exceeds maximum group size, limiting to ${current_max}"
-          $nodes_req=$current_max
+          nodes_req=$current_max
         fi
 
         log "[autoscaler:aws-scale-out] Changing desired capacity from ${current_desired} to ${nodes_req}"
         "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
           autoscaling set-desired-capacity \
-          --auto-scaling-group-name $g \
+          --auto-scaling-group-name $group_name \
           --desired-capacity $nodes_req
       fi
     fi
   done
-}
-
-_list_autoscaling_groups() {
-  local groups
-  groups=()
-  _gather_groups() {
-    while [ "$1" != "--" ]; do shift; done
-    groups+=($(member_find_tag "autoscaling_group" "$5"))
-  }
-  member_each _gather_groups
-  groups=($(printf "%s\n" "${groups[@]}" | sort -u | tr '\n' ' '))
-  log "[autoscaler:groups] Found groups: ${groups[*]}"
-  echo "${groups[*]}"
 }
 
 _cores_for_group() {
