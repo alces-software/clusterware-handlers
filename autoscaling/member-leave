@@ -39,8 +39,8 @@ main() {
           if [[ "$label_group" == "$autoscaling_group" ]]; then
             autoscaling_group_label="$(basename "$label")"
 
-            # Delete the label associated with this group
-            rm "$label"
+            # We can't delete the label yet since it might still be used by the default link
+            label_filename="$label"
             break
           fi
         done
@@ -70,6 +70,8 @@ main() {
           fi
         fi
 
+        # Now it's safe to remove the label
+        rm "$label_filename"
         # And finally remove the group from our config
         rmdir "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}"
       fi
