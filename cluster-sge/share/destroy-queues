@@ -1,0 +1,41 @@
+#!/bin/bash
+################################################################################
+##
+## Alces Clusterware - Handler support script
+## Copyright (C) 2017 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+# Destroy queues for an autoscaling group.
+
+. /etc/profile.d/alces-clusterware.sh
+. /etc/xdg/clusterware/config.vars.sh
+module purge
+module use "${cw_ROOT}"/etc/modules
+module load services/gridscheduler
+
+_lock() {
+    mkdir -p "${cw_ROOT}"/var/lock
+    exec 9> "${cw_ROOT}"/var/lock/cluster-sge.lock && flock -w30 9
+}
+
+_unlock() {
+    exec 9>&-
+}
+
+if [ -f "${cw_ROOT}/etc/cluster-sge.rc" ]; then
+    . "${cw_ROOT}/etc/cluster-sge.rc"
+fi
+
+if _lock; then
+  groupname="$1"
+
+  if qconf -sq "${groupname}.byslot.q" > /dev/null 2>&1; then
+    echo "Destroying queues for $groupname"
+
+    qconf -dq "${groupname}.byslot.q"
+    qconf -dq "${groupname}.bynode.q"
+
+  fi
+else
+    echo "Locking failed; unable to destroy queues"
+fi
