@@ -23,6 +23,7 @@ setup() {
 
 main() {
   eval "$(member_parse)"
+  log "Member data parsed: ${cw_MEMBER_name} (${cw_MEMBER_ip}) -- ${cw_MEMBER_tags}"
   scheduler_roles=$(member_find_tag "scheduler_roles" "${cw_MEMBER_tags}")
   if [[ "${scheduler_roles}" == *":compute:"* ]]; then
     autoscaling_group=$(member_find_tag "autoscaling_group" "${cw_MEMBER_tags}")
@@ -32,6 +33,7 @@ main() {
       rm "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}/${cw_MEMBER_name}"
 
       if [ ! "$(ls -A "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}/")" ]; then
+        log "Group now empty, removing..."
         # That was the last member of the group
         # Find which group label corresponds to that group
         for label in ${cw_ROOT}/etc/config/autoscaling/by-label/*; do
@@ -70,8 +72,10 @@ main() {
           fi
         fi
 
+        log "Removing group label"
         # Now it's safe to remove the label
         rm "$label_filename"
+        log "Removing group"
         # And finally remove the group from our config
         rmdir "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}"
       fi
