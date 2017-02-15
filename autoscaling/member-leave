@@ -37,7 +37,11 @@ main() {
         for label in ${cw_ROOT}/etc/config/autoscaling/by-label/*; do
           label_group=$(basename `readlink "$label"`)
           if [[ "$label_group" == "$autoscaling_group" ]]; then
-            autoscaling_group_label="$label"
+            autoscaling_group_label="$(basename "$label")"
+
+            # Delete the label associated with this group
+            rm "$label"
+            break
           fi
         done
 
@@ -45,6 +49,9 @@ main() {
           log "Triggering local 'autoscaling-prune-group' event with: ${autoscaling_group_label}"
           "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-prune-group "${autoscaling_group_label}"
         fi
+
+        # And finally remove the group from our config
+        rmdir "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}"
       fi
     fi
   fi
