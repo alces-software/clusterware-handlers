@@ -55,7 +55,7 @@ main() {
           if [[ "$current_default" == "$autoscaling_group_label" ]]; then
             rm "${cw_ROOT}/etc/config/autoscaling/default"
             # We need to find a new default group, if one exists! Pick the oldest group...
-            new_default=$(ls -t "${cw_ROOT}/etc/config/autoscaling/groups/" | tail -n 1)
+            new_default=$(ls -t "${cw_ROOT}/etc/config/autoscaling/groups/" | grep -v "^$autoscaling_group\$" | tail -n 1)
 
             # $new_default will be empty if we lost our last group, so no need to set a new default
             if [[ "$new_default" != "" ]]; then
