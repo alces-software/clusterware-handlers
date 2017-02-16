@@ -26,7 +26,7 @@ main() {
   echo "Received autoscaling-member-join with args ${*}"
 
   if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
-    hostname="$1"
+    hostname="$(echo "$1" | sed -e "s/.${cw_NETWORK_domain}$//")"
     ip="$2"
     groupname="$3"
     group_max_size="$4"
@@ -47,5 +47,6 @@ main() {
 
     files_load_config instance config/cluster
     files_load_config --optional cluster-slurm
+    files_load_config network
     export cw_CLUSTER_SLURM_config="${cw_CLUSTER_SLURM_config:-"${cw_ROOT}"/opt/slurm/etc/slurm.conf}"
     handler_tee main "$@"

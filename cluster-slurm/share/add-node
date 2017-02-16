@@ -8,7 +8,7 @@
 
 . $(dirname ${BASH_SOURCE[-1]})/common
 
-name="$(echo "$1" | cut -f1 -d.)"
+name="$1"
 slots="$2"
 state="$3"
 
