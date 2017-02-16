@@ -33,6 +33,7 @@ main() {
     for a in $(seq 1 ${group_maxsize}); do
         slurm_log "Adding node: autoscaling-slot-${group}-$a ${cores_per_node} FUTURE"
         handler_run_helper share/add-node autoscaling-slot-${group}-$a ${cores_per_node} FUTURE
+        handler_run_helper share/add-node-to-partition autoscaling-slot-${group}-$a ${group}
     done
 }
 
