@@ -16,7 +16,7 @@ if _lock; then
   grep -v "^NodeName=${name} " "${cw_CLUSTER_SLURM_config}" > "${tmpfile}"
 
   # Remove from any partitions' node lists too
-  sed -i -r -e "s/(Nodes.*)([=,])${name}(,)?/\1\2/" -e "s/(Nodes.*),,[[:space:]]*/\1/" "$tmpfile"
+  sed -i -r -e "s/(Nodes.*)([=,])${name}(,)?/\1\2/" -e "s/(Nodes.*),,[[:space:]]*/\1,/" "$tmpfile"
 
   cat "${tmpfile}" > "${cw_CLUSTER_SLURM_config}"
   rm -f "${tmpfile}"
