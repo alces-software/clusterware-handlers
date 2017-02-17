@@ -162,7 +162,7 @@ aws_scale_out() {
 
   tmpfile="$(mktemp /tmp/autoscaler.XXXXXXXX)"
 
-  if [ ! -d  ${cw_ROOT}/etc/config/autoscaling/by-label ]; then
+  if [ ! -d  ${cw_ROOT}/etc/config/autoscaling/by-label ] || [ ! "$(ls -A "${cw_ROOT}/etc/config/autoscaling/by-label")" ]; then
     log "[autoscaler:aws-scale-out] No autoscaling groups to scale out."
     return 0
   fi

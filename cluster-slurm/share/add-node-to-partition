@@ -8,7 +8,7 @@
 
 . $(dirname ${BASH_SOURCE[-1]})/common
 
-hostname="$(echo "$1" | cut -f1 -d.)"
+hostname="$1"
 group="$2"
 tmpfile="$(mktemp /tmp/cluster-slurm.add-node-to-partition.XXXXXXXX)"
 
@@ -16,6 +16,7 @@ tmpfile="$(mktemp /tmp/cluster-slurm.add-node-to-partition.XXXXXXXX)"
 if _lock; then
   echo "Adding node $hostname to partition $group"
   sed -i -e "s/\(PartitionName=$group .*\)Nodes=\([^ ]*\)\(.*\)/\1 Nodes=$hostname,\2 \3/" \
+         -e "s/,,/,/" \
          "${cw_CLUSTER_SLURM_config}"
   _unlock
 else
