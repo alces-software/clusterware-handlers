@@ -28,6 +28,11 @@ main() {
   if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
     groupname="$1"
 
+    if [[ "$groupname" == "default" ]]; then
+      # 'default' is reserved by Slurm
+      groupname="_default"
+    fi
+
     handler_run_helper share/delete-partition "$groupname"
 
     distro_restart_service clusterware-slurm-slurmctld

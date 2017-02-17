@@ -32,6 +32,11 @@ main() {
     group_max_size="$4"
     cores_per_node="$5"
 
+    if [[ "$groupname" == "default" ]]; then
+      # 'default' is reserved by Slurm
+      groupname="_default"
+    fi
+
     handler_run_helper share/add-partition-if-not-exist "$groupname" "$group_max_size"
     handler_run_helper share/add-node-to-partition "$hostname" "$groupname"
 
