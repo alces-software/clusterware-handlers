@@ -37,7 +37,6 @@ main() {
       groupname="_default"
     fi
 
-    handler_run_helper share/add-partition-if-not-exist "$groupname" "$group_max_size"
     handler_run_helper share/add-node-to-partition "$hostname" "$groupname"
 
   fi

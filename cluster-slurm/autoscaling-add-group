@@ -35,6 +35,9 @@ main() {
     fi
 
     slurm_log "Performing deferred configuration for scaling group: ${group} (size: ${group_maxsize}, cores: ${cores_per_node})"
+
+    handler_run_helper share/add-partition-if-not-exist "$groupname" "$group_maxsize"
+
     # We're autoscaling so we need to add some dummy nodes to
     # represent the scaling group otherwise we're unable to scale-out.
     for a in $(seq 1 ${group_maxsize}); do

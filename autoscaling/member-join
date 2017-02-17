@@ -79,9 +79,6 @@ main() {
                 ln -s "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}" "${cw_ROOT}/etc/config/autoscaling/by-label/${autoscaling_group_label}"
               fi
 
-              log "Triggering local 'autoscaling-member-join' event with: ${cw_MEMBER_name} ${cw_MEMBER_ip} ${autoscaling_group_label} ${autoscaling_group_maxsize} ${autoscaling_group_cores}"
-              "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-member-join "${cw_MEMBER_name}" "${cw_MEMBER_ip}" "${autoscaling_group_label}" "${autoscaling_group_maxsize}" "${autoscaling_group_cores}"
-
               if [ ! -d "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}" ]; then
                 # This is the first time we've seen this group
                 mkdir -p "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}"
@@ -90,9 +87,12 @@ main() {
                   ln -s "${cw_ROOT}/etc/config/autoscaling/by-label/${autoscaling_group_label}" "${cw_ROOT}/etc/config/autoscaling/default"
                 fi
 
-                log "Triggering local 'autoscaling-deferred-config' event with: ${autoscaling_group_label} ${autoscaling_group_maxsize} ${autoscaling_group_cores}"
-                "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-deferred-config "${autoscaling_group_label}" "${autoscaling_group_maxsize}" "${autoscaling_group_cores}"
+                log "Triggering local 'autoscaling-add-group' event with: ${autoscaling_group_label} ${autoscaling_group_maxsize} ${autoscaling_group_cores}"
+                "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-add-group "${autoscaling_group_label}" "${autoscaling_group_maxsize}" "${autoscaling_group_cores}"
               fi
+
+              log "Triggering local 'autoscaling-member-join' event with: ${cw_MEMBER_name} ${cw_MEMBER_ip} ${autoscaling_group_label} ${autoscaling_group_maxsize} ${autoscaling_group_cores}"
+              "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-member-join "${cw_MEMBER_name}" "${cw_MEMBER_ip}" "${autoscaling_group_label}" "${autoscaling_group_maxsize}" "${autoscaling_group_cores}"
 
               # Record this node's membership of the group
               touch "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}/${cw_MEMBER_name}"
