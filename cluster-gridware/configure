@@ -102,6 +102,8 @@ EOF
 }
 
 main() {
+    local admin_uid
+
     files_load_config gridware
 
     _update_repos
@@ -126,6 +128,10 @@ main() {
                 "${_ALCES}" storage configure --system gridware-data http
         fi
     fi
+
+    # add admin user to gridware group
+    admin_uid=$(grep "^UID_MIN " /etc/login.defs | awk '{ print $2 };')
+    usermod -G gridware -a "$(id -gn ${admin_uid:-1000})"
 }
 
 setup
