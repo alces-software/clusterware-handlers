@@ -56,4 +56,5 @@ install:
     fi
     EOF
 
+    alces service install alces-flight-www
     alces service install clusterware-customize

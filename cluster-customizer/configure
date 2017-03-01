@@ -37,11 +37,31 @@ setup() {
 }
 
 main() {
-    customize_run_hooks configure
+  files_load_config instance config/cluster
+  if [[ "${cw_INSTANCE_role}" == "master" ]] && handler_is_enabled cluster-www; then
+    # Do some configuration of our own first!
+    dir="$(handler_dir)"
+
+    mkdir -p "${cw_ROOT}/var/lib/alces-flight-www/customizer"
+    mkdir -p "${cw_ROOT}/etc/cluster-customizer"
+
+    if [ ! -f "${cw_ROOT}/etc/cluster-customizer/config.yml" ]; then
+      cp "${dir}/etc/cluster-customizer/config.yml" "${cw_ROOT}/etc/cluster-customizer/config.yml"
+    fi
+
+    ln -s "${cw_ROOT}/etc/cluster-customizer/config.yml" "${cw_ROOT}/var/lib/alces-flight-www/customizer"
+
+    sed -e "s,_ROOT_,${cw_ROOT},g" \
+        "${dir}"/etc/alces-flight-www/cluster-customizer.conf.template > \
+        "${cw_ROOT}"/etc/alces-flight-www/server-https.d/cluster-customizer.conf
+  fi
+
+  customize_run_hooks configure
 }
 
 setup
-require handler
 require customize
+require files
+require handler
 
 handler_tee main "$@"
