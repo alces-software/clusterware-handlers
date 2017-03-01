@@ -56,5 +56,4 @@ install:
     fi
     EOF
 
-    cp -p libexec/actions/customize "${cw_ROOT}"/libexec/actions
-    cp -pR libexec/customize "${cw_ROOT}"/libexec
+    alces service install clusterware-customize
