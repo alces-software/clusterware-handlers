@@ -120,10 +120,18 @@ _setup_profiles() {
 }
 
 _load_master_list() {
-  local master_ip tmpfile
+  local master_ip retries tmpfile
 
   # NB ${cw_ROOT}/etc/config/cluster/config.rc doesn't exist at the point
   # this is executed - we need to extract master IP ourselves
+
+  retries=3
+  while [ $retries -gt 0 ]; do
+    retries=$[$retries-1]
+    if [ -f "${cw_ROOT}/etc/config.yml" ]; then break; fi
+    echo "${cw_ROOT}/etc/config.yml does not yet exist, waiting 10 seconds then trying again [$retries remaining]"
+    sleep 10
+  done
 
   master_ip=$(grep -Po "(?<=master: )[0-9\.]*" ${cw_ROOT}/etc/config.yml)
 
