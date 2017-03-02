@@ -120,15 +120,21 @@ _setup_profiles() {
 }
 
 _load_master_list() {
-  local master_data tmpfile
-  files_load_config config config/cluster
-  if [[ "${cw_CLUSTER_master}" != "" ]]; then
+  local master_ip tmpfile
+
+  # NB ${cw_ROOT}/etc/config/cluster/config.rc doesn't exist at the point
+  # this is executed - we need to extract master IP ourselves
+
+  master_ip=$(grep -Po "(?<=master: )[0-9\.]*" ${cw_ROOT}/etc/config.yml)
+
+  if [[ "${master_ip}" != "" ]]; then
 
     tmpfile="$(mktemp /tmp/cluster-customizer.XXXXXXXX)"
 
     mkdir -p "${cw_ROOT}/etc/cluster-customizer"
 
-    master_data=$(curl -Lsf -o "${cw_ROOT}/etc/cluster-customizer/config.yml" "http://${cw_CLUSTER_master}/customizer/config.yml")
+    curl -Lsf -o "${cw_ROOT}/etc/cluster-customizer/config.yml" "http://${cw_CLUSTER_master}/customizer/config.yml"
+
     if [ $? == 0 ]; then
       ruby_run <<RUBY > "${tmpfile}"
 require 'yaml'
