@@ -149,8 +149,8 @@ if master_list.key? "features"
 end
 RUBY
 
-    source "${tmpfile}"
-    rm "${tmpfile}"
+      source "${tmpfile}"
+      rm "${tmpfile}"
     fi
   else
     echo "No master node IP specified, not loading customizer configuration from master."
