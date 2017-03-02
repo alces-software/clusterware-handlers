@@ -141,7 +141,7 @@ _load_master_list() {
 
     mkdir -p "${cw_ROOT}/etc/cluster-customizer"
 
-    curl -Lsf -o "${cw_ROOT}/etc/cluster-customizer/config.yml" "http://${cw_CLUSTER_master}/customizer/config.yml"
+    curl -Lsf -o "${cw_ROOT}/etc/cluster-customizer/config.yml" "http://${master_ip}/customizer/config.yml"
 
     if [ $? == 0 ]; then
       ruby_run <<RUBY > "${tmpfile}"
