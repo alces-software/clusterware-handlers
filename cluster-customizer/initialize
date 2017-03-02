@@ -119,19 +119,53 @@ _setup_profiles() {
     fi
 }
 
+_load_master_list() {
+  local master_data tmpfile
+  files_load_config config config/cluster
+  if [[ "${cw_CLUSTER_master}" != "" ]]; then
+
+    tmpfile="$(mktemp /tmp/cluster-customizer.XXXXXXXX)"
+
+    mkdir -p "${cw_ROOT}/etc/cluster-customizer"
+
+    master_data=$(curl -Lsf -o "${cw_ROOT}/etc/cluster-customizer/config.yml" "http://${cw_CLUSTER_master}/customizer/config.yml")
+    if [ $? == 0 ]; then
+      ruby_run <<RUBY > "${tmpfile}"
+require 'yaml'
+master_list = YAML.load_file("${cw_ROOT}/etc/cluster-customizer/config.yml")
+
+if master_list.key? "profiles"
+  puts "cw_CLUSTER_CUSTOMIZER_master_profiles=\"#{master_list['profiles'].join(' ')}\""
+end
+
+if master_list.key? "features"
+  puts "cw_CLUSTER_CUSTOMIZER_master_features=\"#{master_list['features'].join(' ')}\""
+end
+RUBY
+
+    source "${tmpfile}"
+    rm "${tmpfile}"
+    fi
+  else
+    echo "No master node IP specified, not loading customizer configuration from master."
+  fi
+}
+
 _setup() {
     local userdata feature_data profile_data
 
     userdata=$(network_fetch_ec2_userdata 1)
 
+    _load_master_list
+
     feature_data=$(echo "${userdata}" | grep "^#=FlightFeatures ")
-    if [ "${feature_data}" ]; then
-        _setup_features "${feature_data}"
+    if [ "${feature_data}" ] || [ "${cw_CLUSTER_CUSTOMIZER_master_features}" ]; then
+        _setup_features "${feature_data} ${cw_CLUSTER_CUSTOMIZER_master_features}"
     fi
 
     profile_data=$(echo "${userdata}" | egrep "^#=Flight(Profiles|Customizer) ")
-    if [ "${profile_data}" ]; then
-        _setup_profiles "${profile_data}"
+    if [ "${profile_data}" ] || [ "${cw_CLUSTER_CUSTOMIZER_master_profiles}" ]; then
+        _setup_profiles "${profile_data} "${cw_CLUSTER_CUSTOMIZER_master_profiles}""
     fi
 }
 
@@ -167,6 +201,7 @@ require handler
 require files
 require network
 require customize
+require ruby
 
 files_load_config cluster-customizer
 cw_CLUSTER_CUSTOMIZER_path="${cw_CLUSTER_CUSTOMIZER_path:-${cw_ROOT}/var/lib/customizer}"
