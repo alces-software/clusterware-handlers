@@ -46,7 +46,15 @@ main() {
     mkdir -p "${cw_ROOT}/etc/cluster-customizer"
 
     if [ ! -f "${cw_ROOT}/etc/cluster-customizer/config.yml" ]; then
-      cp "${dir}/etc/cluster-customizer/config.yml" "${cw_ROOT}/etc/cluster-customizer/config.yml"
+      if files_load_config --optional instance-aws config/cluster; then
+        sed -e "s/_REGION_/${cw_INSTANCE_aws_region:-eu-west-1}/" \
+            -e "s/_AWS_ACCOUNT_HASH_/${cw_INSTANCE_aws_account_hash}/" \
+          "${dir}/etc/cluster-customizer/config.yml" > "${cw_ROOT}/etc/cluster-customizer/config.yml"
+      else
+        sed -e "s/_REGION_/eu-west-1/" \
+            -e "/_AWS_ACCOUNT_HASH_/d" \
+          "${dir}/etc/cluster-customizer/config.yml" > "${cw_ROOT}/etc/cluster-customizer/config.yml"
+      fi
     fi
 
     ln -s "${cw_ROOT}/etc/cluster-customizer/config.yml" "${cw_ROOT}/var/lib/alces-flight-www/customizer"
