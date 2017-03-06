@@ -71,6 +71,7 @@ _setup_cluster_configuration() {
         cat <<EOF > /opt/clusterware/etc/config.yml
 cluster:
   name: '${cw_BAREMETAL_cluster_name}'
+  domain: '${cw_BAREMETAL_domain}'
   role: 'slave'
   interface: ${cw_BAREMETAL_compute_intf}
   master: ${cw_BAREMETAL_master_node_ip}
@@ -83,6 +84,7 @@ EOF
         cat <<EOF > /opt/clusterware/etc/config.yml
 cluster:
   name: '${cw_BAREMETAL_cluster_name}'
+  domain: '${cw_BAREMETAL_domain}'
   role: 'master'
   host_naming: 'allocate'
   hostname: '${cw_BAREMETAL_node_hostname}'
@@ -99,6 +101,7 @@ EOF
         cat <<EOF > /opt/clusterware/etc/config.yml
 cluster:
   name: '${cw_BAREMETAL_cluster_name}'
+  domain: '${cw_BAREMETAL_domain}'
   role: '${cw_BAREMETAL_node_role}'
   master: ${cw_BAREMETAL_master_node_ip}
   uuid: ${cw_BAREMETAL_cluster_uuid}
