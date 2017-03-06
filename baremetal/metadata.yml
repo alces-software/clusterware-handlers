@@ -17,7 +17,7 @@ install:
     ## Copyright (c) 2017 Alces Software Ltd
     ##
     ################################################################################
-    #cw_BAREMETAL_domain=example
+    #cw_BAREMETAL_domain=example.alces.network
     #cw_BAREMETAL_scheduler=gridscheduler
 
     #cw_BAREMETAL_cluster_name=mycluster
@@ -38,7 +38,7 @@ install:
     #cw_CLUSTER_CUSTOMIZER_region="eu-west-1"
     #cw_CLUSTER_CUSTOMIZER_feature_set="develop"
     #cw_CLUSTER_CUSTOMIZER_features="${cw_BAREMETAL_scheduler}"
-    #cw_CLUSTER_CUSTOMIZER_profiles="domain-${cw_BAREMETAL_domain}.alces.network"
+    #cw_CLUSTER_CUSTOMIZER_profiles="domain-${cw_BAREMETAL_domain}"
 
     # For slaves:
     #cw_BAREMETAL_node_role=slave
