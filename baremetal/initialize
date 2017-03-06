@@ -29,8 +29,9 @@ _setup_network_interfaces() {
     cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-${cw_BAREMETAL_compute_intf}
 DEVICE="${cw_BAREMETAL_compute_intf}"
 ONBOOT="yes"
-TYPE="Ethernet"
+TYPE="Bridge"
 BOOTPROTO="none"
+DELAY=0
 IPADDR=${cw_BAREMETAL_compute_ip}
 NETMASK=${cw_BAREMETAL_compute_netmask}
 EOF
@@ -39,8 +40,9 @@ EOF
     cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-${cw_BAREMETAL_infra_intf}
 DEVICE="${cw_BAREMETAL_infra_intf}"
 ONBOOT="yes"
-TYPE="Ethernet"
+TYPE="Bridge"
 BOOTPROTO="none"
+DELAY=0
 IPADDR=${cw_BAREMETAL_infra_ip}
 NETMASK=${cw_BAREMETAL_infra_netmask}
 EOF
