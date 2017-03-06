@@ -72,6 +72,7 @@ _setup_cluster_configuration() {
 cluster:
   name: '${cw_BAREMETAL_cluster_name}'
   role: 'slave'
+  interface: ${cw_BAREMETAL_compute_intf}
   master: ${cw_BAREMETAL_master_node_ip}
   tags:
     scheduler_roles: ':compute:'
