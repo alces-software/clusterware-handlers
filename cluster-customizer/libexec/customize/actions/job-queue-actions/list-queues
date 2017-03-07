@@ -22,8 +22,10 @@
 #==============================================================================
 require action
 require handler
+require process
 
 if [ -d "${cw_ROOT}"/etc/handlers/cluster-customizer/share ]; then
+    process_reexec_sudo "$@"
     handler_add_libdir "${cw_ROOT}"/etc/handlers/cluster-customizer/share
     require job-queue
 
