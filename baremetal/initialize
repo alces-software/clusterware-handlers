@@ -35,6 +35,7 @@ DELAY=0
 IPADDR=${cw_BAREMETAL_compute_ip}
 NETMASK=${cw_BAREMETAL_compute_netmask}
 EOF
+    ifdown ${cw_BAREMETAL_compute_intf}
     ifup ${cw_BAREMETAL_compute_intf}
 
     cat <<EOF > /etc/sysconfig/network-scripts/ifcfg-${cw_BAREMETAL_infra_intf}
@@ -46,6 +47,7 @@ DELAY=0
 IPADDR=${cw_BAREMETAL_infra_ip}
 NETMASK=${cw_BAREMETAL_infra_netmask}
 EOF
+    ifdown ${cw_BAREMETAL_infra_intf}
     ifup ${cw_BAREMETAL_infra_intf}
 }
 
