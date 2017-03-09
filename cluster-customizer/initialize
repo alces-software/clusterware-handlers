@@ -152,9 +152,6 @@ if master_list.key? "profiles"
   puts "cw_CLUSTER_CUSTOMIZER_master_profiles=\"#{master_list['profiles'].join(' ')}\""
 end
 
-if master_list.key? "features"
-  puts "cw_CLUSTER_CUSTOMIZER_master_features=\"#{master_list['features'].join(' ')}\""
-end
 RUBY
 
       source "${tmpfile}"
@@ -166,21 +163,32 @@ RUBY
 }
 
 _setup() {
-    local userdata feature_data profile_data
+    local userdata feature_data profile profile_data profile_name repo_name
 
     userdata=$(network_fetch_ec2_userdata 1)
 
     _load_master_list
 
     feature_data=$(echo "${userdata}" | grep "^#=FlightFeatures ")
-    if [ "${feature_data}" ] || [ "${cw_CLUSTER_CUSTOMIZER_master_features}" ]; then
-        _setup_features "${feature_data} ${cw_CLUSTER_CUSTOMIZER_master_features}"
+    if [ "${feature_data}" ]; then
+        _setup_features "${feature_data}"
     fi
 
     profile_data=$(echo "${userdata}" | egrep "^#=Flight(Profiles|Customizer) ")
-    if [ "${profile_data}" ] || [ "${cw_CLUSTER_CUSTOMIZER_master_profiles}" ]; then
-        _setup_profiles "${profile_data} "${cw_CLUSTER_CUSTOMIZER_master_profiles}""
+    if [ "${profile_data}" ]; then
+        _setup_profiles "${profile_data}"
     fi
+
+    for profile in ${cw_CLUSTER_CUSTOMIZER_master_profiles}; do
+      repo_name=${profile%%/*}
+      profile_name=${profile#*/}
+      if [[ "$repo_name" == "$profile_name" ]]; then
+        echo "Not applying malformed profile from master configuration: '$profile'"
+      else
+        echo "Applying profile from master configuration: '$profile'"
+        customize_repository_apply "$repo_name" "$profile_name" "preinit"
+      fi
+    done
 }
 
 _wait_for_internet() {
@@ -215,6 +223,7 @@ require handler
 require files
 require network
 require customize
+require customize-repository
 require ruby
 
 files_load_config cluster-customizer
