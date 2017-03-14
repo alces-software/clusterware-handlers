@@ -93,16 +93,16 @@ _setup_features() {
     fi
 }
 
-_setup_profiles() {
+_setup_account_profiles() {
     local o_profiles o_bucket customizer_data
     customizer_data="$1"
 
-    o_profiles="${cw_CLUSTER_CUSTOMIZER_profiles}"
+    o_profiles="${cw_CLUSTER_CUSTOMIZER_account_profiles}"
     o_bucket="${cw_CLUSTER_CUSTOMIZER_bucket}"
     cw_CLUSTER_CUSTOMIZER_bucket=$(echo "${customizer_data}" | cut -f2 -d' ')
-    cw_CLUSTER_CUSTOMIZER_profiles=$(echo "${customizer_data}" | cut -f3- -d' ')
+    cw_CLUSTER_CUSTOMIZER_account_profiles=$(echo "${customizer_data}" | cut -f3- -d' ')
     if [[ "$cw_CLUSTER_CUSTOMIZER_bucket" != "" && "$cw_CLUSTER_CUSTOMIZER_bucket" != "s3://"* ]]; then
-        cw_CLUSTER_CUSTOMIZER_profiles="${cw_CLUSTER_CUSTOMIZER_bucket} ${cw_CLUSTER_CUSTOMIZER_profiles}"
+        cw_CLUSTER_CUSTOMIZER_account_profiles="${cw_CLUSTER_CUSTOMIZER_bucket} ${cw_CLUSTER_CUSTOMIZER_account_profiles}"
         cw_CLUSTER_CUSTOMIZER_bucket=""
     fi
     if [ "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
@@ -111,11 +111,11 @@ _setup_profiles() {
     else
         cw_CLUSTER_CUSTOMIZER_bucket="${o_bucket}"
     fi
-    if [ "${cw_CLUSTER_CUSTOMIZER_profiles}" ]; then
-        sed -i -e "s,^#\?cw_CLUSTER_CUSTOMIZER_profiles=.*,cw_CLUSTER_CUSTOMIZER_profiles=\"${cw_CLUSTER_CUSTOMIZER_profiles}\",g" \
+    if [ "${cw_CLUSTER_CUSTOMIZER_account_profiles}" ]; then
+        sed -i -e "s,^#\?cw_CLUSTER_CUSTOMIZER_account_profiles=.*,cw_CLUSTER_CUSTOMIZER_account_profiles=\"${cw_CLUSTER_CUSTOMIZER_account_profiles}\",g" \
             "${cw_ROOT}"/etc/cluster-customizer.rc
     else
-        cw_CLUSTER_CUSTOMIZER_profiles="${o_profiles}"
+        cw_CLUSTER_CUSTOMIZER_account_profiles="${o_profiles}"
     fi
 }
 
@@ -163,7 +163,7 @@ RUBY
 }
 
 _setup() {
-    local userdata feature_data profile profile_data profile_name repo_name
+    local account_profile_data userdata feature_data profile profile_name repo_name
 
     userdata=$(network_fetch_ec2_userdata 1)
 
@@ -174,9 +174,9 @@ _setup() {
         _setup_features "${feature_data}"
     fi
 
-    profile_data=$(echo "${userdata}" | egrep "^#=Flight(Profiles|Customizer) ")
-    if [ "${profile_data}" ]; then
-        _setup_profiles "${profile_data}"
+    account_profile_data=$(echo "${userdata}" | egrep "^#=Flight(Profiles|Customizer) ")
+    if [ "${account_profile_data}" ]; then
+        _setup_account_profiles "${account_profile_data}"
     fi
 
     for profile in ${cw_CLUSTER_CUSTOMIZER_master_profiles}; do
@@ -228,7 +228,7 @@ require ruby
 
 files_load_config cluster-customizer
 cw_CLUSTER_CUSTOMIZER_path="${cw_CLUSTER_CUSTOMIZER_path:-${cw_ROOT}/var/lib/customizer}"
-cw_CLUSTER_CUSTOMIZER_profiles="${cw_CLUSTER_CUSTOMIZER_profiles:-default}"
+cw_CLUSTER_CUSTOMIZER_account_profiles="${cw_CLUSTER_CUSTOMIZER_account_profiles:-default}"
 
 _ALCES="${cw_ROOT}"/bin/alces
 
