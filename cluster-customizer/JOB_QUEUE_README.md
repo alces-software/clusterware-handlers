@@ -8,10 +8,24 @@ file and executed.  It will be called with two arguments:
  1. the role of the instance executing the job
  2. the cluster's name.
 
-As the Clusterware periodic cronjob is only installed on the master node, the
-jobs will only be run on the master node.  If the Clusterware periodic cronjob
-is installed on multiple nodes, a single node in the cluster will execute the
-job.
+Currently customizer queue jobs for a cluster will be picked up from
+`s3://${customizer_bucket}/customizer/${customizer_name}` when the Clusterware
+periodic cronjob runs, where `$customizer_bucket` refers to the customizer
+bucket for the account (e.g. `alces-flight-nmi0ztdmyzm3ztm3`), and
+`$customizer_name` refers to any customizer profile name (e.g.
+`prime-continuous-delivery` or `domain-dev.alces.network`).
+
+Within each such folder, a particular cluster with name `$cluster_name` will
+process any scripts in `job-queue.d/${cluster_name}/pending`.  One way to add
+scripts to a queue for a cluster is to manually upload them to the appropriate
+folder; another way is to use the `alces customize job-queue put
+$customizer_name $script`, which will upload the given `$script` to the
+`$customizer_name` customizer profile queue for that cluster.
+
+Note that currently jobs will only be run on the master node for a cluster.
+However, multiple clusters with the same name in different domains for an
+account will currently all pick up and process the same job, unless one cluster
+completes processing it before another picks it up.
 
 The results of running the job are stored on s3 with the following prefix:
 `s3://${customizer_bucket}/customizer/${customizer_name}/job-queue.d/${cluster_name}`.
