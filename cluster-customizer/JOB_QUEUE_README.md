@@ -1,4 +1,4 @@
-# Custom job validators and job runners for alces customize job-queue
+# Custom job validators and job runners for `alces customize job-queue`
 
 ## Default job running
 
@@ -24,8 +24,8 @@ It is possible to customize a job queue with an alternate job running
 strategy.  To do so create the file:
 `s3://${customizer_bucket}/customizer/${customizer_name}/share/process-job`.
 
-When a node executes a job, instead executing the job script directly, it will
-execute the `process-job` script.  The `process-job` script will be called
+When a node executes a job, instead of executing the job script directly, it
+will execute the `process-job` script.  The `process-job` script will be called
 with 4 arguments:
 
  1. the path to the job script to run
@@ -33,9 +33,9 @@ with 4 arguments:
  3. the role of the instance executing the job
  4. the cluster's name.
 
-Possible uses of custom job runners include, creating additional output files,
-interpretting the job script in some non-standard manner, running the the
-job script in a non-standard location.
+Possible uses of custom job runners include: creating additional output files,
+interpreting the job script in some non-standard manner, running the job script
+in a non-standard location.
 
 An example job runner which creates some additional output files and runs the
 job file in the standard manner is shown below.
@@ -68,9 +68,9 @@ operation=install
 package=ffmpeg
 ```
 
-For this job script, the job runner should use a package manager to install
-the package ffmpeg.  The following, is a simple custom job runner which would
-do just that.
+For this job script, the job runner should use a package manager to install the
+package `ffmpeg`.  The following is a simple custom job runner which would do
+just that.
 
 ```bash
 main () {
