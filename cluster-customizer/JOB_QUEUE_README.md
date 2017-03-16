@@ -9,14 +9,16 @@ file and executed.  It will be called with two arguments:
  2. the cluster's name.
 
 Currently customizer queue jobs for a cluster will be picked up from
-`s3://${customizer_bucket}/customizer/${customizer_name}` when the Clusterware
-periodic cronjob runs, where `$customizer_bucket` refers to the customizer
-bucket for the account (e.g. `alces-flight-nmi0ztdmyzm3ztm3`), and
-`$customizer_name` refers to any customizer profile name (e.g.
-`prime-continuous-delivery` or `domain-dev.alces.network`).
+`s3://${customizer_bucket}/customizer/${customizer_name}` (referred from here
+in this document as `$customizer_profile`) when the Clusterware periodic
+cronjob runs, where `$customizer_bucket` refers to the customizer bucket for
+the account (e.g. `alces-flight-nmi0ztdmyzm3ztm3`), and `$customizer_name`
+refers to any customizer profile name (e.g.  `prime-continuous-delivery` or
+`domain-dev.alces.network`).
 
-Within each such folder, a particular cluster with name `$cluster_name` will
-process any scripts in `job-queue.d/${cluster_name}/pending`.  One way to add
+For each such customizer profile, a particular cluster with name
+`$cluster_name` will process any scripts in
+`$customizer_profile/job-queue.d/${cluster_name}/pending`. One way to add
 scripts to a queue for a cluster is to manually upload them to the appropriate
 folder; another way is to use the `alces customize job-queue put
 $customizer_name $script`, which will upload the given `$script` to the
@@ -28,15 +30,14 @@ account will currently all pick up and process the same job, unless one cluster
 completes processing it before another picks it up.
 
 The results of running the job are stored on s3 with the following prefix:
-`s3://${customizer_bucket}/customizer/${customizer_name}/job-queue.d/${cluster_name}`.
-Specifically, output will be available at `${prefix}/completed/${job_id}/logs`
-and its exit code will be available at `${prefix}/completed/${job_id}/status.`
+`$customizer_profile/job-queue.d/${cluster_name}`. Specifically, output will
+be available at `${prefix}/completed/${job_id}/logs` and its exit code will be
+available at `${prefix}/completed/${job_id}/status.`
 
 ## Custom job runners
 
-It is possible to customize a job queue with an alternate job running
-strategy.  To do so create the file:
-`s3://${customizer_bucket}/customizer/${customizer_name}/share/process-job`.
+It is possible to customize a job queue with an alternate job running strategy.
+To do so create the file: `$customizer_profile/share/process-job`.
 
 When a node executes a job, instead of executing the job script directly, it
 will execute the `process-job` script.  The `process-job` script will be called
@@ -110,8 +111,7 @@ way, one may wish to validate ensure that the job script is valid before
 running it.  This can be done by writing a custom job validator for the job
 queue customizer.
 
-The custom job validator resides at
-`s3://${customizer_bucket}/customizer/${customizer_name}/share/validate-job`.
+The custom job validator resides at `$customizer_profile/share/validate-job`.
 It will be called with two arguments:
 
  1. the path to the job file to validate,
