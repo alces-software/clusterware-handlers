@@ -228,7 +228,7 @@ require ruby
 
 files_load_config cluster-customizer
 cw_CLUSTER_CUSTOMIZER_path="${cw_CLUSTER_CUSTOMIZER_path:-${cw_ROOT}/var/lib/customizer}"
-cw_CLUSTER_CUSTOMIZER_account_profiles="${cw_CLUSTER_CUSTOMIZER_account_profiles:-default}"
+cw_CLUSTER_CUSTOMIZER_account_profiles="${cw_CLUSTER_CUSTOMIZER_account_profiles:-${cw_CLUSTER_CUSTOMIZER_profiles:-default}}"
 
 _ALCES="${cw_ROOT}"/bin/alces
 
