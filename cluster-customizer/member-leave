@@ -49,7 +49,6 @@ main() {
 setup
 require handler
 require member
-handler_add_libdir share
 require customize
 
 handler_tee main "$@"

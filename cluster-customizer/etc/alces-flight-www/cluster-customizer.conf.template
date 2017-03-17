@@ -1,0 +1,4 @@
+location /customizer/ {
+  root _ROOT_/var/lib/alces-flight-www;
+  disable_symlinks off;
+}
