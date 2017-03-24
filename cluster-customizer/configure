@@ -47,6 +47,7 @@ main() {
 
     if [ ! -f "${cw_ROOT}/etc/cluster-customizer/config.yml" ]; then
       if files_load_config --optional instance-aws config/cluster; then
+        files_load_config cluster-customizer
         if [[ "$cw_CLUSTER_CUSTOMIZER_feature_set" ]]; then
           _SET_PREFIX="${cw_CLUSTER_CUSTOMIZER_feature_set}/"  # Note trailing slash
         fi
