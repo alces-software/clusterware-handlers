@@ -218,6 +218,8 @@ aws_scale_out() {
       fi
     fi
   done
+
+  rm -f "$tmpfile"
 }
 
 _cores_for_group() {
