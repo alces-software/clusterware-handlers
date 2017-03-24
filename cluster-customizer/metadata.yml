@@ -58,3 +58,4 @@ install:
 
     alces service install alces-flight-www
     alces service install clusterware-customize
+    alces service install tcping

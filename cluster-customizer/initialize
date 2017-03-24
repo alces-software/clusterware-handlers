@@ -191,10 +191,24 @@ _setup() {
     done
 }
 
+_has_connectivity() {
+    # 1. Try a simple ping
+    # 2. Try a TCP ping on port 53 (ICMP might be blocked)
+    # 3. If port 53 TCP is apparently blocked too then, finally, we
+    #    fall back to having to assume DNS is working and try a TCP
+    #    ping on port 80.
+    #
+    # If none of these conditions are met then we assume we don't have
+    # sufficient connectivity.
+    ping -c1 -w1 8.8.8.8 &>/dev/null || \
+        "${cw_ROOT}"/opt/tcping/bin/tcping -q -t1 8.8.8.8 53 || \
+        "${cw_ROOT}"/opt/tcping/bin/tcping -q -t1 $(dig +short google.com | head -n1) 80
+}
+
 _wait_for_internet() {
     local c
     c=0
-    while ! ping -c1 -w1 8.8.8.8 &>/dev/null; do
+    while ! _has_connectivity; do
         c=$(($c+1))
         if [ "$c" -gt 49 ]; then
             echo "Giving up after 50 attempts."
