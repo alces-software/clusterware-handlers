@@ -223,6 +223,18 @@ main() {
     if network_has_metadata_service 1; then
         _setup
     fi
+    if ${_ALCES} service install s3cmd; then
+        # we've been able to install s3cmd, so we can execute pre-internet steps
+        customize_fetch_preinitializers
+        for a in "${cw_CLUSTER_CUSTOMIZER_path}"/preinitializers/*; do
+            if [ -x "$a" -a ! -d "$a" ] && [[ "$a" != *~ ]]; then
+                echo "Running preinitializer: ${a}"
+                "${a}"
+            elif [[ "$a" != *~ ]]; then
+                echo "Skipping non-executable preinitializer: ${a}"
+            fi
+        done
+    fi
     if _wait_for_internet; then
         ${_ALCES} service install s3cmd
         customize_fetch
