@@ -271,8 +271,8 @@ scheduler_vars = (config['scheduler'] || {}).map do |k,v|
 end
 write_file('scheduler.rc', scheduler_vars.join("\n"))
 if config['role'] == 'master'
-  content = if File.exists?('../../signal.rc')
-    File.read('../../signal.rc').gsub!(%(cw_SIGNAL_data="),%(cw_SIGNAL_data="UUID=#{config['uuid']};Token=#{config['token']};))
+  content = if File.exists?('${cw_ROOT}/etc/signal.rc')
+    File.read('${cw_ROOT}/etc/signal.rc').gsub!(%(cw_SIGNAL_data="),%(cw_SIGNAL_data="UUID=#{config['uuid']};Token=#{config['token']};))
   else
     %(cw_SIGNAL_data="UUID=#{config['uuid']};Token=#{config['token']}")
   end
