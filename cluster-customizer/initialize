@@ -191,7 +191,7 @@ _setup() {
 }
 
 _has_connectivity() {
-    "${cw_ROOT}"/libexec/connectivity-check &>/dev/null
+    "${cw_ROOT}"/libexec/share/connectivity-check &>/dev/null
 }
 
 _wait_for_internet() {
