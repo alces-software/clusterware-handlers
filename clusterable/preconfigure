@@ -271,7 +271,12 @@ scheduler_vars = (config['scheduler'] || {}).map do |k,v|
 end
 write_file('scheduler.rc', scheduler_vars.join("\n"))
 if config['role'] == 'master'
-  write_file('../../signal.rc', %(cw_SIGNAL_data="UUID=#{config['uuid']};Token=#{config['token']}"), perm: 0600)
+  content = if File.exists?('../../signal.rc')
+    File.read('../../signal.rc').gsub!(%(cw_SIGNAL_data="),%(cw_SIGNAL_data="UUID=#{config['uuid']};Token=#{config['token']};))
+  else
+    %(cw_SIGNAL_data="UUID=#{config['uuid']};Token=#{config['token']}")
+  end
+  write_file('../../signal.rc', content, perm: 0600)
 end
 RUBY
 }
