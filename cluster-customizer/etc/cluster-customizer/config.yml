@@ -1,4 +1,4 @@
 profiles: []
 repositories:
-  feature: "s3://alces-flight-profiles-_REGION_/features"
+  feature: "s3://alces-flight-profiles-_REGION_/_SET_PREFIX_features"
   account: "s3://alces-flight-_AWS_ACCOUNT_HASH_/customizer"
