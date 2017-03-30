@@ -37,6 +37,7 @@ setup() {
 }
 
 main() {
+    files_load_config instance config/cluster # Provides `cw_INSTANCE_role`.
     customize_run_hooks event-periodic | log_blob /var/log/clusterware/customizer-periodic-events.log
     if [ "${cw_INSTANCE_role}" == "master" ] ; then
         job_queue_process_queues "$@" | log_blob /var/log/clusterware/job-queue.log
@@ -44,6 +45,7 @@ main() {
 }
 
 setup
+require files
 require handler
 require customize
 require job-queue
