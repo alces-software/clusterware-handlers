@@ -20,6 +20,11 @@
 # For more information on the Alces Clusterware, please visit:
 # https://github.com/alces-software/clusterware
 #==============================================================================
+#ALCES_META
+# Refer to `clusterware/scripts/development/propagate`.
+#path=/opt/clusterware/etc/handlers/cluster-customizer/event-periodic
+#ALCES_META_END
+
 setup() {
     local a xdg_config
     IFS=: read -a xdg_config <<< "${XDG_CONFIG_HOME:-$HOME/.config}:${XDG_CONFIG_DIRS:-/etc/xdg}"
