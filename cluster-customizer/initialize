@@ -153,7 +153,6 @@ if master_list.key? "profiles"
 end
 
 RUBY
-
       source "${tmpfile}"
       rm "${tmpfile}"
     fi
@@ -192,17 +191,7 @@ _setup() {
 }
 
 _has_connectivity() {
-    # 1. Try a simple ping
-    # 2. Try a TCP ping on port 53 (ICMP might be blocked)
-    # 3. If port 53 TCP is apparently blocked too then, finally, we
-    #    fall back to having to assume DNS is working and try a TCP
-    #    ping on port 80.
-    #
-    # If none of these conditions are met then we assume we don't have
-    # sufficient connectivity.
-    ping -c1 -w1 8.8.8.8 &>/dev/null || \
-        "${cw_ROOT}"/opt/tcping/bin/tcping -q -t1 8.8.8.8 53 || \
-        "${cw_ROOT}"/opt/tcping/bin/tcping -q -t1 $(dig +short google.com | head -n1) 80
+    "${cw_ROOT}"/libexec/share/connectivity-check &>/dev/null
 }
 
 _wait_for_internet() {
@@ -222,6 +211,18 @@ _wait_for_internet() {
 main() {
     if network_has_metadata_service 1; then
         _setup
+    fi
+    if ${_ALCES} service install s3cmd; then
+        # we've been able to install s3cmd, so we can execute pre-internet steps
+        customize_fetch_preinitializers
+        for a in "${cw_CLUSTER_CUSTOMIZER_path}"-preinitializers/*; do
+            if [ -x "$a" -a ! -d "$a" ] && [[ "$a" != *~ ]]; then
+                echo "Running preinitializer: ${a}"
+                "${a}"
+            elif [[ "$a" != *~ ]]; then
+                echo "Skipping non-executable preinitializer: ${a}"
+            fi
+        done
     fi
     if _wait_for_internet; then
         ${_ALCES} service install s3cmd
