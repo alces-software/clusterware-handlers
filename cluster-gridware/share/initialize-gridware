@@ -80,7 +80,7 @@ _configure_docker_nfs() {
 ##
 ################################################################################
 if [ -d "${cw_GRIDWARE_root:-/opt/gridware}/docker/exports" ]; then
-    cw_CLUSTER_NFS_exports="\${cw_CLUSTER_NFS_exports} ${cw_GRIDWARE_root:-/opt/gridware}/docker/exports"
+    cw_CLUSTER_NFS_exports="\${cw_CLUSTER_NFS_exports} ${cw_GRIDWARE_root:-/opt/gridware}/docker/exports ${cw_GRIDWARE_root:-/opt/gridware}/docker/certificates/public"
 fi
 EOF
 }
@@ -101,6 +101,8 @@ main() {
 
     mkdir -p "${cw_GRIDWARE_root:-/opt/gridware}"/docker/exports
     chmod 2775 "${cw_GRIDWARE_root:-/opt/gridware}"/docker/exports
+    mkdir -p "${cw_GRIDWARE_root:-/opt/gridware}"/docker/certificates/public
+    chmod 2775 "${cw_GRIDWARE_root:-/opt/gridware}"/docker/certificates/public
     _configure_docker_nfs
 
     echo 'cw_GRIDWARE_notify=true' >> "${cw_ROOT}"/etc/gridware.rc
