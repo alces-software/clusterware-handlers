@@ -230,3 +230,4 @@ install:
 
     cp libexec/clusterware-key-manager "${cw_ROOT}"/libexec/share
     chmod 0700 "${cw_ROOT}"/libexec/share/clusterware-key-manager
+    mkdir -p "${cw_ROOT}"/var/lib/event-periodic/scripts
