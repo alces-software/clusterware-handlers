@@ -39,7 +39,7 @@ EOF
     if [ -d "${cw_ROOT}"/var/lib/event-periodic/scripts ]; then
         for a in "${cw_ROOT}"/var/lib/event-periodic/scripts/*; do
             if [ -x "$a" ]; then
-                "$a"
+                "$a" | log_blob /var/log/clusterware/clusterable-event-periodic.log
             fi
         done
     fi
@@ -58,6 +58,7 @@ setup
 require handler
 require files
 require network
+require log
 
 _JQ="${cw_ROOT}"/opt/jq/bin/jq
 

@@ -25,7 +25,7 @@ main() {
     files_load_config instance config/cluster
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
         if [ "${cw_INSTANCE_autoscaling:-disabled}" != "disabled" ]; then
-            handler_run_helper share/autoscaler
+            handler_run_helper share/autoscaler | log_blob /var/log/clusterware/autoscaling-event-periodic.log
         fi
     fi
 }
@@ -33,5 +33,6 @@ main() {
 setup
 require handler
 require files
+require log
 
 handler_tee main "$@"
