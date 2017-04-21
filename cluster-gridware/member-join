@@ -52,8 +52,8 @@ main() {
 	files_load_config gridware config/gridware
 	if [ "${cw_GRIDWARE_trigger:-immediate}" == 'immediate' ]; then
 	    _notify_depots
-      _notify_docker_exports
 	fi
+  _notify_docker_exports
     fi
 }
 
