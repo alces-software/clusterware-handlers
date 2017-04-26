@@ -80,7 +80,7 @@ _configure_docker_nfs() {
 ##
 ################################################################################
 if [ -d "${cw_GRIDWARE_root:-/opt/gridware}/docker/exports" ]; then
-    cw_CLUSTER_NFS_exports="\${cw_CLUSTER_NFS_exports} ${cw_GRIDWARE_root:-/opt/gridware}/docker/exports ${cw_GRIDWARE_root:-/opt/gridware}/docker/certificates/public" ${cw_GRIDWARE_root:-/opt/gridware}/docker/swarm"
+    cw_CLUSTER_NFS_exports="\${cw_CLUSTER_NFS_exports} ${cw_GRIDWARE_root:-/opt/gridware}/docker/exports ${cw_GRIDWARE_root:-/opt/gridware}/docker/certificates/public ${cw_GRIDWARE_root:-/opt/gridware}/docker/swarm"
 fi
 EOF
 }
