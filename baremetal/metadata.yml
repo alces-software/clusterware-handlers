@@ -1,0 +1,50 @@
+################################################################################
+##
+## Alces Clusterware - Handler metadata
+## Copyright (C) 2017 Stephen F. Norledge and Alces Software Ltd.
+##
+################################################################################
+---
+description: |
+  Bare-metal specific configuration routines.
+order: "01"
+install:
+  _: |
+    cat <<EOF > /opt/clusterware/etc/baremetal.rc
+    ################################################################################
+    ##
+    ## Alces Clusterware - Shell configuration
+    ## Copyright (c) 2017 Alces Software Ltd
+    ##
+    ################################################################################
+    #cw_BAREMETAL_domain=example.alces.network
+    #cw_BAREMETAL_scheduler=gridscheduler
+
+    #cw_BAREMETAL_cluster_name=mycluster
+    #cw_BAREMETAL_cluster_uuid=""
+    #cw_BAREMETAL_cluster_token=""
+
+    #cw_BAREMETAL_compute_intf=compute
+    #cw_BAREMETAL_compute_ip=10.75.1.101
+    #cw_BAREMETAL_compute_netmask=255.255.0.0
+
+    #cw_BAREMETAL_infra_intf=infra
+    #cw_BAREMETAL_infra_ip=10.76.1.101
+    #cw_BAREMETAL_infra_netmask=255.255.0.0
+
+    #cw_CLUSTER_CUSTOMIZER_bucket=s3://alces-flight-config-bucket
+    #cw_CLUSTER_CUSTOMIZER_access_key_id=""
+    #cw_CLUSTER_CUSTOMIZER_secret_access_key=""
+    #cw_CLUSTER_CUSTOMIZER_region="eu-west-1"
+    #cw_CLUSTER_CUSTOMIZER_feature_set="develop"
+    #cw_CLUSTER_CUSTOMIZER_features="${cw_BAREMETAL_scheduler}"
+    #cw_CLUSTER_CUSTOMIZER_profiles="domain-${cw_BAREMETAL_domain}"
+
+    # For slaves:
+    #cw_BAREMETAL_node_role=slave
+    #cw_BAREMETAL_master_node_ip=10.75.0.1
+
+    # For master:
+    #cw_BAREMETAL_node_role=master
+    #cw_BAREMETAL_node_hostname=login1
+    EOF
