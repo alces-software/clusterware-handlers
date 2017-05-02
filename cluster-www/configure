@@ -154,7 +154,7 @@ EOF
     files_load_config --optional flight
 
     sed -i -e "s,_CLUSTERNAME_,${cw_CLUSTER_name},g" \
-        -e "s/_RELEASE_/${cw_FLIGHT_release:${cw_VERSION}}}/g" \
+        -e "s/_RELEASE_/${cw_FLIGHT_release:-${cw_VERSION}}}/g" \
         -e "s,_ROOT_,${cw_ROOT},g" \
         "${cw_ROOT}"/var/lib/alces-flight-www/flight/index.html
 
