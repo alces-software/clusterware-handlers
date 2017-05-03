@@ -48,6 +48,7 @@ main() {
             if [ "${autoscaling_group}" ]; then
 
               autoscaling_group_cores=$(member_find_tag "autoscaling_group_cores" "${cw_MEMBER_tags}")
+              autoscaling_group_ram_mib=$(member_find_tag "autoscaling_group_ram_mib" "${cw_MEMBER_tags}")
               autoscaling_group_maxsize=$(_get_autoscaling_group_maxsize "${autoscaling_group}")
               autoscaling_group_label=$(member_find_tag "autoscaling_group_label" "${cw_MEMBER_tags}")
 
@@ -87,12 +88,12 @@ main() {
                   ln -s "${cw_ROOT}/etc/config/autoscaling/by-label/${autoscaling_group_label}" "${cw_ROOT}/etc/config/autoscaling/default"
                 fi
 
-                log "Triggering local 'autoscaling-add-group' event with: ${autoscaling_group_label} ${autoscaling_group_maxsize} ${autoscaling_group_cores}"
-                "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-add-group "${autoscaling_group_label}" "${autoscaling_group_maxsize}" "${autoscaling_group_cores}"
+                log "Triggering local 'autoscaling-add-group' event with: ${autoscaling_group_label} ${autoscaling_group_maxsize} ${autoscaling_group_cores} ${autoscaling_group_ram_mib}"
+                "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-add-group "${autoscaling_group_label}" "${autoscaling_group_maxsize}" "${autoscaling_group_cores}" "${autoscaling_group_ram_mib}"
               fi
 
-              log "Triggering local 'autoscaling-member-join' event with: ${cw_MEMBER_name} ${cw_MEMBER_ip} ${autoscaling_group_label} ${autoscaling_group_maxsize} ${autoscaling_group_cores}"
-              "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-member-join "${cw_MEMBER_name}" "${cw_MEMBER_ip}" "${autoscaling_group_label}" "${autoscaling_group_maxsize}" "${autoscaling_group_cores}"
+              log "Triggering local 'autoscaling-member-join' event with: ${cw_MEMBER_name} ${cw_MEMBER_ip} ${autoscaling_group_label} ${autoscaling_group_maxsize} ${autoscaling_group_cores} ${autoscaling_group_ram_mib}"
+              "${cw_ROOT}"/libexec/share/trigger-event --local autoscaling-member-join "${cw_MEMBER_name}" "${cw_MEMBER_ip}" "${autoscaling_group_label}" "${autoscaling_group_maxsize}" "${autoscaling_group_cores}" "${autoscaling_group_ram_mib}"
 
               # Record this node's membership of the group
               touch "${cw_ROOT}/etc/config/autoscaling/groups/${autoscaling_group}/${cw_MEMBER_name}"
