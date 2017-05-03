@@ -10,7 +10,8 @@
 
 name="$1"
 slots="$2"
-state="$3"
+mem_mib="$3"
+state="$4"
 
 tmpfile1="$(mktemp /tmp/cluster-slurm.add-node.XXXXXXXX)"
 tmpfile2="$(mktemp /tmp/cluster-slurm.add-node.XXXXXXXX)"
@@ -20,11 +21,14 @@ if _lock; then
   grep -v "^NodeName=" "${cw_CLUSTER_SLURM_config}" > "${tmpfile1}"
   # if NodeName line already exists for this node, remove it first
   grep "^NodeName=" "${cw_CLUSTER_SLURM_config}" | grep -v "^NodeName=${name} " > "${tmpfile2}"
-  if [ "$state" ]; then
-      echo "NodeName=${name} CPUs=${slots} State=${state}" >> "${tmpfile2}"
-  else
-      echo "NodeName=${name} CPUs=${slots}" >> "${tmpfile2}"
+  line="NodeName=${name} CPUs=${slots}"
+  if [ "$mem_mib" ]; then
+      line="${line} RealMemory=$mem_mib"
   fi
+  if [ "${state}" ]; then
+      line="${line} State=${state}"
+  fi
+  echo "${line}" >> "${tmpfile2}"
   # sort list
   sort "${tmpfile2}" >> "${tmpfile1}"
   # recreate slurm.conf
