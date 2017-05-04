@@ -136,8 +136,14 @@ _load_master_list() {
   if [ -f "${cw_ROOT}/etc/config.yml" ]; then
 
     master_ip=$(grep -Po "(?<=master: )[0-9\.]*" ${cw_ROOT}/etc/config.yml)
-
     if [[ "${master_ip}" != "" ]]; then
+      retries=3
+      while [ $retries -gt 0 ]; do
+        retries=$[$retries-1]
+        if _has_connectivity "${master_ip}" 22; then break; fi
+          echo "Unable to detect connectivity to master node (${master_ip}), waiting 10 seconds then trying again [$retries remaining]"
+          sleep 10
+      done
 
       tmpfile="$(mktemp /tmp/cluster-customizer.XXXXXXXX)"
 
@@ -199,7 +205,7 @@ _setup() {
 }
 
 _has_connectivity() {
-    "${cw_ROOT}"/libexec/share/connectivity-check &>/dev/null
+    "${cw_ROOT}"/libexec/share/connectivity-check "$@" &>/dev/null
 }
 
 _wait_for_internet() {
