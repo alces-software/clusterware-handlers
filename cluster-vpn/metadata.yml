@@ -36,6 +36,8 @@ install:
     # Set cw_CLUSTER_VPN_setup_www to non-true to disable installation
     # and configuration of the alces-flight-www service. Enabled by
     # default.
+    cw_CLUSTER_VPN_naming_suffix=vpn
+    cw_CLUSTER_VPN_naming_ip=10.41.41.1
     EOF
 
     mkdir -p "${cw_ROOT}"/etc/openvpn/clusterware \
