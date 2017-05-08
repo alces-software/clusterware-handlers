@@ -23,7 +23,7 @@ install:
     ################################################################################
     ##
     ## Alces Clusterware - Shell configuration
-    ## Copyright (c) 2016 Alces Software Ltd
+    ## Copyright (c) 2016-2017 Alces Software Ltd
     ##
     ################################################################################
     cw_CLUSTER_VPN_intf=tun0
@@ -36,8 +36,13 @@ install:
     # Set cw_CLUSTER_VPN_setup_www to non-true to disable installation
     # and configuration of the alces-flight-www service. Enabled by
     # default.
-    cw_CLUSTER_VPN_naming_suffix=vpn
-    cw_CLUSTER_VPN_naming_ip=10.41.41.1
+    #cw_CLUSTER_VPN_setup_www=true
+    #
+    # Enable the following naming values to add an additional entry to
+    # DNS for the VPN access point for this cluster as well as adding
+    # the name to the SSL certificate.
+    #cw_CLUSTER_VPN_naming_suffix=vpn
+    #cw_CLUSTER_VPN_naming_ip=10.41.41.1
     EOF
 
     mkdir -p "${cw_ROOT}"/etc/openvpn/clusterware \
