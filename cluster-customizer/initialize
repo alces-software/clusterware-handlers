@@ -137,10 +137,10 @@ _load_master_list() {
 
     master_ip=$(grep -Po "(?<=master: )[0-9\.]*" ${cw_ROOT}/etc/config.yml)
     if [[ "${master_ip}" != "" ]]; then
-      retries=3
+      retries=20
       while [ $retries -gt 0 ]; do
-        retries=$[$retries-1]
-        if _has_connectivity "${master_ip}" 22; then break; fi
+          retries=$[$retries-1]
+          if "${cw_ROOT}"/opt/tcping/bin/tcping -q -t1 "${master_ip}" 80; then break; fi
           echo "Unable to detect connectivity to master node (${master_ip}), waiting 10 seconds then trying again [$retries remaining]"
           sleep 10
       done
