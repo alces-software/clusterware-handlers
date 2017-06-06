@@ -68,6 +68,10 @@ main() {
     sed -e "s,_ROOT_,${cw_ROOT},g" \
         "${dir}"/etc/alces-flight-www/cluster-customizer.conf.template > \
         "${cw_ROOT}"/etc/alces-flight-www/server-https.d/cluster-customizer.conf
+
+    # Apply to both http and https configs
+    cp "${cw_ROOT}"/etc/alces-flight-www/server-https.d/cluster-customizer.conf \
+       "${cw_ROOT}"/etc/alces-flight-www/server-http.d/cluster-customizer.conf
   fi
 
   customize_run_hooks configure
