@@ -30,7 +30,9 @@ _configure_slurm() {
     slurm_system_dirs=(/var/{log,run,spool}/slurm)
     slurm_user='slurm'
     mkdir -p "${slurm_system_dirs[@]}"
+    touch /var/log/slurm/accounting
     chown -R "${slurm_user}:${slurm_user}" "${slurm_system_dirs[@]}"
+    chmod 0644 /var/log/slurm/accounting
 
     # Create MUNGE key, required for authentication between nodes - must be the
     # same on all nodes so create by hashing the cluster secret. Note: Create
