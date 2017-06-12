@@ -301,8 +301,14 @@ _allocate_hostname() {
         prefix=$(ruby_run <<RUBY
 require 'ipaddr'
 network = IPAddr.new("${iface_network}")
-first_net = network.to_s.split('.')[2].to_i
-puts ("${ipaddr}".split('.')[2].to_i - first_net + 97).chr
+if network.instance_variable_get(:@mask_addr).to_s(2).count('1') < 20
+  # need two-character prefix
+  r = (IPAddr.new("${ipaddr}").to_i - network.to_i) / 256
+  puts "#{((r / 26) + 97).chr}#{((r % 26) + 97).chr}"
+else
+  first_net = network.to_s.split('.')[2].to_i
+  puts ("${ipaddr}".split('.')[2].to_i - first_net + 97).chr
+end
 RUBY
               )
     fi
@@ -352,6 +358,10 @@ _preconfigure_boot() {
 }
 
 main() {
+    files_load_config --optional clusterable
+    cw_CLUSTERABLE_manage_ssh_config=${cw_CLUSTERABLE_manage_ssh_config:-true}
+    cw_CLUSTERABLE_manage_genders=${cw_CLUSTERABLE_manage_genders:-true}
+
     # Bail out if we're already configured (this is a reboot)
     if [ -d "${cw_ROOT}/etc/config/cluster" ]; then
         _preconfigure_boot
@@ -366,10 +376,6 @@ main() {
     mkdir -p "${cw_ROOT}/etc/config/cluster/serf"
     _parse_config
     cp -p "${cw_ROOT}/etc/config/cluster/serf"/*.json "${cw_ROOT}/etc/serf"
-
-    files_load_config --optional clusterable
-    cw_CLUSTERABLE_manage_ssh_config=${cw_CLUSTERABLE_manage_ssh_config:-true}
-    cw_CLUSTERABLE_manage_genders=${cw_CLUSTERABLE_manage_genders:-true}
 
     _preconfigure_boot
     if [ "${cw_INSTANCE_role}" == "master" ]; then

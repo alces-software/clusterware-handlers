@@ -22,7 +22,7 @@ setup() {
 }
 
 main() {
-  local hostname ip groupname group_max_size cores_per_node
+  local hostname ip groupname group_max_size cores_per_node ram_mib
   echo "Received autoscaling-member-join with args ${*}"
 
   if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
@@ -31,6 +31,7 @@ main() {
     groupname="$3"
     group_max_size="$4"
     cores_per_node="$5"
+    ram_mib="$6"
 
     if [[ "$groupname" == "default" ]]; then
       # 'default' is reserved by Slurm

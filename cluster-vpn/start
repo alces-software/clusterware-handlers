@@ -34,7 +34,7 @@ _load_cluster_vpn_vars() {
     files_load_config cluster-vpn
     cw_CLUSTER_VPN_port=${cw_CLUSTER_VPN_port:-1194}
     cw_CLUSTER_VPN_intf=${cw_CLUSTER_VPN_intf:-tun0}
-    cw_CLUSTER_VPN_cluster_intf=${cw_CLUSTER_VPN_cluster_intf:-eth0}
+    cw_CLUSTER_VPN_cluster_intf=${cw_CLUSTER_VPN_cluster_intf:-$(network_get_first_iface)}
     cw_CLUSTER_VPN_network=${cw_CLUSTER_VPN_network:-10.41.41.0/24}
     cw_CLUSTER_VPN_auth=${cw_CLUSTER_VPN_auth:-cert}
 }
@@ -91,20 +91,27 @@ _update_network_conf() {
 }
 
 _write_archives() {
-    local tblk_name
+    local tblk_name workdir
 
     files_load_config config config/cluster
 
     pushd "${cw_ROOT}"/etc/openvpn/client &>/dev/null
     tar czf clusterware-openvpn.tar.gz clusterware
+
+    workdir="$(mktemp -d /tmp/cluster-vpn.XXXXXXXX)"
+    mkdir "${workdir}"/zip
+    cp -R clusterware "${workdir}"/zip
+    mv "${workdir}"/zip/clusterware/client.conf "${workdir}"/zip/clusterware/client.ovpn
+    cd "${workdir}"/zip
     zip -r clusterware-openvpn.zip clusterware
 
     tblk_name="Alces Clusterware - ${cw_CLUSTER_name}".tblk
-    mkdir /tmp/"${tblk_name}"
-    cp -R clusterware/* /tmp/"${tblk_name}"
-    cd /tmp
+    mkdir "${workdir}"/"${tblk_name}"
+    cp -R clusterware/* "${workdir}"/"${tblk_name}"
+    cd "${workdir}"
     zip -r "${cw_ROOT}"/etc/openvpn/client/clusterware-tunnelblick.zip "${tblk_name}"
-    rm -rf "${tblk_name}"
+
+    rm -rf "${workdir}"
     popd &>/dev/null
 }
 

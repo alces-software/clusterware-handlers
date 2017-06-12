@@ -133,18 +133,27 @@ _load_master_list() {
     sleep 10
   done
 
-  master_ip=$(grep -Po "(?<=master: )[0-9\.]*" ${cw_ROOT}/etc/config.yml)
+  if [ -f "${cw_ROOT}/etc/config.yml" ]; then
 
-  if [[ "${master_ip}" != "" ]]; then
+    master_ip=$(grep -Po "(?<=master: )[0-9\.]*" ${cw_ROOT}/etc/config.yml)
+    if [[ "${master_ip}" != "" ]]; then
+      retries=20
+      while [ $retries -gt 0 ]; do
+          retries=$[$retries-1]
+          if "${cw_ROOT}"/opt/tcping/bin/tcping -q -t1 "${master_ip}" 80; then break; fi
+          echo "Unable to detect connectivity to master node (${master_ip}), waiting 10 seconds then trying again [$retries remaining]"
+          sleep 10
+      done
 
-    tmpfile="$(mktemp /tmp/cluster-customizer.XXXXXXXX)"
+      tmpfile="$(mktemp /tmp/cluster-customizer.XXXXXXXX)"
 
-    mkdir -p "${cw_ROOT}/etc/cluster-customizer"
+      mkdir -p "${cw_ROOT}/etc/cluster-customizer"
+      echo "Retrieving customizer configuration from http://${master_ip}/customizer/config.yml"
 
-    curl -Lsf -o "${cw_ROOT}/etc/cluster-customizer/config.yml" "http://${master_ip}/customizer/config.yml"
+      curl -Lsf -o "${cw_ROOT}/etc/cluster-customizer/config.yml" "http://${master_ip}/customizer/config.yml"
 
-    if [ $? == 0 ]; then
-      ruby_run <<RUBY > "${tmpfile}"
+      if [ $? == 0 ]; then
+        ruby_run <<RUBY > "${tmpfile}"
 require 'yaml'
 master_list = YAML.load_file("${cw_ROOT}/etc/cluster-customizer/config.yml")
 
@@ -153,11 +162,16 @@ if master_list.key? "profiles"
 end
 
 RUBY
-      source "${tmpfile}"
-      rm "${tmpfile}"
+        source "${tmpfile}"
+        rm "${tmpfile}"
+      else
+        echo "Retrieving customizer configuration failed."
+      fi
+    else
+      echo "No master node IP specified, not loading customizer configuration from master."
     fi
   else
-    echo "No master node IP specified, not loading customizer configuration from master."
+    echo "${cw_ROOT}/etc/config.yml does not exist, can't load customizer configuration from master."
   fi
 }
 
@@ -191,7 +205,7 @@ _setup() {
 }
 
 _has_connectivity() {
-    "${cw_ROOT}"/libexec/share/connectivity-check &>/dev/null
+    "${cw_ROOT}"/libexec/share/connectivity-check "$@" &>/dev/null
 }
 
 _wait_for_internet() {
