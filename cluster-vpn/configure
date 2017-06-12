@@ -63,6 +63,12 @@ main() {
             echo "cw_CLUSTER_VPN_access_password=\"${password}\"" >> "${cw_ROOT}"/etc/cluster-vpn.rc
 
             "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/vpn
+
+            files_load_config cluster-vpn
+            if [ "${cw_CLUSTER_VPN_auth:-cert}" == "pam" ]; then
+                sed -i "${cw_ROOT}"/var/lib/alces-flight-www/flight/vpn/index.html \
+                    -e 's/<!--%PAM-ENABLED%//g' -e 's/%PAM-ENABLED%-->//g'
+            fi
             ln -s "${cw_ROOT}"/etc/openvpn/client "${cw_ROOT}/var/lib/alces-flight-www/flight/vpn/downloads"
         fi
     fi

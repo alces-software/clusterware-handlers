@@ -37,12 +37,49 @@ setup() {
 }
 
 main() {
-    customize_run_hooks configure
+  files_load_config instance config/cluster
+  if [[ "${cw_INSTANCE_role}" == "master" ]] && handler_is_enabled cluster-www; then
+    # Do some configuration of our own first!
+    dir="$(handler_dir)"
+
+    mkdir -p "${cw_ROOT}/var/lib/alces-flight-www/customizer"
+    mkdir -p "${cw_ROOT}/etc/cluster-customizer"
+
+    if [ ! -f "${cw_ROOT}/etc/cluster-customizer/config.yml" ]; then
+      if files_load_config --optional instance-aws config/cluster; then
+        files_load_config cluster-customizer
+        if [[ "$cw_CLUSTER_CUSTOMIZER_feature_set" ]]; then
+          _SET_PREFIX="${cw_CLUSTER_CUSTOMIZER_feature_set}/"  # Note trailing slash
+        fi
+        sed -e "s/_REGION_/${cw_INSTANCE_aws_region:-eu-west-1}/" \
+            -e "s/_AWS_ACCOUNT_HASH_/${cw_INSTANCE_aws_account_hash}/" \
+            -e "s#_SET_PREFIX_#${_SET_PREFIX}#" \
+          "${dir}/etc/cluster-customizer/config.yml" > "${cw_ROOT}/etc/cluster-customizer/config.yml"
+      else
+        sed -e "s/_REGION_/eu-west-1/" \
+            -e "/_AWS_ACCOUNT_HASH_/d" \
+            -e "s/_SET_PREFIX_//" \
+          "${dir}/etc/cluster-customizer/config.yml" > "${cw_ROOT}/etc/cluster-customizer/config.yml"
+      fi
+    fi
+
+    ln -s "${cw_ROOT}/etc/cluster-customizer/config.yml" "${cw_ROOT}/var/lib/alces-flight-www/customizer"
+
+    sed -e "s,_ROOT_,${cw_ROOT},g" \
+        "${dir}"/etc/alces-flight-www/cluster-customizer.conf.template > \
+        "${cw_ROOT}"/etc/alces-flight-www/server-https.d/cluster-customizer.conf
+
+    # Apply to both http and https configs
+    cp "${cw_ROOT}"/etc/alces-flight-www/server-https.d/cluster-customizer.conf \
+       "${cw_ROOT}"/etc/alces-flight-www/server-http.d/cluster-customizer.conf
+  fi
+
+  customize_run_hooks configure
 }
 
 setup
-require handler
-handler_add_libdir share
 require customize
+require files
+require handler
 
 handler_tee main "$@"

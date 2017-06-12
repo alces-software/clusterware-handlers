@@ -21,34 +21,29 @@ setup() {
     kernel_load
 }
 
-_configure_autoscaling() {
-  local autoscaling_provider_file
-  echo "Preconfigured autoscaling type is ${cw_INSTANCE_autoscaling}"
-  autoscaling_provider_file="${cw_HANDLER_PLUGINDIR}/autoscaling/share/providers/${cw_INSTANCE_autoscaling}"
+main() {
+  local hostname ip groupname group_max_size cores_per_node
+  echo "Received autoscaling-member-join with args ${*}"
 
-  if [ -f "$autoscaling_provider_file" ]; then
-    . "$autoscaling_provider_file"
-    ${cw_INSTANCE_autoscaling}_configure
-  else
-    echo "Provider file ${autoscaling_provider_file} not found, cannot configure autoscaling."
+  if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
+    hostname="$1"
+    ip="$2"
+    groupname="$3"
+    group_max_size="$4"
+    cores_per_node="$5"
+
+    handler_run_helper share/add-host-to-hostgroup "$hostname" "$groupname"
   fi
 }
 
-main() {
-    # Bail out if we're already configured (this is a reboot).
-    if [ -d "${cw_ROOT}/etc/config/autoscaling" ]; then
-        exit 0
-    fi
-
-    mkdir -p "${cw_ROOT}/etc/config/autoscaling"
-
-    files_load_config instance config/cluster
-
-    _configure_autoscaling
-}
-
 setup
+require member
+require network
 require handler
+require log
 require files
 
+files_load_config --optional cluster-sge
+files_load_config instance config/cluster
+log_set_default "${cw_CLUSTER_SGE_log:-/var/log/clusterware/cluster-sge.log}"
 handler_tee main "$@"

@@ -38,15 +38,17 @@ setup() {
 
 main() {
     eval "$(member_parse)"
-    customize_run_hooks member-leave "${cw_MEMBER_DIR}"/"${cw_MEMBER_name}" \
+    tmpfile="$(mktemp /tmp/cluster-customizer.XXXXXXXX)"
+    member_parse > "$tmpfile"
+    customize_run_hooks member-leave "$tmpfile" \
                         "${cw_MEMBER_name}" \
                         "${cw_MEMBER_ip}"
+    rm -f $tmpfile
 }
 
 setup
 require handler
 require member
-handler_add_libdir share
 require customize
 
 handler_tee main "$@"

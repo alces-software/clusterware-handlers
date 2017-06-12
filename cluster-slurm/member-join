@@ -24,6 +24,7 @@ setup() {
 main() {
     local scheduler_roles slots
     files_load_config instance config/cluster
+    files_load_config network
 
     eval "$(member_parse)"
     slurm_log "Member data parsed: ${cw_MEMBER_name} (${cw_MEMBER_ip}) -- ${cw_MEMBER_tags}"
@@ -32,20 +33,22 @@ main() {
     scheduler_roles=$(member_find_tag "scheduler_roles" "${cw_MEMBER_tags}")
     slots=$(member_find_tag "slots" "${cw_MEMBER_tags}")
 
+    short_node_name="$(echo ${cw_MEMBER_name} | sed -e "s/.${cw_NETWORK_domain}$//")"
+
     # Update this node's slurm.conf with new node.
     if [[ "${scheduler_roles}" == *":master:"* ]]; then
         slurm_log "${cw_MEMBER_name} is Slurm control node"
         sed -i "s/^ControlMachine=.*$/ControlMachine=${cw_MEMBER_name}/" "${cw_CLUSTER_SLURM_config}"
         if [[ "${scheduler_roles}" != *":compute:"* ]]; then
-            handler_run_helper share/add-node "${cw_MEMBER_name}" "1" "FUTURE"
+            handler_run_helper share/add-node "${short_node_name}" "1" "" "FUTURE"
         fi
     fi
     if [[ "${scheduler_roles}" == *":compute:"* ]]; then
         slurm_log "${cw_MEMBER_name} is Slurm compute node"
-        handler_run_helper share/add-node "${cw_MEMBER_name}" "${slots}"
+        handler_run_helper share/add-node "${short_node_name}" "${slots}"
     elif [[ "${scheduler_roles}" == *":submit:"* ]]; then
         slurm_log "${cw_MEMBER_name} is a submit-only host"
-        handler_run_helper share/add-node "${cw_MEMBER_name}" "1" "FUTURE"
+        handler_run_helper share/add-node "${short_node_name}" "1" "" "FUTURE"
     fi
 
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then

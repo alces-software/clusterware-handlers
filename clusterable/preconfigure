@@ -71,6 +71,16 @@ cw_INSTANCE_aws_autoscaling="${autoscaling}"
 cw_INSTANCE_aws_machinetype="${machine_type}"
 cw_INSTANCE_aws_account_hash="$(network_ec2_hashed_account)"
 EOF
+        # Set autoscaling type to AWS. If $cw_INSTANCE_aws_autoscaling is "disabled"
+        # (or is detected as such) then that is dealt with in autoscaling/configure
+        cat <<EOF >> "${cw_ROOT}"/etc/config/cluster/instance.rc
+
+cw_INSTANCE_autoscaling=aws
+EOF
+cat <<EOF >> "${cw_ROOT}"/etc/config/cluster/instance.vars.sh
+
+cw_INSTANCE_autoscaling=aws
+EOF
         _write_iam_role_credentials
 
         cp "$(handler_dir)"/etc/meta.aws.rc "${cw_ROOT}"/etc/meta.d/aws.rc
@@ -260,6 +270,14 @@ scheduler_vars = (config['scheduler'] || {}).map do |k,v|
   %(cw_SCHEDULER_#{k.to_s}="#{v}")
 end
 write_file('scheduler.rc', scheduler_vars.join("\n"))
+if config['role'] == 'master'
+  content = if File.exists?('${cw_ROOT}/etc/signal.rc')
+    File.read('${cw_ROOT}/etc/signal.rc').gsub!(%(cw_SIGNAL_data="),%(cw_SIGNAL_data="UUID=#{config['uuid']};Token=#{config['token']};))
+  else
+    %(cw_SIGNAL_data="UUID=#{config['uuid']};Token=#{config['token']}")
+  end
+  write_file('../../signal.rc', content, perm: 0600)
+end
 RUBY
 }
 
@@ -283,8 +301,14 @@ _allocate_hostname() {
         prefix=$(ruby_run <<RUBY
 require 'ipaddr'
 network = IPAddr.new("${iface_network}")
-first_net = network.to_s.split('.')[2].to_i
-puts ("${ipaddr}".split('.')[2].to_i - first_net + 97).chr
+if network.instance_variable_get(:@mask_addr).to_s(2).count('1') < 20
+  # need two-character prefix
+  r = (IPAddr.new("${ipaddr}").to_i - network.to_i) / 256
+  puts "#{((r / 26) + 97).chr}#{((r % 26) + 97).chr}"
+else
+  first_net = network.to_s.split('.')[2].to_i
+  puts ("${ipaddr}".split('.')[2].to_i - first_net + 97).chr
+end
 RUBY
               )
     fi
@@ -334,6 +358,10 @@ _preconfigure_boot() {
 }
 
 main() {
+    files_load_config --optional clusterable
+    cw_CLUSTERABLE_manage_ssh_config=${cw_CLUSTERABLE_manage_ssh_config:-true}
+    cw_CLUSTERABLE_manage_genders=${cw_CLUSTERABLE_manage_genders:-true}
+
     # Bail out if we're already configured (this is a reboot)
     if [ -d "${cw_ROOT}/etc/config/cluster" ]; then
         _preconfigure_boot
@@ -348,10 +376,6 @@ main() {
     mkdir -p "${cw_ROOT}/etc/config/cluster/serf"
     _parse_config
     cp -p "${cw_ROOT}/etc/config/cluster/serf"/*.json "${cw_ROOT}/etc/serf"
-
-    files_load_config --optional clusterable
-    cw_CLUSTERABLE_manage_ssh_config=${cw_CLUSTERABLE_manage_ssh_config:-true}
-    cw_CLUSTERABLE_manage_genders=${cw_CLUSTERABLE_manage_genders:-true}
 
     _preconfigure_boot
     if [ "${cw_INSTANCE_role}" == "master" ]; then

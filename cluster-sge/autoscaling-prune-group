@@ -2,7 +2,7 @@
 ################################################################################
 ##
 ## Alces Clusterware - Handler hook
-## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+## Copyright (C) 2017 Stephen F. Norledge and Alces Software Ltd.
 ##
 ################################################################################
 setup() {
@@ -22,17 +22,24 @@ setup() {
 }
 
 main() {
-    files_load_config instance config/cluster
-    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
-        if [ "${cw_INSTANCE_autoscaling:-disabled}" != "disabled" ]; then
-            handler_run_helper share/autoscaler | log_blob /var/log/clusterware/autoscaling-event-periodic.log
-        fi
-    fi
+  local groupname
+  groupname="$1"
+  log "Received autoscaling-prune-group for group ${groupname}"
+
+  if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
+    handler_run_helper share/destroy-queues "${groupname}"
+    handler_run_helper share/destroy-parallel-environments "${groupname}"
+    handler_run_helper share/destroy-hostgroup "${groupname}"
+    log "Removed constructs for group ${groupname}."
+  fi
 }
 
 setup
 require handler
-require files
 require log
+require files
 
+files_load_config --optional cluster-sge
+files_load_config instance config/cluster
+log_set_default "${cw_CLUSTER_SGE_log:-/var/log/clusterware/cluster-sge.log}"
 handler_tee main "$@"

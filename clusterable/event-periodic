@@ -36,6 +36,13 @@ cw_INSTANCE_aws_iam_role_security_token="${security_token}"
 cw_INSTANCE_aws_iam_role_expiry_time="${expiry_time}"
 EOF
     fi
+    if [ -d "${cw_ROOT}"/var/lib/event-periodic/scripts ]; then
+        for a in "${cw_ROOT}"/var/lib/event-periodic/scripts/*; do
+            if [ -x "$a" ]; then
+                "$a" | log_blob /var/log/clusterware/clusterable-event-periodic.log
+            fi
+        done
+    fi
 }
 
 main() {
@@ -51,6 +58,7 @@ setup
 require handler
 require files
 require network
+require log
 
 _JQ="${cw_ROOT}"/opt/jq/bin/jq
 

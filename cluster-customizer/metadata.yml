@@ -28,8 +28,9 @@ install:
     #cw_CLUSTER_CUSTOMIZER_access_key_id=""
     #cw_CLUSTER_CUSTOMIZER_secret_access_key=""
     #cw_CLUSTER_CUSTOMIZER_region="eu-west-1"
-    #cw_CLUSTER_CUSTOMIZER_profiles="default"
+    #cw_CLUSTER_CUSTOMIZER_account_profiles="default"
     #cw_CLUSTER_CUSTOMIZER_features=""
+    #cw_CLUSTER_CUSTOMIZER_feature_set=""
     #cw_CLUSTER_CUSTOMIZER_path="${cw_ROOT}/var/lib/customizer"
     #cw_CLUSTER_CUSTOMIZER_custom_paths="/opt/alces"
     EOF
@@ -55,5 +56,6 @@ install:
     fi
     EOF
 
-    cp -p libexec/actions/customize "${cw_ROOT}"/libexec/actions
-    cp -pR libexec/customize "${cw_ROOT}"/libexec
+    alces service install alces-flight-www
+    alces service install clusterware-customize
+    alces service install tcping

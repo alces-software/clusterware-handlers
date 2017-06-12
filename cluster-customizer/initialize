@@ -63,30 +63,46 @@ _run_initialize_hooks() {
 }
 
 _setup_features() {
-    local o_features feature_data
+    local o_features feature_data o_set feature_set
     feature_data="$1"
 
     o_features="${cw_CLUSTER_CUSTOMIZER_features}"
+    o_set="${cw_CLUSTER_CUSTOMIZER_feature_set}"
 
-    cw_CLUSTER_CUSTOMIZER_features=$(echo "${feature_data}" | cut -f2- -d' ')
+    feature_set=$(echo "${feature_data}" | cut -f2 -d' ')
+    if [[ "${feature_set}" == "("*")" ]]; then
+        feature_set="${feature_set%)}"
+        feature_set="${feature_set#(}"
+        cw_CLUSTER_CUSTOMIZER_features=$(echo "${feature_data}" | cut -f3- -d' ')
+    else
+        cw_CLUSTER_CUSTOMIZER_features=$(echo "${feature_data}" | cut -f2- -d' ')
+    fi
+    cw_CLUSTER_CUSTOMIZER_feature_set="${feature_set}"
+
     if [ "${cw_CLUSTER_CUSTOMIZER_features}" ]; then
         sed -i -e "s,^#\?cw_CLUSTER_CUSTOMIZER_features=.*,cw_CLUSTER_CUSTOMIZER_features=\"${cw_CLUSTER_CUSTOMIZER_features}\",g" \
             "${cw_ROOT}"/etc/cluster-customizer.rc
     else
         cw_CLUSTER_CUSTOMIZER_features="${o_features}"
     fi
+    if [ "${cw_CLUSTER_CUSTOMIZER_feature_set}" ]; then
+        sed -i -e "s,^#\?cw_CLUSTER_CUSTOMIZER_feature_set=.*,cw_CLUSTER_CUSTOMIZER_feature_set=\"${cw_CLUSTER_CUSTOMIZER_feature_set}\",g" \
+            "${cw_ROOT}"/etc/cluster-customizer.rc
+    else
+        cw_CLUSTER_CUSTOMIZER_feature_set="${o_set}"
+    fi
 }
 
-_setup_profiles() {
+_setup_account_profiles() {
     local o_profiles o_bucket customizer_data
     customizer_data="$1"
 
-    o_profiles="${cw_CLUSTER_CUSTOMIZER_profiles}"
+    o_profiles="${cw_CLUSTER_CUSTOMIZER_account_profiles}"
     o_bucket="${cw_CLUSTER_CUSTOMIZER_bucket}"
     cw_CLUSTER_CUSTOMIZER_bucket=$(echo "${customizer_data}" | cut -f2 -d' ')
-    cw_CLUSTER_CUSTOMIZER_profiles=$(echo "${customizer_data}" | cut -f3- -d' ')
+    cw_CLUSTER_CUSTOMIZER_account_profiles=$(echo "${customizer_data}" | cut -f3- -d' ')
     if [[ "$cw_CLUSTER_CUSTOMIZER_bucket" != "" && "$cw_CLUSTER_CUSTOMIZER_bucket" != "s3://"* ]]; then
-        cw_CLUSTER_CUSTOMIZER_profiles="${cw_CLUSTER_CUSTOMIZER_bucket} ${cw_CLUSTER_CUSTOMIZER_profiles}"
+        cw_CLUSTER_CUSTOMIZER_account_profiles="${cw_CLUSTER_CUSTOMIZER_bucket} ${cw_CLUSTER_CUSTOMIZER_account_profiles}"
         cw_CLUSTER_CUSTOMIZER_bucket=""
     fi
     if [ "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
@@ -95,34 +111,107 @@ _setup_profiles() {
     else
         cw_CLUSTER_CUSTOMIZER_bucket="${o_bucket}"
     fi
-    if [ "${cw_CLUSTER_CUSTOMIZER_profiles}" ]; then
-        sed -i -e "s,^#\?cw_CLUSTER_CUSTOMIZER_profiles=.*,cw_CLUSTER_CUSTOMIZER_profiles=\"${cw_CLUSTER_CUSTOMIZER_profiles}\",g" \
+    if [ "${cw_CLUSTER_CUSTOMIZER_account_profiles}" ]; then
+        sed -i -e "s,^#\?cw_CLUSTER_CUSTOMIZER_account_profiles=.*,cw_CLUSTER_CUSTOMIZER_account_profiles=\"${cw_CLUSTER_CUSTOMIZER_account_profiles}\",g" \
             "${cw_ROOT}"/etc/cluster-customizer.rc
     else
-        cw_CLUSTER_CUSTOMIZER_profiles="${o_profiles}"
+        cw_CLUSTER_CUSTOMIZER_account_profiles="${o_profiles}"
     fi
 }
 
+_load_master_list() {
+  local master_ip retries tmpfile
+
+  # NB ${cw_ROOT}/etc/config/cluster/config.rc doesn't exist at the point
+  # this is executed - we need to extract master IP ourselves
+
+  retries=3
+  while [ $retries -gt 0 ]; do
+    retries=$[$retries-1]
+    if [ -f "${cw_ROOT}/etc/config.yml" ]; then break; fi
+    echo "${cw_ROOT}/etc/config.yml does not yet exist, waiting 10 seconds then trying again [$retries remaining]"
+    sleep 10
+  done
+
+  if [ -f "${cw_ROOT}/etc/config.yml" ]; then
+
+    master_ip=$(grep -Po "(?<=master: )[0-9\.]*" ${cw_ROOT}/etc/config.yml)
+    if [[ "${master_ip}" != "" ]]; then
+      retries=20
+      while [ $retries -gt 0 ]; do
+          retries=$[$retries-1]
+          if "${cw_ROOT}"/opt/tcping/bin/tcping -q -t1 "${master_ip}" 80; then break; fi
+          echo "Unable to detect connectivity to master node (${master_ip}), waiting 10 seconds then trying again [$retries remaining]"
+          sleep 10
+      done
+
+      tmpfile="$(mktemp /tmp/cluster-customizer.XXXXXXXX)"
+
+      mkdir -p "${cw_ROOT}/etc/cluster-customizer"
+      echo "Retrieving customizer configuration from http://${master_ip}/customizer/config.yml"
+
+      curl -Lsf -o "${cw_ROOT}/etc/cluster-customizer/config.yml" "http://${master_ip}/customizer/config.yml"
+
+      if [ $? == 0 ]; then
+        ruby_run <<RUBY > "${tmpfile}"
+require 'yaml'
+master_list = YAML.load_file("${cw_ROOT}/etc/cluster-customizer/config.yml")
+
+if master_list.key? "profiles"
+  puts "cw_CLUSTER_CUSTOMIZER_master_profiles=\"#{master_list['profiles'].join(' ')}\""
+end
+
+RUBY
+        source "${tmpfile}"
+        rm "${tmpfile}"
+      else
+        echo "Retrieving customizer configuration failed."
+      fi
+    else
+      echo "No master node IP specified, not loading customizer configuration from master."
+    fi
+  else
+    echo "${cw_ROOT}/etc/config.yml does not exist, can't load customizer configuration from master."
+  fi
+}
+
 _setup() {
-    local userdata feature_data profile_data
+    local account_profile_data userdata feature_data profile profile_name repo_name
 
     userdata=$(network_fetch_ec2_userdata 1)
+
+    _load_master_list
 
     feature_data=$(echo "${userdata}" | grep "^#=FlightFeatures ")
     if [ "${feature_data}" ]; then
         _setup_features "${feature_data}"
     fi
 
-    profile_data=$(echo "${userdata}" | egrep "^#=Flight(Profiles|Customizer) ")
-    if [ "${profile_data}" ]; then
-        _setup_profiles "${profile_data}"
+    account_profile_data=$(echo "${userdata}" | egrep "^#=Flight(Profiles|Customizer) ")
+    if [ "${account_profile_data}" ]; then
+        _setup_account_profiles "${account_profile_data}"
     fi
+
+    for profile in ${cw_CLUSTER_CUSTOMIZER_master_profiles}; do
+      repo_name=${profile%%/*}
+      profile_name=${profile#*/}
+      if [[ "$repo_name" == "$profile_name" ]]; then
+        echo "Not applying malformed profile from master configuration: '$profile'"
+      else
+        echo "Applying profile from master configuration: '$profile'"
+        customize_repository_apply "$repo_name" "$profile_name" "preinit"
+      fi
+    done
+}
+
+_has_connectivity() {
+    "${cw_ROOT}"/libexec/share/connectivity-check "$@" &>/dev/null
 }
 
 _wait_for_internet() {
     local c
     c=0
-    while ! ping -c1 -w1 8.8.8.8 &>/dev/null; do
+    while ! _has_connectivity; do
         c=$(($c+1))
         if [ "$c" -gt 49 ]; then
             echo "Giving up after 50 attempts."
@@ -137,6 +226,18 @@ main() {
     if network_has_metadata_service 1; then
         _setup
     fi
+    if ${_ALCES} service install s3cmd; then
+        # we've been able to install s3cmd, so we can execute pre-internet steps
+        customize_fetch_preinitializers
+        for a in "${cw_CLUSTER_CUSTOMIZER_path}"-preinitializers/*; do
+            if [ -x "$a" -a ! -d "$a" ] && [[ "$a" != *~ ]]; then
+                echo "Running preinitializer: ${a}"
+                "${a}"
+            elif [[ "$a" != *~ ]]; then
+                echo "Skipping non-executable preinitializer: ${a}"
+            fi
+        done
+    fi
     if _wait_for_internet; then
         ${_ALCES} service install s3cmd
         customize_fetch
@@ -150,12 +251,13 @@ setup
 require handler
 require files
 require network
-handler_add_libdir share
 require customize
+require customize-repository
+require ruby
 
 files_load_config cluster-customizer
 cw_CLUSTER_CUSTOMIZER_path="${cw_CLUSTER_CUSTOMIZER_path:-${cw_ROOT}/var/lib/customizer}"
-cw_CLUSTER_CUSTOMIZER_profiles="${cw_CLUSTER_CUSTOMIZER_profiles:-default}"
+cw_CLUSTER_CUSTOMIZER_account_profiles="${cw_CLUSTER_CUSTOMIZER_account_profiles:-${cw_CLUSTER_CUSTOMIZER_profiles:-default}}"
 
 _ALCES="${cw_ROOT}"/bin/alces
 
