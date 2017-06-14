@@ -37,6 +37,15 @@ _notify_depots() {
     fi
 }
 
+_notify_docker_exports() {
+  local r
+  r=$(type -p docker)
+  if [ $? == 0 ] && [ -x "$r" ]; then
+    # only if docker is installed and executable
+    handler_broadcast gridware-docker-exports
+  fi
+}
+
 main() {
     files_load_config instance config/cluster
     if [ "${cw_INSTANCE_role}" == "master" ]; then
@@ -44,6 +53,7 @@ main() {
 	if [ "${cw_GRIDWARE_trigger:-immediate}" == 'immediate' ]; then
 	    _notify_depots
 	fi
+  _notify_docker_exports
     fi
 }
 
