@@ -53,7 +53,7 @@ if [ -d "${cw_GRIDWARE_root:-/opt/gridware}" ]; then
             cw_CLUSTER_NFS_exports="\${cw_CLUSTER_NFS_exports} \$(readlink \$a)"
         fi
     done
-    cw_CLUSTER_NFS_exports="\${cw_CLUSTER_NFS_exports} ${cw_GRIDWARE_root:-/opt/gridware}/etc ${cw_GRIDWARE_root:-/opt/gridware}/data ${cw_GRIDWARE_root:-/opt/gridware}/u"
+    cw_CLUSTER_NFS_exports="\${cw_CLUSTER_NFS_exports} ${cw_GRIDWARE_root:-/opt/gridware}/etc ${cw_GRIDWARE_root:-/opt/gridware}/data ${cw_GRIDWARE_root:-/opt/gridware}/depots/u"
 fi
 EOF
 }
@@ -95,8 +95,8 @@ main() {
     mkdir -p "${cw_GRIDWARE_root:-/opt/gridware}"/data
     chmod 2775 "${cw_GRIDWARE_root:-/opt/gridware}"/data
 
-    mkdir -p "${cw_GRIDWARE_root:-/opt/gridware}"/u
-    chmod 1777 "${cw_GRIDWARE_root:-/opt/gridware}"/u
+    mkdir -p "${cw_GRIDWARE_root:-/opt/gridware}"/depots/u
+    chmod 1777 "${cw_GRIDWARE_root:-/opt/gridware}"/depots/u
 
     # relink in case depots were initialized as part of base image
     _relink_depots
