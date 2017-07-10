@@ -41,10 +41,8 @@ main() {
 
 setup
 
-require member
 require handler
 require files
-require storage
 
 files_load_config --optional clusterable
 cw_CLUSTERABLE_manage_genders=${cw_CLUSTERABLE_manage_genders:-true}
