@@ -63,6 +63,7 @@ _update_genders() {
 }
 
 _sync_storage() {
+  if type -t storage_broadcast_enabled 2>/dev/null; then
     files_load_config instance config/cluster
     if [[ "${cw_INSTANCE_role}" == "master" ]]; then
         echo "Synchronizing storage backends and system-wide configuration to slave: ${cw_MEMBER_ip}"
@@ -70,9 +71,11 @@ _sync_storage() {
         storage_sync_to_slaves "${cw_MEMBER_ip}"
         storage_sync_to_slaves --default "${cw_MEMBER_ip}"
     fi
+  fi
 }
 
 _record_join() {
+  if [ -x "${cw_ROOT}"/libexec/share/flight-recorder ]; then
     local instance_id machine_type
     instance_id=$(member_find_tag aws_instanceid "${cw_MEMBER_tags}")
     if [ "${instance_id}" ]; then
@@ -86,6 +89,7 @@ _record_join() {
                         "${instance_id}" "${cw_MEMBER_role}" "${machine_type}"
         fi
     fi
+  fi
 }
 
 _check_quoracy() {
@@ -125,7 +129,10 @@ setup
 require member
 require handler
 require files
-require storage
+# The 'storage' function library may not be installed, so we suppress
+# error output here and code around the presence or absence where it's
+# used above.
+require storage &>/dev/null
 
 files_load_config --optional clusterable
 cw_CLUSTERABLE_manage_etc_hosts=${cw_CLUSTERABLE_manage_etc_hosts:-true}
