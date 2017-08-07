@@ -73,9 +73,9 @@ _setup_features() {
     if [[ "${feature_set}" == "("*")" ]]; then
         feature_set="${feature_set%)}"
         feature_set="${feature_set#(}"
-        cw_CLUSTER_CUSTOMIZER_features=$(echo "${feature_data}" | cut -f3- -d' ')
+        cw_CLUSTER_CUSTOMIZER_features=$(echo "${feature_data}" | cut -f3- -s -d' ')
     else
-        cw_CLUSTER_CUSTOMIZER_features=$(echo "${feature_data}" | cut -f2- -d' ')
+        cw_CLUSTER_CUSTOMIZER_features=$(echo "${feature_data}" | cut -f2- -s -d' ')
     fi
     cw_CLUSTER_CUSTOMIZER_feature_set="${feature_set}"
 
@@ -99,8 +99,8 @@ _setup_account_profiles() {
 
     o_profiles="${cw_CLUSTER_CUSTOMIZER_account_profiles}"
     o_bucket="${cw_CLUSTER_CUSTOMIZER_bucket}"
-    cw_CLUSTER_CUSTOMIZER_bucket=$(echo "${customizer_data}" | cut -f2 -d' ')
-    cw_CLUSTER_CUSTOMIZER_account_profiles=$(echo "${customizer_data}" | cut -f3- -d' ')
+    cw_CLUSTER_CUSTOMIZER_bucket=$(echo "${customizer_data}" | cut -f2 -s -d' ')
+    cw_CLUSTER_CUSTOMIZER_account_profiles=$(echo "${customizer_data}" | cut -f3- -s -d' ')
     if [[ "$cw_CLUSTER_CUSTOMIZER_bucket" != "" && "$cw_CLUSTER_CUSTOMIZER_bucket" != "s3://"* ]]; then
         cw_CLUSTER_CUSTOMIZER_account_profiles="${cw_CLUSTER_CUSTOMIZER_bucket} ${cw_CLUSTER_CUSTOMIZER_account_profiles}"
         cw_CLUSTER_CUSTOMIZER_bucket=""
@@ -184,11 +184,13 @@ _setup() {
 
     feature_data=$(echo "${userdata}" | grep "^#=FlightFeatures ")
     if [ "${feature_data}" ]; then
+        feature_data="${feature_data%"${feature_data##*[![:space:]]}"}"
         _setup_features "${feature_data}"
     fi
 
     account_profile_data=$(echo "${userdata}" | egrep "^#=Flight(Profiles|Customizer) ")
     if [ "${account_profile_data}" ]; then
+        account_profile_data="${account_profile_data%"${account_profile_data##*[![:space:]]}"}"
         _setup_account_profiles "${account_profile_data}"
     fi
 
