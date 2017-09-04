@@ -1,0 +1,5 @@
+---
+install:
+  _: |
+    alces service install alces-flight-www
+order: 50
