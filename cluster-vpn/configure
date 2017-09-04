@@ -71,6 +71,10 @@ main() {
             fi
             ln -s "${cw_ROOT}"/etc/openvpn/client "${cw_ROOT}/var/lib/alces-flight-www/flight/vpn/downloads"
         fi
+
+        if [ "$(network_get_edition)" != "community" ] && handler_is_enabled cluster-www-api; then
+            "${cw_ROOT}"/libexec/share/www-api-add-resource "${dir}"/etc/cluster-www-api.json.tpl
+        fi
     fi
 }
 
