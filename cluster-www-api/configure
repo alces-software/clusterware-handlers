@@ -70,7 +70,7 @@ _update_dynamic_values() {
     _install_nginx_conf cluster-www-api server-http
     _install_nginx_conf cluster-www-api server-https
     _install_nginx_conf redirect-https-to-launch-service server-https
-    sed -i -e "s,_IP_ADDRESS_,$(network_get_public_address),g" \
+    sed -i -e "s,_HOSTNAME_,${host},g" \
         "${cw_ROOT}"/etc/alces-flight-www/server-https.d/redirect-https-to-launch-service.conf
 
     distro_restart_service clusterware-alces-flight-www
