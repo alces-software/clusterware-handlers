@@ -67,6 +67,8 @@ _update_dynamic_values() {
     chmod a+r "${tmpfile}"
     mv ${tmpfile} "${cw_ROOT}"/var/lib/alces-flight-www/flight/www-api/index.json
 
+    _install_nginx_conf cluster-www-api server-http
+    _install_nginx_conf cluster-www-api server-https
     _install_nginx_conf redirect-https-to-launch-service server-https
     sed -i -e "s,_IP_ADDRESS_,$(network_get_public_address),g" \
         "${cw_ROOT}"/etc/alces-flight-www/server-https.d/redirect-https-to-launch-service.conf
