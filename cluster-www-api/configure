@@ -52,8 +52,9 @@ _handle_port() {
 }
 
 _update_dynamic_values() {
-    local host ipAddress tmpfile
+    local host ipAddress tmpfile redirectUrl
     files_load_config --optional access
+    files_load_config --optional cluster-www-api
     host="${cw_ACCESS_fqdn:-$(network_get_public_hostname)}"
     ipAddress="$(network_get_public_address)"
 
@@ -70,7 +71,13 @@ _update_dynamic_values() {
     _install_nginx_conf cluster-www-api server-http
     _install_nginx_conf cluster-www-api server-https
     _install_nginx_conf redirect-https-to-launch-service server-https
-    sed -i -e "s,_HOSTNAME_,${host},g" \
+
+
+    redirectUrl=$(
+        echo "${cw_CLUSTER_WWW_API_redirect_url_template:-https://launch.alces-flight.com/cluster/_HOSTNAME_}" \
+        | sed -e "s,_HOSTNAME_,${host},g"
+    )
+    sed -i -e "s,_REDIRECT_URL_,${redirectUrl},g" \
         "${cw_ROOT}"/etc/alces-flight-www/server-https.d/redirect-https-to-launch-service.conf
 
     distro_restart_service clusterware-alces-flight-www
