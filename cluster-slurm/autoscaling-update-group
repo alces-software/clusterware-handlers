@@ -25,8 +25,9 @@ main() {
     local group groupname group_maxsize cores_per_node ram_mib
     group="$1"
     group_maxsize="$2"
-    cores_per_node="$3"
-    ram_mib="$4"
+    group_newmaxsize="$3"
+    cores_per_node="$4"
+    ram_mib="$5"
 
     if [[ "$group" == "default" ]]; then
       # 'default' is reserved by Slurm
@@ -35,17 +36,22 @@ main() {
       groupname="$group"
     fi
 
-    slurm_log "Performing deferred configuration for scaling group: ${group} (size: ${group_maxsize}, cores: ${cores_per_node}, ram: ${ram_mib}MiB)"
+    slurm_log "Updating configuration for scaling group: ${group} (existing size: ${group_maxsize}, new size: ${group_newmaxsize}, cores: ${cores_per_node}, ram: ${ram_mib}MiB)"
 
-    handler_run_helper share/add-partition-if-not-exist "$groupname" "$group_maxsize"
-
-    # We're autoscaling so we need to add some dummy nodes to
-    # represent the scaling group otherwise we're unable to scale-out.
-    for a in $(seq 1 ${group_maxsize}); do
-        slurm_log "Adding node: autoscaling-slot-${group}-$a ${cores_per_node} ${ram_mib} FUTURE"
-        handler_run_helper share/add-node autoscaling-slot-${group}-$a ${cores_per_node} ${ram_mib} FUTURE
-        handler_run_helper share/add-node-to-partition autoscaling-slot-${group}-$a ${groupname}
-    done
+    if [ "${group_newmaxsize}" -gt "${group_maxsize}" ]; then 
+	# We're autoscaling so we need to add some more dummy nodes to
+	# represent the scaling group otherwise we're unable to scale-out.
+	for a in $(seq $((${group_maxsize}+1)) ${group_newmaxsize}); do
+            slurm_log "Adding node: autoscaling-slot-${group}-$a ${cores_per_node} ${ram_mib} FUTURE"
+            handler_run_helper share/add-node autoscaling-slot-${group}-$a ${cores_per_node} ${ram_mib} FUTURE
+            handler_run_helper share/add-node-to-partition autoscaling-slot-${group}-$a ${groupname}
+	done
+    elif [ "${group_newmaxsize}" -lt "${group_maxsize}" ]; then 
+	for a in $(seq $((${group_newmaxsize}+1)) ${group_maxsize}); do
+            slurm_log "Removing node: autoscaling-slot-${group}-$a"
+            handler_run_helper share/prune-node autoscaling-slot-${group}-$a
+	done
+    fi
 
     files_load_config --optional instance config/cluster
     if [ "$cw_INSTANCE_role" == "master" ]; then
