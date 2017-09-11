@@ -55,13 +55,14 @@ EOF
 }
 
 _preconfigure_node() {
-    local autoscaling machine_type tags
+    local autoscaling autoscaling_engine machine_type tags
     if network_is_ec2; then
         autoscaling=$(_fetch_cluster_value autoscaling autodetect)
+        autoscaling_engine=$(_fetch_cluster_value autoscaling_engine aws)
         echo "[setup-aws] Autoscaling configured as: ${autoscaling}"
         eval $(network_fetch_ec2_document | \
-                 ${_JQ} -r \
-                        '"region=\(.region)"','"ctime=\(.pendingTime)"','"instanceid=\(.instanceId)"')
+                   ${_JQ} -r \
+                          '"region=\(.region)"','"ctime=\(.pendingTime)"','"instanceid=\(.instanceId)"')
         machine_type="$(network_fetch_ec2_metadata instance-type 1)"
         cat <<EOF > "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
 cw_INSTANCE_aws_region="${region}"
@@ -75,11 +76,11 @@ EOF
         # (or is detected as such) then that is dealt with in autoscaling/configure
         cat <<EOF >> "${cw_ROOT}"/etc/config/cluster/instance.rc
 
-cw_INSTANCE_autoscaling=aws
+cw_INSTANCE_autoscaling=${autoscaling_engine}
 EOF
-cat <<EOF >> "${cw_ROOT}"/etc/config/cluster/instance.vars.sh
+        cat <<EOF >> "${cw_ROOT}"/etc/config/cluster/instance.vars.sh
 
-cw_INSTANCE_autoscaling=aws
+cw_INSTANCE_autoscaling=${autoscaling_engine}
 EOF
         _write_iam_role_credentials
 
