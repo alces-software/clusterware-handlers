@@ -112,7 +112,7 @@ RUBY
 }
 
 managed_shoot_node() {
-  local node instanceid group group_label
+  local node instanceid group group_label shoot_exit_code
   node="$1"
   group="$2"
   instanceid=$(member_get_member_tag "${node}" "aws_instanceid")
@@ -123,7 +123,11 @@ managed_shoot_node() {
     # scale in the capacity
     log "[autoscaler:managed-shoot] Shooting node ${instanceid} in queue ${group_label}"
     # call out to managed to remove the node from the group
+    set -o pipefail
     ${_ALCES} compute shoot "${group_label}" "${instanceid}" 2>&1 | _log_blob "managed-shoot"
+    shoot_exit_code=$?
+    set +o pipefail
+    return ${shoot_exit_code}
   fi
 }
 
