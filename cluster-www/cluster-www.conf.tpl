@@ -1,4 +1,4 @@
-location /www-api/ {
+location /www/ {
    if ($request_method = 'OPTIONS') {
         add_header 'Access-Control-Allow-Origin' '*';
         add_header 'Access-Control-Allow-Methods' 'GET, OPTIONS';

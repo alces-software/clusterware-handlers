@@ -55,8 +55,8 @@ main() {
         https_port=""
     fi
 
-    configWithVars="$(mktemp /tmp/cluster-www-api.XXXXXXXX)"
-    newConfig="$(mktemp /tmp/cluster-www-api.XXXXXXXX)"
+    configWithVars="$(mktemp /tmp/cluster-www.XXXXXXXX)"
+    newConfig="$(mktemp /tmp/cluster-www.XXXXXXXX)"
 
     sed \
         -e "s,_CLUSTERNAME_,${cw_CLUSTER_name},g" \
@@ -73,12 +73,12 @@ main() {
           .[0].data.type as $type |
           .[0].data.attributes + .[1] |
           {data: {id: $id, type: $type, attributes: . }}' \
-        "${cw_ROOT}"/var/lib/alces-flight-www/flight/www-api/index.json \
+        "${cw_ROOT}"/var/lib/alces-flight-www/flight/www/index.json \
         "${configWithVars}" \
         > "${newConfig}"
 
     chmod a+r "${newConfig}"
-    mv "${newConfig}" "${cw_ROOT}"/var/lib/alces-flight-www/flight/www-api/index.json
+    mv "${newConfig}" "${cw_ROOT}"/var/lib/alces-flight-www/flight/www/index.json
 
     distro_restart_service clusterware-alces-flight-www
 }
