@@ -2,7 +2,6 @@
   "hasVpn": true,
   "vpn": {
     "browseConfigsUrl": "https://_HOSTNAME__HTTPS_PORT_/vpn/downloads/",
-    "imgDir": "https://_HOSTNAME__HTTPS_PORT_/vpn/img/",
     "configFilesUrl": "https://_HOSTNAME__HTTPS_PORT_/vpn/downloads/clusterware",
     "configs": [
       {
