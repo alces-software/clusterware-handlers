@@ -38,7 +38,7 @@ setup() {
 
 main() {
   files_load_config instance config/cluster
-  if [[ "${cw_INSTANCE_role}" == "master" ]] && handler_is_enabled cluster-www; then
+  if [[ "${cw_INSTANCE_role}" == "master" ]] && serviceware_is_installed alces-flight-www; then
     # Do some configuration of our own first!
     dir="$(handler_dir)"
 
@@ -81,5 +81,6 @@ setup
 require customize
 require files
 require handler
+require serviceware
 
 handler_tee main "$@"
