@@ -161,7 +161,7 @@ main() {
     admin_uid=$(grep "^UID_MIN " /etc/login.defs | awk '{ print $2 };')
     usermod -G gridware -a "$(id -gn ${admin_uid:-1000})"
     # and add them to Gridware's userspace whitelist
-    cat <<EOF >${cw_GRIDWARE_root}${cw_GRIDWARE_root}/etc/whitelist.yml
+    cat <<EOF >${cw_GRIDWARE_root}/etc/whitelist.yml
 users:
 - $(id -un ${admin_uid:-1000})
 EOF
