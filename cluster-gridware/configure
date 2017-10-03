@@ -126,7 +126,7 @@ _install_docker_ssl_cert() {
 }
 
 main() {
-    local admin_uid
+    local admin_uid admin_user
 
     files_load_config gridware
 
@@ -159,7 +159,13 @@ main() {
 
     # add admin user to gridware group
     admin_uid=$(grep "^UID_MIN " /etc/login.defs | awk '{ print $2 };')
-    usermod -G gridware -a "$(id -gn ${admin_uid:-1000})"
+    admin_user=$(id -gn ${admin_uid:-1000})
+    usermod -G gridware -a "$admin_user"
+    # and add them to Gridware's userspace whitelist
+    cat <<EOF >${cw_GRIDWARE_root}${cw_GRIDWARE_root}/etc/whitelist.yml
+users:
+- $admin_user
+EOF
 }
 
 setup
