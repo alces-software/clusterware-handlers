@@ -55,6 +55,7 @@ main() {
 }
 
 setup
+require distro
 require handler
 require files
 
