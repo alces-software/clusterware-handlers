@@ -150,9 +150,15 @@ _load_master_list() {
       mkdir -p "${cw_ROOT}/etc/cluster-customizer"
       echo "Retrieving customizer configuration from http://${master_ip}/customizer/config.yml"
 
-      curl -Lsf -o "${cw_ROOT}/etc/cluster-customizer/config.yml" "http://${master_ip}/customizer/config.yml"
+      while [ $retries -gt 0 ]; do
+        curl -Lsf -o "${cw_ROOT}/etc/cluster-customizer/config.yml" "http://${master_ip}/customizer/config.yml"
+        if [ -f "${cw_ROOT}/etc/cluster-customizer/config.yml" ]; then break; fi
+        retries=$[$retries-1]
+        echo "Retrieving customizer configuration failed, waiting 10 seconds then trying again [$retries remaining]"
+        sleep 10
+      done
 
-      if [ $? == 0 ]; then
+      if [ -f "${cw_ROOT}/etc/cluster-customizer/config.yml" ]; then
         ruby_run <<RUBY > "${tmpfile}"
 require 'yaml'
 master_list = YAML.load_file("${cw_ROOT}/etc/cluster-customizer/config.yml")
@@ -165,7 +171,7 @@ RUBY
         source "${tmpfile}"
         rm "${tmpfile}"
       else
-        echo "Retrieving customizer configuration failed."
+        echo "Retrieving customizer configuration failed for good. Customizer configuration was unavailable."
       fi
     else
       echo "No master node IP specified, not loading customizer configuration from master."
