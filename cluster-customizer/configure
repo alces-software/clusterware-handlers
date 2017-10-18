@@ -56,7 +56,7 @@ main() {
             -e "s#_SET_PREFIX_#${_SET_PREFIX}#" \
             "${dir}/etc/cluster-customizer/config.yml" > "${cw_ROOT}/etc/cluster-customizer/config.yml"
         if [ "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
-            sed -i -e "s,  account: .*,  account: ${cw_CLUSTER_CUSTOMIZER_bucket},g" \
+            sed -i -e "s,  account: .*,  account: ${cw_CLUSTER_CUSTOMIZER_bucket}/customizer,g" \
                 "${cw_ROOT}/etc/cluster-customizer/config.yml"
         fi
       else
