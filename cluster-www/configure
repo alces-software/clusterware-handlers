@@ -73,6 +73,9 @@ _update_dynamic_values() {
     _install_nginx_conf redirect-https-to-launch-service server-https
 
 
+    # XXX This method of determining the URL to redirect to is duplicated in
+    # cluster-vpn/configure.  Figure out a way to remove the duplication.
+    # Perhaps a script similar to `www-add-attributes` is the way to go.
     redirectUrl=$(
         echo "${cw_CLUSTER_WWW_redirect_url_template:-https://launch.alces-flight.com/cluster/_HOSTNAME_}" \
         | sed -e "s,_HOSTNAME_,${host},g"
