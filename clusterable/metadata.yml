@@ -228,6 +228,7 @@ install:
     cw_CLUSTERABLE_cleanup_on_leave=true
     EOF
 
-    cp libexec/clusterware-key-manager "${cw_ROOT}"/libexec/share
+    cp libexec/* "${cw_ROOT}"/libexec/share
     chmod 0700 "${cw_ROOT}"/libexec/share/clusterware-key-manager
+    chmod 0700 "${cw_ROOT}"/libexec/share/nologin-control
     mkdir -p "${cw_ROOT}"/var/lib/event-periodic/scripts

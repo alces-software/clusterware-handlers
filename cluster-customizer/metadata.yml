@@ -59,3 +59,6 @@ install:
     alces service install alces-flight-www
     alces service install clusterware-customize
     alces service install tcping
+
+    cp libexec/* "${cw_ROOT}"/libexec/share
+    chmod 0700 "${cw_ROOT}"/libexec/share/connectivity-check
