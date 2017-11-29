@@ -1,5 +1,0 @@
----
-install:
-  _: |
-    alces handler enable taskable
-    alces session enable default
