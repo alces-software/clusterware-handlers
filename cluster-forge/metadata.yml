@@ -11,3 +11,17 @@ install:
         ;;
     esac
     alces service install forge
+    alces handler enable cluster-nfs
+    mkdir "/opt/forge"
+
+    cat <<EOF > "${cw_ROOT}"/etc/cluster-nfs.d/cluster-gridware-docker.rc
+    ################################################################################
+    ##
+    ## Alces Clusterware - Shell configuration
+    ## Copyright (c) 2017 Alces Software Ltd
+    ##
+    ################################################################################
+    if [ -d "/opt/forge" ]; then
+        cw_CLUSTER_NFS_exports="\${cw_CLUSTER_NFS_exports} /opt/forge"
+    fi
+    EOF
