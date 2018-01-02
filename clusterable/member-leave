@@ -74,6 +74,7 @@ _check_quoracy() {
 }
 
 _record_leave() {
+  if [ -x "${cw_ROOT}"/libexec/share/flight-recorder ]; then
     instance_id=$(member_find_tag aws_instanceid "${cw_MEMBER_tags}")
     if [ "${instance_id}" ]; then
         machine_type=$(member_find_tag aws_machinetype "${cw_MEMBER_tags}")
@@ -86,6 +87,7 @@ _record_leave() {
                         "${instance_id}" "${cw_MEMBER_role}" "${machine_type}"
         fi
     fi
+  fi
 }
 
 _prune_hosts() {

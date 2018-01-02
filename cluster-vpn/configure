@@ -53,7 +53,19 @@ main() {
         # If cluster-www handler is enabled we add in config so requests to
         # `/vpn/` will provide access to the VPN configuration files.
         if [ "$(network_get_edition)" != "community" ] && handler_is_enabled cluster-www; then
-            sed -e "s,_ROOT_,${cw_ROOT},g" \
+
+            # XXX This method of determining the URL to redirect to is
+            # duplicated from cluster-www/configure.  Figure out a way to
+            # remove this duplication.
+            local redirectUrl host
+            files_load_config --optional access
+            host="${cw_ACCESS_fqdn:-$(network_get_public_hostname)}"
+            redirectUrl=$(
+            echo "${cw_CLUSTER_WWW_redirect_url_template:-https://launch.alces-flight.com/cluster/_HOSTNAME_}" \
+                | sed -e "s,_HOSTNAME_,${host},g"
+            )
+
+            sed -e "s,_ROOT_,${cw_ROOT},g" -e "s,_REDIRECT_URL_,${redirectUrl},g" \
                 "${dir}"/etc/alces-flight-www/cluster-vpn.conf.template > \
                 "${cw_ROOT}"/etc/alces-flight-www/server-https.d/cluster-vpn.conf
             mkdir -p "${cw_ROOT}"/etc/alces-flight-www/auth
@@ -62,13 +74,9 @@ main() {
                  "${cw_ROOT}"/etc/alces-flight-www/auth/cluster-vpn.auth
             echo "cw_CLUSTER_VPN_access_password=\"${password}\"" >> "${cw_ROOT}"/etc/cluster-vpn.rc
 
-            "${cw_ROOT}"/libexec/share/www-add-resource "${dir}"/var/alces-flight-www/vpn
+            "${cw_ROOT}"/libexec/share/www-add-attributes "${dir}"/var/alces-flight-www/vpn/attributes.json.tpl
 
-            files_load_config cluster-vpn
-            if [ "${cw_CLUSTER_VPN_auth:-cert}" == "pam" ]; then
-                sed -i "${cw_ROOT}"/var/lib/alces-flight-www/flight/vpn/index.html \
-                    -e 's/<!--%PAM-ENABLED%//g' -e 's/%PAM-ENABLED%-->//g'
-            fi
+            mkdir -p "${cw_ROOT}/var/lib/alces-flight-www/flight/vpn"
             ln -s "${cw_ROOT}"/etc/openvpn/client "${cw_ROOT}/var/lib/alces-flight-www/flight/vpn/downloads"
         fi
     fi

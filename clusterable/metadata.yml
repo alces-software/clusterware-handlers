@@ -146,7 +146,7 @@ install:
             if [ "$cw_INSTANCE_role" == "master" ] || [[ "${cw_INSTANCE_tag_CLUSTER_ROLES}" == *":login:"* ]]; then
               "${cw_ROOT}"/libexec/share/banner "${cw_CLUSTER_name:-your cluster}" "${cw_VERSION}" "$(_cw_distro)"
             else
-              "${cw_ROOT}"/libexec/share/banner --short "${cw_CLUSTER_name:-your cluster}" "${cw_VERSON}" "$(_cw_distro)"
+              "${cw_ROOT}"/libexec/share/banner --short "${cw_CLUSTER_name:-your cluster}" "${cw_VERSION}" "$(_cw_distro)"
             fi
           fi
           if [[ "${cw_SETTINGS_skip_motd:-false}" == "false" && "$cw_INSTANCE_role" == "master" || "${cw_INSTANCE_tag_CLUSTER_ROLES}" == *":login:"* ]]; then

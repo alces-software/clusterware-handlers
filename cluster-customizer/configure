@@ -38,7 +38,7 @@ setup() {
 
 main() {
   files_load_config instance config/cluster
-  if [[ "${cw_INSTANCE_role}" == "master" ]] && handler_is_enabled cluster-www; then
+  if [[ "${cw_INSTANCE_role}" == "master" ]] && serviceware_is_installed alces-flight-www; then
     # Do some configuration of our own first!
     dir="$(handler_dir)"
 
@@ -54,7 +54,11 @@ main() {
         sed -e "s/_REGION_/${cw_INSTANCE_aws_region:-eu-west-1}/" \
             -e "s/_AWS_ACCOUNT_HASH_/${cw_INSTANCE_aws_account_hash}/" \
             -e "s#_SET_PREFIX_#${_SET_PREFIX}#" \
-          "${dir}/etc/cluster-customizer/config.yml" > "${cw_ROOT}/etc/cluster-customizer/config.yml"
+            "${dir}/etc/cluster-customizer/config.yml" > "${cw_ROOT}/etc/cluster-customizer/config.yml"
+        if [ "${cw_CLUSTER_CUSTOMIZER_bucket}" ]; then
+            sed -i -e "s,  account: .*,  account: ${cw_CLUSTER_CUSTOMIZER_bucket}/customizer,g" \
+                "${cw_ROOT}/etc/cluster-customizer/config.yml"
+        fi
       else
         sed -e "s/_REGION_/eu-west-1/" \
             -e "/_AWS_ACCOUNT_HASH_/d" \
@@ -81,5 +85,6 @@ setup
 require customize
 require files
 require handler
+require serviceware
 
 handler_tee main "$@"

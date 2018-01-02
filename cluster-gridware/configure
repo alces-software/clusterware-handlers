@@ -101,6 +101,30 @@ EOF
     fi
 }
 
+_create_docker_ssl_cert() {
+  # 'just in case' a Docker repository is started on this node we should have
+  # a self-signed certificate ready to go, so that compute nodes can have installed
+  # it beforehand, and have their Docker daemons Just Work with it.
+
+  require naming
+  files_load_config config config/cluster
+
+  mkdir -p "${cw_GRIDWARE_root}/docker/certificates/private"
+  mkdir -p "${cw_GRIDWARE_root}/docker/certificates/public/${cw_CLUSTER_hostname}:5000"
+
+  naming_issue_self_signed_cert "$cw_CLUSTER_hostname" \
+    "Alces Flight Gridware Docker repository" \
+    "${cw_GRIDWARE_root}/docker/certificates/private"
+
+  cp "${cw_GRIDWARE_root}/docker/certificates/private/cert.pem" \
+     "${cw_GRIDWARE_root}/docker/certificates/public/${cw_CLUSTER_hostname}:5000/ca.crt"
+}
+
+_install_docker_ssl_cert() {
+  mkdir -p /etc/docker/
+  ln -s "${cw_GRIDWARE_root}/docker/certificates/public" /etc/docker/certs.d
+}
+
 main() {
     local admin_uid
 
@@ -127,11 +151,22 @@ main() {
             echo -e "Gridware Data\nhttps://${cw_GRIDWARE_s3_host}/${cw_GRIDWARE_s3_bucket}/data\n" | \
                 "${_ALCES}" storage configure --system gridware-data http
         fi
+
+        _create_docker_ssl_cert
+    else
+        _install_docker_ssl_cert
     fi
 
     # add admin user to gridware group
     admin_uid=$(grep "^UID_MIN " /etc/login.defs | awk '{ print $2 };')
     usermod -G gridware -a "$(id -gn ${admin_uid:-1000})"
+    if [ "${cw_INSTANCE_role}" == "master" ] && [ -d ${cw_GRIDWARE_root} ] && [ ! -f ${cw_GRIDWARE_root}/etc/whitelist.yml ]; then
+      # and add them to Gridware's userspace whitelist, if no whitelist currently exists
+      cat <<EOF >${cw_GRIDWARE_root}/etc/whitelist.yml
+:users:
+- $(id -un ${admin_uid:-1000})
+EOF
+fi
 }
 
 setup

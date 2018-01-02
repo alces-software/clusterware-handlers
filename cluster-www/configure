@@ -21,6 +21,16 @@ setup() {
     kernel_load
 }
 
+_install_nginx_conf() {
+  local srcname target tgtname
+  srcname="$1"
+  target="$2"
+  tgtname="${3:-${srcname}}"
+  sed -e "s,_ROOT_,${cw_ROOT},g" \
+    "$(handler_dir)"/${srcname}.conf.tpl \
+    > "${cw_ROOT}"/etc/alces-flight-www/${target}.d/${tgtname}.conf
+}
+
 _handle_port() {
     local scheme enabled port alt_port_base
     scheme="$1"
@@ -42,14 +52,36 @@ _handle_port() {
 }
 
 _update_dynamic_values() {
-    local host
+    local host ipAddress tmpfile redirectUrl
     files_load_config --optional access
+    files_load_config --optional cluster-www
     host="${cw_ACCESS_fqdn:-$(network_get_public_hostname)}"
-    # dynamic values (per-boot)
-    sed -i -e "s,<!-- _HOSTNAME_ -->.*<!-- /_HOSTNAME_ -->,<!-- _HOSTNAME_ -->${host}<!-- /_HOSTNAME_ -->,g" \
-        -e "s,<!-- _IP_ -->.*<!-- /_IP_ -->,<!-- _IP_ -->$(network_get_public_address)<!-- /_IP_ -->,g" \
-        "${cw_ROOT}"/var/lib/alces-flight-www/flight/index.html
+    ipAddress="$(network_get_public_address)"
 
+    tmpfile="$(mktemp /tmp/cluster-www.XXXXXXXX)"
+
+    # dynamic values (per-boot)
+    $_JQ --arg host $host --arg ipAddress $ipAddress \
+        '.data.attributes.hostname = $host | .data.attributes.ipAddress = $ipAddress' \
+	"${cw_ROOT}"/var/lib/alces-flight-www/flight/www/index.json \
+	> ${tmpfile}
+    chmod a+r "${tmpfile}"
+    mv ${tmpfile} "${cw_ROOT}"/var/lib/alces-flight-www/flight/www/index.json
+
+    _install_nginx_conf cluster-www server-http
+    _install_nginx_conf cluster-www server-https
+    _install_nginx_conf redirect-https-to-launch-service server-https
+
+
+    # XXX This method of determining the URL to redirect to is duplicated in
+    # cluster-vpn/configure.  Figure out a way to remove the duplication.
+    # Perhaps a script similar to `www-add-attributes` is the way to go.
+    redirectUrl=$(
+        echo "${cw_CLUSTER_WWW_redirect_url_template:-https://launch.alces-flight.com/cluster/_HOSTNAME_}" \
+        | sed -e "s,_HOSTNAME_,${host},g"
+    )
+    sed -i -e "s,_REDIRECT_URL_,${redirectUrl},g" \
+        "${cw_ROOT}"/etc/alces-flight-www/server-https.d/redirect-https-to-launch-service.conf
 }
 
 main() {
@@ -61,17 +93,10 @@ main() {
         exit 0
     fi
 
-    mkdir -p "${cw_ROOT}"/var/lib/alces-flight-www/flight
+    mkdir -p "${cw_ROOT}"/var/lib/alces-flight-www/flight/www
     edition="$(network_get_edition)"
-    if [ ! -d "$(handler_dir)"/sites/${edition} ]; then
-        edition="community"
-    fi
-    cp -R "$(handler_dir)"/sites/${edition}/* "${cw_ROOT}"/var/lib/alces-flight-www/flight
     if [ "${edition}" == "professional" ]; then
-        cp -R "$(handler_dir)"/sites/professional/* "${cw_ROOT}"/var/lib/alces-flight-www/flight
-        mkdir -p "${cw_ROOT}"/etc/alces-flight-www/templates
-        cp "$(handler_dir)"/etc/templates/* "${cw_ROOT}"/etc/alces-flight-www/templates
-        cp "$(handler_dir)"/libexec/www-add-resource "${cw_ROOT}"/libexec/share/www-add-resource
+        cp "$(handler_dir)"/libexec/www-add-attributes "${cw_ROOT}"/libexec/share/www-add-attributes
     fi
 
     mkdir -p "${cw_ROOT}/etc/config/cluster-www"
@@ -129,6 +154,7 @@ main() {
 ##
 ################################################################################
 EOF
+
     host="${cw_ACCESS_fqdn:-$(network_get_public_hostname)}"
     if [ "${cw_ALCES_FLIGHT_WWW_https_enabled:-true}" == "true" ]; then
         echo "cw_META_www_https_desc=\"HTTPS access point\"" >> "${cw_ROOT}"/etc/meta.d/www.rc
@@ -149,14 +175,20 @@ EOF
              "${cw_ROOT}"/etc/alces-flight-www/server-https.d/document-root.conf
     fi
 
-    # Update the site with configuration values
+    # Create the response document with configuration values.
+    local host
     files_load_config clusterware
     files_load_config --optional flight
 
-    sed -i -e "s,_CLUSTERNAME_,${cw_CLUSTER_name},g" \
-        -e "s/_RELEASE_/${cw_FLIGHT_release:-${cw_VERSION}}/g" \
-        -e "s,_ROOT_,${cw_ROOT},g" \
-        "${cw_ROOT}"/var/lib/alces-flight-www/flight/index.html
+    $_JO -p data=$( $_JO \
+        id=${cw_CLUSTER_uuid} \
+        type="clusters" \
+        attributes=$( $_JO \
+            clusterName="${cw_CLUSTER_name}" \
+            edition="${edition}" \
+            flightRelease="${cw_FLIGHT_release:-${cw_VERSION}}"
+        )
+    ) > "${cw_ROOT}"/var/lib/alces-flight-www/flight/www/index.json
 
     _update_dynamic_values
 }
@@ -168,5 +200,7 @@ require network
 require distro
 
 _ALCES="${cw_ROOT}"/bin/alces
+_JO="${cw_ROOT}"/opt/jo/bin/jo
+_JQ="${cw_ROOT}"/opt/jq/bin/jq
 
 handler_tee main "$@"

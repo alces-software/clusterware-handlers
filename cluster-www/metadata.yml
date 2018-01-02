@@ -2,4 +2,15 @@
 install:
   _: |
     alces service install alces-flight-www
+
+    cat <<EOF > "${cw_ROOT}"/etc/cluster-www.rc
+    ################################################################################
+    ##
+    ## Alces Clusterware - Shell configuration
+    ## Copyright (c) 2016-2017 Alces Software Ltd
+    ##
+    ################################################################################
+    cw_CLUSTER_WWW_redirect_url_template=https://launch.alces-flight.com/cluster/_HOSTNAME_
+    EOF
+
 order: 50

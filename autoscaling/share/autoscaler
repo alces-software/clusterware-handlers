@@ -151,6 +151,19 @@ dereference_group_label() {
   fi
 }
 
+label_from_group() {
+  local label group
+  group="$1"
+  for label in "${cw_ROOT}/etc/config/autoscaling/by-label"/*; do
+    label_group=$(basename `readlink "${label}"`)
+    if [ "${label_group}" == "${group}" ]; then
+        echo "$(basename "${label}")"
+        return 0
+    fi
+  done
+  return 1
+}
+
 main() {
   if files_load_config instance config/cluster; then
     if [ "${cw_INSTANCE_autoscaling}" != "disabled" ]; then

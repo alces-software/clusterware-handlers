@@ -2,16 +2,16 @@
 ################################################################################
 ##
 ## Alces Clusterware - Handler support script
-## Copyright (C) 2016 Stephen F. Norledge and Alces Software Ltd.
+## Copyright (C) 2017 Stephen F. Norledge and Alces Software Ltd.
 ##
 ################################################################################
 
-# This file contains autoscaling functions for AWS. Function names should all
-# begin with 'aws-' and provide the required interface:
-# - aws_configure
-# - aws_unexhausted_nodes
-# - aws_shoot_node
-# - aws_scale_out
+# This file contains autoscaling functions for managed autoscaling. Function names should all
+# begin with 'managed_' and provide the required interface:
+# - managed_configure
+# - managed_unexhausted_nodes
+# - managed_shoot_node
+# - managed_scale_out
 
 setup() {
   local a xdg_config
@@ -33,13 +33,8 @@ setup() {
   _ALCES="${cw_ROOT}"/bin/alces
 }
 
-_detect_autoscaling() {
-    "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-              autoscaling describe-auto-scaling-groups &>/dev/null
-}
-
-aws_configure() {
-  local aws_tags tags tmpfile
+managed_configure() {
+  local aws_tags tags tmpfile group label
 
   files_load_config config config/cluster
 
@@ -47,31 +42,15 @@ aws_configure() {
 
   # Ensure aws serviceware is installed.
   "${_ALCES}" service install aws
-
-  if [ "${cw_INSTANCE_aws_autoscaling}" == "autodetect" ]; then
-      if _detect_autoscaling; then
-          echo "Autoscaling detected as enabled"
-          sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=enabled/' \
-              "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
-      else
-          echo "Autoscaling detected as disabled"
-          sed -i -e 's/^cw_INSTANCE_aws_autoscaling=.*/cw_INSTANCE_aws_autoscaling=disabled/' \
-              "${cw_ROOT}"/etc/config/cluster/instance-aws.rc
-
-          # We need to make the following change in both files
-          sed -i -e 's/^cw_INSTANCE_autoscaling=.*/cw_INSTANCE_autoscaling=disabled/' \
-              "${cw_ROOT}"/etc/config/cluster/instance.rc
-          sed -i -e 's/^cw_INSTANCE_autoscaling=.*/cw_INSTANCE_autoscaling=disabled/' \
-              "${cw_ROOT}"/etc/config/cluster/instance.vars.sh
-      fi
-  fi
+  # Ensure autoscaling serviceware is installed.
+  "${_ALCES}" service install clusterware-compute
 
   # Set serf tags containing:
   #  - instance creation time
   #  - autoscaling group name (if available)
   tags=(tags[aws_ctime]=${cw_INSTANCE_aws_ctime})
 
-  tmpfile="$(mktemp /tmp/autoscaling-aws-configure.XXXXXXXX)"
+  tmpfile="$(mktemp /tmp/autoscaling-managed-configure.XXXXXXXX)"
 
   aws_tags=$("${_AWS}" --region "${cw_INSTANCE_aws_region}" \
                     ec2 describe-tags \
@@ -112,7 +91,7 @@ RUBY
   "${_JO}" "${tags[@]}" > "${cw_ROOT}"/etc/serf/tags-autoscaling.json
 }
 
-aws_unexhausted_nodes() {
+managed_unexhausted_nodes() {
   # An AWS node is "exhausted" if we've used up more than 53 minutes of its
   # billing hour.
   local node nodelist ctime
@@ -132,31 +111,27 @@ RUBY
   done
 }
 
-aws_shoot_node() {
-  local aws_exit_code node instanceid group
+managed_shoot_node() {
+  local node instanceid group group_label shoot_exit_code
   node="$1"
   group="$2"
   instanceid=$(member_get_member_tag "${node}" "aws_instanceid")
-
-  # scale in the capacity
-  log "[autoscaler:shoot] Shooting node ${instanceid} in group ${group}"
-  set -o pipefail
-  "${cw_ROOT}"/opt/aws/bin/aws --region "${cw_INSTANCE_aws_region}" \
-  autoscaling terminate-instance-in-auto-scaling-group \
-  --instance-id ${instanceid} \
-  --should-decrement-desired-capacity 2>&1 | _log_blob "autoscaling:aws"
-  aws_exit_code=$?
-  # This will fail if we try and take the group below its minimum capacity.
-  # We could try to detect that scenario in advance and not try to terminate the
-  # node but we'd need to make an AWS API call to do so e.g. we don't win, and
-  # in many cases we'd make one more call than is needed now.
-  # The drawback to this approach is that logs from unloaded clusters will
-  # record AWS errors every time scale-in is run.
-  set +o pipefail
-  return ${aws_exit_code}
+  if ! group_label=$(label_from_group "$group"); then
+      log "[autoscaler:managed-shoot] Unable to determine label for group ${group}"
+      return 1
+  else
+    # scale in the capacity
+    log "[autoscaler:managed-shoot] Shooting node ${instanceid} in queue ${group_label}"
+    # call out to managed to remove the node from the group
+    set -o pipefail
+    ${_ALCES} compute shoot "${group_label}" "${instanceid}" 2>&1 | _log_blob "managed-shoot"
+    shoot_exit_code=$?
+    set +o pipefail
+    return ${shoot_exit_code}
+  fi
 }
 
-aws_scale_out() {
+managed_scale_out() {
   local cores_per_node group_name group_entry group_label group_label_as_env_var tmpfile
   local nodes_req_var nodes_req
   local current current_max current_desired
@@ -164,7 +139,7 @@ aws_scale_out() {
   tmpfile="$(mktemp /tmp/autoscaler.XXXXXXXX)"
 
   if [ ! -d  ${cw_ROOT}/etc/config/autoscaling/by-label ] || [ ! "$(ls -A "${cw_ROOT}/etc/config/autoscaling/by-label")" ]; then
-    log "[autoscaler:aws-scale-out] No autoscaling groups to scale out."
+    log "[autoscaler:managed-scale-out] No autoscaling groups to scale out."
     return 0
   fi
 
@@ -175,7 +150,7 @@ aws_scale_out() {
     cores_per_node="$(_cores_for_group $group_name)"
     nodes_req=0
     for scheduler in "${_SCHEDULERS[@]}"; do
-      log "[autoscaler:aws-scale-out] Retrieving job state data for scheduler ${scheduler} in queues for $group_label"
+      log "[autoscaler:managed-scale-out] Retrieving job state data for scheduler ${scheduler} in queues for $group_label"
       ${scheduler}_parse_job_states "${tmpfile}" "${cores_per_node}"
       # cat "${tmpfile}" | _log_blob "metrics" # This makes logs very noisy but is useful for development/debugging
       . "${tmpfile}"
@@ -183,40 +158,13 @@ aws_scale_out() {
       nodes_req_var="${scheduler}_queue_${group_label_as_env_var}_nodes_req"
       nodes_req=$((${nodes_req:-0}+${!nodes_req_var:-0}))
     done
-    log "[autoscaler:aws-scale-out] Autoscaling group $group_label ($group_name) has demand for $nodes_req nodes"
+    log "[autoscaler:managed-scale-out] Autoscaling group $group_label ($group_name) has demand for $nodes_req nodes"
 
     if [[ "$nodes_req" -gt 0 ]]; then
+        log "[autoscaler:managed-scale-out] Requesting capacity for ${nodes_req}"
 
-      current=$(
-        "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-          autoscaling describe-auto-scaling-groups \
-          --query 'AutoScalingGroups[*].{MinSize:MinSize,MaxSize:MaxSize,Desired:DesiredCapacity}' \
-          --auto-scaling-group-name "$group_name"
-      )
-
-      current_max=$(echo "$current" | grep -Po "(?<=MaxSize\": )[0-9]+")
-      current_desired=$(echo "$current" | grep -Po "(?<=Desired\": )[0-9]+")
-
-      if [[ "$nodes_req" -gt "$current_desired" ]]; then
-        # Only ever *increase* the desired size here. Decreasing the group size
-        # is handled by terminating nodes on scale-in (which maximises runtime
-        # within AWS accounting hours).
-
-        # We launch as many nodes as needed to meet demand, up to the max for the
-        # group. We might want to make this configurable later e.g. just increment
-        # desired capacity by 1 to be more conservative.
-
-        if [[ "$nodes_req" -gt "$current_max" ]]; then
-          log "[autoscaler:aws-scale-out] Demand exceeds maximum group size, limiting to ${current_max}"
-          nodes_req=$current_max
-        fi
-
-        log "[autoscaler:aws-scale-out] Changing desired capacity from ${current_desired} to ${nodes_req}"
-        "${_AWS}" --region "${cw_INSTANCE_aws_region}" \
-          autoscaling set-desired-capacity \
-          --auto-scaling-group-name $group_name \
-          --desired-capacity $nodes_req
-      fi
+        # Satisfy demand with $nodes_req for $group_label
+        ${_ALCES} compute expand "${group_label}" "${nodes_req}" 2>&1 | _log_blob "managed-shoot"
     fi
   done
 

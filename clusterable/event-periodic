@@ -47,7 +47,9 @@ EOF
 
 main() {
     files_load_config --optional instance-aws config/cluster
-    "${cw_ROOT}"/libexec/share/flight-recorder ping
+    if [ -x "${cw_ROOT}"/libexec/share/flight-recorder ]; then
+      "${cw_ROOT}"/libexec/share/flight-recorder ping
+    fi
     if files_load_config --optional instance-aws-iam config/cluster; then
        _refresh_iam_role_credentials
     fi

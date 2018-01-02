@@ -48,9 +48,9 @@ install:
     require files
     if files_load_config --optional cluster-customizer; then
       if files_load_config --optional instance-aws config/cluster; then
-        default_bucket="s3://alces-flight-${cw_INSTANCE_aws_account_hash}/customizer"
+        default_bucket="s3://alces-flight-${cw_INSTANCE_aws_account_hash}"
       fi
-      cw_META_customizer_s3path="${cw_CLUSTER_CUSTOMIZER_bucket:-${default_bucket}}"
+      cw_META_customizer_s3path="${cw_CLUSTER_CUSTOMIZER_bucket:-${default_bucket}}/customizer"
       cw_META_customizer_s3path_desc="Customizer bucket prefix"
       unset default_bucket
     fi
