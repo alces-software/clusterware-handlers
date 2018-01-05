@@ -50,12 +50,12 @@ main() {
         dir="$(handler_dir)"
         cp "${dir}"/etc/meta.vpn.rc "${cw_ROOT}"/etc/meta.d/vpn.rc
 
-        # If cluster-www handler is enabled we add in config so requests to
+        # If flight-www handler is enabled we add in config so requests to
         # `/vpn/` will provide access to the VPN configuration files.
-        if [ "$(network_get_edition)" != "community" ] && handler_is_enabled cluster-www; then
+        if [ "$(network_get_edition)" != "community" ] && handler_is_enabled flight-www; then
 
             # XXX This method of determining the URL to redirect to is
-            # duplicated from cluster-www/configure.  Figure out a way to
+            # duplicated from flight-www/configure.  Figure out a way to
             # remove this duplication.
             local redirectUrl host
             files_load_config --optional access
