@@ -84,7 +84,7 @@ cw_INSTANCE_autoscaling=${autoscaling_engine}
 EOF
         _write_iam_role_credentials
 
-        cp "$(handler_dir)"/etc/meta.aws.rc "${cw_ROOT}"/etc/meta.d/aws.rc
+        cp "$(handler_dir)"/share/meta.aws.rc "${cw_ROOT}"/etc/meta.d/aws.rc
         tags=(tags[aws_instanceid]=${instanceid})
         tags+=(tags[aws_machinetype]=${machine_type})
         echo "Setting EC2 tags: ${tags[@]}"
