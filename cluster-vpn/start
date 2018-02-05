@@ -103,7 +103,7 @@ _write_archives() {
     cp -R clusterware "${workdir}"/zip
     mv "${workdir}"/zip/clusterware/client.conf "${workdir}"/zip/clusterware/client.ovpn
     cd "${workdir}"/zip
-    zip -r clusterware-openvpn.zip clusterware
+    zip -r "${cw_ROOT}"/etc/openvpn/client/clusterware-openvpn.zip clusterware
 
     tblk_name="Alces Clusterware - ${cw_CLUSTER_name}".tblk
     mkdir "${workdir}"/"${tblk_name}"
