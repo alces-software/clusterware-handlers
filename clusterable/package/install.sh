@@ -10,16 +10,13 @@ fi
 
 cp -R data/* "${cw_ROOT}"
 
-grep -e "s/%_CW_DISTRO_%/${cw_DISTRO}/g" "${cw_ROOT}"/etc/profile.d/10-clusterable.sh.template > "${cw_ROOT}"/etc/profile.d/10-clusterable.sh
+sed -e "s/%_CW_DISTRO_%/${cw_DISTRO}/g" "${cw_ROOT}"/etc/profile.d/10-clusterable.sh.template > "${cw_ROOT}"/etc/profile.d/10-clusterable.sh
 rm "${cw_ROOT}"/etc/profile.d/10-clusterable.sh.template
 
 chmod 0700 "${cw_ROOT}"/libexec/share/clusterware-key-manager
 chmod 0700 "${cw_ROOT}"/libexec/share/nologin-control
 mkdir -p "${cw_ROOT}"/var/lib/event-periodic/scripts
 
-echo "Running preconfigure hook..." > /var/log/clusterware/clusterable.log
-"${cw_ROOT}"/etc/handlers/clusterable/preconfigure >> /var/log/clusterware/clusterable.log
-echo "Running start hook..." >> /var/log/clusterware/clusterable.log
-"${cw_ROOT}"/etc/handlers/clusterable/start >> /var/log/clusterware/clusterable.log
-echo "Running node-started hook..." >> /var/log/clusterware/clusterable.log
-"${cw_ROOT}"/etc/handlers/clusterable/node-started >> /var/log/clusterware/clusterable.log
+"${cw_ROOT}"/etc/handlers/00-clusterable/preconfigure >> /var/log/clusterware/clusterable.log
+"${cw_ROOT}"/etc/handlers/00-clusterable/start >> /var/log/clusterware/clusterable.log
+"${cw_ROOT}"/etc/handlers/00-clusterable/node-started >> /var/log/clusterware/clusterable.log
