@@ -1,0 +1,14 @@
+{
+  "type": "packages",
+  "attributes": {
+    "name": "cluster-vpn",
+    "version": "0.0.1",
+    "summary": "Clusterware VPN handler",
+    "username": "alces",
+    "dependencies": [
+      "alces/clusterable-events-aws",
+      "alces/clusterware-events",
+      "alces/openvpn"
+    ]
+  }
+}
