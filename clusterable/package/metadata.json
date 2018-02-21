@@ -6,6 +6,7 @@
     "summary": "Clusterware services for handling a cluster of nodes",
     "dependencies": [
       "alces/clusterware-events",
+      "alces/clusterware-hosts",
       "alces/serf"
     ],
 "username": "alces"
