@@ -40,11 +40,6 @@ managed_configure() {
 
   echo "Instance is running on EC2; configuring for autoscaling"
 
-  # Ensure aws serviceware is installed.
-  "${_ALCES}" service install aws
-  # Ensure autoscaling serviceware is installed.
-  "${_ALCES}" service install clusterware-compute
-
   # Set serf tags containing:
   #  - instance creation time
   #  - autoscaling group name (if available)

@@ -45,9 +45,6 @@ aws_configure() {
 
   echo "Instance is running on EC2; configuring for autoscaling"
 
-  # Ensure aws serviceware is installed.
-  "${_ALCES}" service install aws
-
   if [ "${cw_INSTANCE_aws_autoscaling}" == "autodetect" ]; then
       if _detect_autoscaling; then
           echo "Autoscaling detected as enabled"
