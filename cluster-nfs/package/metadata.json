@@ -6,6 +6,8 @@
     "summary": "Cluster event handlers for NFS shares",
     "username": "alces",
     "dependencies": [
+      "alces/clusterware-events",
+      "alces/clusterable-events-aws"
     ]
   }
 }
