@@ -23,6 +23,7 @@ setup() {
 
 _setup_certs() {
     export HOME="${HOME:-/root}"
+    mkdir -p "${cw_ROOT}"/etc/openvpn/clusterware/
     openssl dhparam -out "${cw_ROOT}"/etc/openvpn/clusterware/dh1024.pem -2 1024
     ruby_exec "$(handler_dir)"/share/generate-certs "${cw_CLUSTER_name:-mycluster}" \
       "${cw_ROOT}/etc/openvpn/clusterware"
@@ -41,7 +42,6 @@ main() {
     files_load_config instance config/cluster
 
     if [[ "${cw_INSTANCE_role}" == "master" ]]; then
-        "${cw_ROOT}"/bin/alces service enable openvpn
         files_load_config config config/cluster
         _setup_certs
         cp "${cw_ROOT}"/etc/openvpn/clusterware/ca.crt.pem "${cw_ROOT}"/etc/openvpn/client/clusterware
