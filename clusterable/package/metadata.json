@@ -2,7 +2,7 @@
   "type": "packages",
   "attributes": {
     "name": "clusterable-events-aws",
-    "version": "2018.1.0",
+    "version": "2.0.0-dev",
     "summary": "Clusterware services for handling a cluster of nodes",
     "dependencies": [
       "alces/clusterware-events",
