@@ -1,6 +1,6 @@
 #!/bin/bash
 
-package_name='cluster-vpn'
+package_name='cluster-vpn-aws'
 
 if [ -f ./${package_name}.zip ]; then
   echo "Replacing existing ${package_name}.zip in this directory"

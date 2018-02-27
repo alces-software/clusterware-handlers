@@ -1,9 +1,9 @@
 {
   "type": "packages",
   "attributes": {
-    "name": "cluster-vpn",
+    "name": "cluster-vpn-aws",
     "version": "2.0.0-dev",
-    "summary": "Clusterware VPN handler",
+    "summary": "Clusterware VPN handler for AWS clusters",
     "username": "alces",
     "dependencies": [
       "alces/clusterable-events-aws",
