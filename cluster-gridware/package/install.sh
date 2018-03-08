@@ -30,4 +30,8 @@ sa-east-1: us-east-1
 ca-central-1: us-east-1
 EOF
 
-"${cw_ROOT}"/etc/handlers/cluster-gridware/configure
+if [ ! -d "${cw_ROOT}/etc/config/cluster" ]; then
+  echo "Cluster not yet configured. Deferring Gridware configuration until next boot."
+else
+  "${cw_ROOT}"/etc/handlers/cluster-gridware/configure
+fi

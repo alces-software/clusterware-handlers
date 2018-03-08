@@ -19,4 +19,8 @@ fi
 
 mkdir -p "${cw_ROOT}"/etc/cluster-nfs.d
 
-${cw_ROOT}/etc/handlers/10-cluster-nfs/configure
+if [ ! -d "${cw_ROOT}/etc/config/cluster" ]; then
+  echo "Cluster not yet configured. Deferring NFS configuration until next boot."
+else
+  ${cw_ROOT}/etc/handlers/10-cluster-nfs/configure
+fi

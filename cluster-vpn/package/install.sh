@@ -10,5 +10,9 @@ fi
 
 cp -R data/* "${cw_ROOT}"
 
-"${cw_ROOT}"/etc/handlers/cluster-vpn/configure
-"${cw_ROOT}"/etc/handlers/cluster-vpn/start
+if [ ! -d "${cw_ROOT}/etc/config/cluster" ]; then
+  echo "Cluster not yet configured. Deferring VPN configuration until next boot."
+else
+  "${cw_ROOT}"/etc/handlers/cluster-vpn/configure
+  "${cw_ROOT}"/etc/handlers/cluster-vpn/start
+fi
