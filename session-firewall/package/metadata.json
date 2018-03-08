@@ -1,0 +1,15 @@
+{
+  "type": "packages",
+  "attributes": {
+    "name": "session-firewall-aws",
+    "version": "2.0.0-dev",
+    "summary": "Firewall rules for Clusterware sessions on AWS clusters",
+    "username": "alces",
+    "dependencies": [
+      "alces/clusterable-events-aws",
+      "alces/clusterware-events",
+      "alces/cluster-firewall-aws",
+      "alces/clusterware-sessions"
+    ]
+  }
+}
