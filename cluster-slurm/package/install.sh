@@ -1,11 +1,12 @@
 #!/bin/bash
 require files
-files_load_config distro
-
-if [[ "$cw_DIST" == "el6" || "$cw_DIST" == "el7" ]]; then
-  #yum install -y -e0 <RPM dependencies>
-elif [[ "$cw_DIST" == "ubuntu1604" ]]; then
-  #apt-get install -y <DEB dependencies>
-fi
+require member
 
 cp -R data/* "${cw_ROOT}"
+
+if [ ! -d "${cw_ROOT}/etc/config/cluster" ]; then
+  echo "Cluster not yet configured. Deferring Slurm configuration until next boot."
+else
+  "${cw_ROOT}/etc/handlers/cluster-slurm/configure"
+  member_each "${cw_ROOT}/etc/handlers/cluster-slurm/member-join"
+fi
