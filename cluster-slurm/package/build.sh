@@ -1,6 +1,6 @@
 #!/bin/bash
 
-package_name='slurm-handlers-aws'
+package_name='slurm-events-aws'
 
 if [ -f ./${package_name}.zip ]; then
   echo "Replacing existing ${package_name}.zip in this directory"
