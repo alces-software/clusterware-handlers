@@ -50,15 +50,8 @@ _configure_slurm() {
 
     files_load_config instance config/cluster
 
-    # Enable service components based on node's role(s).
-    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
-        echo "Instance is Slurm control node"
-        "${_ALCES}" forge install alces/slurm-master
-    fi
-
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
-        echo "Instance is Slurm compute node"
-        "${_ALCES}" forge install alces/slurm-compute
+        echo "Instance is Slurm compute node, writing node resource tags"
         handler_add_libdir "${cw_ROOT}"/var/lib/scheduler
         require slurm
         slurm_write_node_resources "${cw_ROOT}/etc/serf/tags-node-resources.json"
