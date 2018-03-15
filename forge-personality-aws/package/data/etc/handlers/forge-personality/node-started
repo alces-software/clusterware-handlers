@@ -42,10 +42,15 @@ RUBY
   if [ ! -z "$scheduler" ]; then
     echo "Installing requested scheduler: ${scheduler}"
     files_load_config instance config/cluster
-    if [ "${cw_INSTANCE_role}" == "master" ]; then
-        "${_ALCES}" forge install "alces/${scheduler}-master"
-    elif ["${cw_INSTANCE_role}" == "compute" ]; then
-        "${_ALCES}" forge install "alces/${scheduler}-compute"
+
+    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
+      echo "Installing ${scheduler}-master configuration"
+      "${_ALCES}" forge install "alces/${scheduler}-master"
+    fi
+
+    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
+      echo "Installing ${scheduler}-compute configuration"
+      "${_ALCES}" forge install "alces/${scheduler}-compute"
     fi
 
     "${_ALCES}" forge install "alces/${scheduler}-events-aws"
