@@ -53,7 +53,7 @@ def log(message)
 end
 
 def run(*args)
-  IO.popen(*args, :err=>[:child, :out]]) do |io|
+  IO.popen(*args, :err=>[:child, :out]) do |io|
     log(io.readline) until io.eof?
   end
 end
@@ -70,7 +70,7 @@ begin
         software['gridware'].each do |pkg|
           log("Installing package: #{pkg}")
           run(['${_ALCES}', 'gridware', 'install',
-                    '--yes', pkg)
+                    '--yes', pkg])
         end
       end
 

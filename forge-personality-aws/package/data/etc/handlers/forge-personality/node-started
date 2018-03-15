@@ -43,12 +43,12 @@ RUBY
     echo "Installing requested scheduler: ${scheduler}"
     files_load_config instance config/cluster
     if [ "${cw_INSTANCE_role}" == "master" ]; then
-        $_ALCES forge install "alces/${scheduler}-master"
+        "${_ALCES}" forge install "alces/${scheduler}-master"
     elif ["${cw_INSTANCE_role}" == "compute" ]; then
-        $_ALCES forge install "alces/${scheduler}-compute"
+        "${_ALCES}" forge install "alces/${scheduler}-compute"
     fi
 
-    $_ALCES forge install "alces/${scheduler}-events-aws"
+    "${_ALCES}" forge install "alces/${scheduler}-events-aws"
 
   else
     echo "No scheduler specified in personality.yml."
@@ -74,7 +74,7 @@ RUBY
 
   for package in $packages; do
     echo "Installing requested package ${package}"
-    $_ALCES forge install "${package}"
+    "${_ALCES}" forge install "${package}"
   done
 }
 
@@ -104,6 +104,6 @@ require files
 require handler
 require ruby
 
-_ALCES = "${cw_ROOT}/bin/alces"
+_ALCES="${cw_ROOT}"/bin/alces
 
 handler_tee main "$@"
