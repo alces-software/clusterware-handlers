@@ -9,7 +9,7 @@
 . $(dirname ${BASH_SOURCE[-1]})/common
 
 name="$1"
-slots="$2"
+slots="${2:-1}"
 mem_mib="$3"
 state="$4"
 
