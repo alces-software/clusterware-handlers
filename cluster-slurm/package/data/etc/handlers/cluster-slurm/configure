@@ -55,6 +55,8 @@ _configure_slurm() {
         handler_add_libdir "${cw_ROOT}"/var/lib/scheduler
         require slurm
         slurm_write_node_resources "${cw_ROOT}/etc/serf/tags-node-resources.json"
+        require distro
+        distro_restart_service clusterware-serf
     fi
 }
 
