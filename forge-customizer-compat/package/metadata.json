@@ -1,0 +1,16 @@
+{
+  "type": "packages",
+  "attributes": {
+    "name": "forge-customizer-compat",
+    "version": "2.0.0-dev",
+    "summary": "Account customization profile support for Forge-based clusters",
+    "username": "alces",
+    "dependencies": [
+      "alces/clusterware-events",
+      "alces/clusterable-events-aws",
+      "alces/tcping",
+      "alces/aws",
+      "alces/s3cmd"
+    ]
+  }
+}
