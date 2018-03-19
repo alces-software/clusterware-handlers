@@ -43,13 +43,11 @@ setup() {
 
 main() {
     customize_run_hooks event-periodic | log_blob /var/log/clusterware/customizer-periodic-events.log
-    job_queue_process_queues "$@" | log_blob /var/log/clusterware/job-queue.log
 }
 
 setup
 require files
 require handler
 require customize
-require job-queue
 
 handler_tee main "$@"
