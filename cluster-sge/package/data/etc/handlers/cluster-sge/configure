@@ -27,7 +27,6 @@ _configure_gridscheduler() {
     require gridscheduler
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
         echo "Instance is GridScheduler qmaster"
-        "${cw_ROOT}"/bin/alces service enable gridscheduler/qmaster
         files_load_config --optional scheduler config/cluster
         if [ "${cw_SCHEDULER_allocation}" ]; then
             if [ "${cw_SCHEDULER_allocation}" == "autodetect" ]; then
@@ -60,8 +59,10 @@ _configure_gridscheduler() {
     fi
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
         echo "Instance is GridScheduler exec host"
-        "${cw_ROOT}"/bin/alces service enable gridscheduler/execd
         gridscheduler_write_node_resources "${cw_ROOT}/etc/serf/tags-node-resources.json"
+
+        require distro
+        distro_restart_service clusterware-serf
     fi
 }
 
@@ -79,7 +80,6 @@ main() {
 }
 
 setup
-require ruby
 require handler
 require files
 

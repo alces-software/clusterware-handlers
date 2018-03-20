@@ -34,6 +34,8 @@ main() {
         slots=$(member_find_tag "slots" "${cw_MEMBER_tags}")
         vmem_gb=$(member_find_tag "ram_gb" "${cw_MEMBER_tags}")
 
+        slots=${slots:-1}  # If no slots specified, default to 1
+
         if [[ "${scheduler_roles}" == *":compute:"* || "${scheduler_roles}" == *":submit:"* ]]; then
             # Wait for a short while to ensure that the addition of
             # the name to /etc/hosts percolates through to SGEs name
