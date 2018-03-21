@@ -53,7 +53,8 @@ main() {
             fi
 
             log "Setting act_qmaster name to: ${master_name}" "${cw_CLUSTER_SGE_log}"
-            echo "${master_name}" > ${cw_ROOT}/opt/gridscheduler/etc/conf/act_qmaster
+            echo "${master_name}" > ${cw_ROOT}/opt/gridscheduler/etc/conf/act_qmaster # This line has always been here...
+            echo "${master_name}" > ${cw_ROOT}/opt/gridscheduler/etc/common/act_qmaster # This line is now needed to make things work.
 
             if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
                 log "Starting up clusterware-gridscheduler-execd service" "${cw_CLUSTER_SGE_log}"
