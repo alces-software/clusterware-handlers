@@ -40,11 +40,11 @@ main() {
         exit 0
     fi
 
-    mkdir -p "${cw_ROOT}/etc/config/autoscaling"
-
     files_load_config instance config/cluster
 
     _configure_autoscaling
+
+    mkdir -p "${cw_ROOT}/etc/config/autoscaling"
 }
 
 setup

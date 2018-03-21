@@ -40,4 +40,17 @@ fi
 unset cw_INSTANCE_role
 EOF
 
-"${cw_ROOT}"/etc/handlers/autoscaling/configure
+if [ ! -d "${cw_ROOT}/etc/config/cluster" ]; then
+  echo "Cluster not yet configured. Deferring autoscaling configuration until next boot."
+else
+  "${cw_ROOT}"/etc/handlers/autoscaling/configure
+
+  _handle_members() {
+    shift  # Gets rid of the '--' that member_each starts with
+    echo "$@" | "${cw_ROOT}/etc/handlers/autoscaling/member-join"
+  }
+
+  require member
+  member_each _handle_members
+
+fi
