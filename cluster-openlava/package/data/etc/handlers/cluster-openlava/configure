@@ -25,8 +25,6 @@ _configure_openlava() {
     local slots
     echo "Configuring OpenLava (refer to ${cw_CLUSTER_OPENLAVA_log})"
 
-    "${_ALCES}" service enable openlava | log_blob
-
     files_load_config instance config/cluster
 
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":compute:"* ]]; then
