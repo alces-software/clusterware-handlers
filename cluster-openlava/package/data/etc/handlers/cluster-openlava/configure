@@ -32,6 +32,7 @@ _configure_openlava() {
         handler_add_libdir "${cw_ROOT}"/var/lib/scheduler
         require openlava
         openlava_write_node_resources "${cw_ROOT}/etc/serf/tags-node-resources.json"
+        distro_restart_service clusterware-serf.service
     fi
 
     if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":master:"* ]]; then
@@ -57,6 +58,7 @@ main() {
 }
 
 setup
+require distro
 require handler
 require files
 require log

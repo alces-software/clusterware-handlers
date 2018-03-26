@@ -65,6 +65,7 @@ _configure_pbspro() {
         handler_add_libdir "${cw_ROOT}"/var/lib/scheduler
         require pbspro
         pbspro_write_node_resources "${cw_ROOT}/etc/serf/tags-node-resources.json"
+        distro_restart_service clusterware-serf.service
     fi
 }
 
