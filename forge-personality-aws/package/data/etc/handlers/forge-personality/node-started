@@ -53,6 +53,11 @@ RUBY
       "${_ALCES}" forge install "alces/${scheduler}-compute"
     fi
 
+    if [[ "${cw_INSTANCE_tag_SCHEDULER_ROLES}" == *":submit:"* ]]; then
+      echo "Installing ${scheduler}-submit configuration"
+      "${_ALCES}" forge install "alces/${scheduler}-submit"
+    fi
+
     "${_ALCES}" forge install "alces/${scheduler}-events-aws"
 
   else
