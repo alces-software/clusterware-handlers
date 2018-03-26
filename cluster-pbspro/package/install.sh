@@ -1,4 +1,5 @@
 #!/bin/bash
+require member
 
 cp -R data/* "${cw_ROOT}"
 
