@@ -93,7 +93,7 @@ main() {
 
     gpu_count="$(_gpu_count)"
     if [ "${gpu_count}" == "0" ]; then
-        log "No GPUs detected; skipping GPU support"
+        log "No GPUs detected; skipping GPU support" "${_LOG}"
         return 0
     fi
 
@@ -144,7 +144,7 @@ require distro
 require network
 
 _JQ="${cw_ROOT}"/opt/jq/bin/jq
-_LOG=/var/log/clusterware/nvidia-driver.log
+_LOG=/var/log/clusterware/gpu-support.log
 _VERSION=384.98
 _INSTALLER=NVIDIA-Linux-x86_64-${_VERSION}.run
 
